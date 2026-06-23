@@ -86,6 +86,7 @@ import {
   Menu,
   X,
   CheckCircle2,
+  RefreshCw,
 } from "lucide-react";
 
 const POPULAR = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "JPM"];
@@ -234,22 +235,22 @@ export default function Home() {
         );
         const json = await res.json();
 
-        if (json.error === "demo") {
-          setData(DEMO_DATA);
-          setIsDemo(true);
-          fetchPeers(symbol, true);
+        // Transient upstream/auth issue — never substitute another company's
+        // data. Show a clean, retryable message instead.
+        if (json.error === "demo" || json.error === "auth_failed") {
+          setError(`We couldn't load ${symbol.toUpperCase()} right now. Please try again in a moment.`);
           return;
         }
 
-        if (!res.ok) {
-          setError(json.error || "Failed to fetch data");
+        if (!res.ok || json.error === "not_found" || !json.profile) {
+          setError(`No market data found for "${symbol.toUpperCase()}". Double-check the ticker and try again.`);
           return;
         }
 
         setData(json);
         fetchPeers(symbol, false);
       } catch {
-        setError("Network error. Please try again.");
+        setError("Network issue — please check your connection and try again.");
       } finally {
         setLoading(false);
       }
@@ -477,14 +478,6 @@ export default function Home() {
               </code>{" "}
               for live data.
             </span>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="mb-5 flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--color-negative)]/8 border border-[var(--color-negative)]/15 text-[var(--color-negative)] text-xs">
-            <AlertCircle size={14} />
-            <span>{error}</span>
           </div>
         )}
 
@@ -1225,6 +1218,30 @@ export default function Home() {
               </div>
             ) : loading ? (
               <StockDetailSkeleton />
+            ) : error ? (
+              <div className="max-w-md mx-auto text-center py-16 animate-fade-in-up">
+                <div className="w-14 h-14 rounded-2xl bg-[var(--color-warning)]/10 flex items-center justify-center mx-auto mb-5">
+                  <AlertCircle size={26} className="text-[var(--color-warning)]" />
+                </div>
+                <h3 className="font-display text-xl font-semibold mb-2">Couldn&apos;t load that stock</h3>
+                <p className="text-sm text-[var(--color-text-secondary)] mb-6">{error}</p>
+                <div className="flex items-center justify-center gap-2.5">
+                  {activeSymbol && (
+                    <button
+                      onClick={() => fetchStock(activeSymbol)}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--color-brand)] text-white text-sm font-semibold hover:bg-[var(--color-brand-dim)] transition-colors"
+                    >
+                      <RefreshCw size={15} /> Try again
+                    </button>
+                  )}
+                  <button
+                    onClick={() => { setError(null); setActiveSymbol(null); setActiveTab("screener"); }}
+                    className="inline-flex items-center px-5 py-2.5 rounded-full border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-surface-hover)] transition-colors"
+                  >
+                    Back to screener
+                  </button>
+                </div>
+              </div>
             ) : null}
           </>
         )}
