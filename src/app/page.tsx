@@ -499,13 +499,9 @@ export default function Home() {
         {activeTab === "screener" && (
           <div className="animate-fade-in-up">
             {/* Hero — editorial terminal thesis */}
-            <div className="relative overflow-hidden rounded-2xl mb-8 bg-[var(--color-ink)] border-t-2 border-t-[var(--color-gold)]">
+            <div className="relative overflow-hidden rounded-2xl mb-8 premium-ink border-t-2 border-t-[var(--color-gold)]">
               {/* terminal grid texture */}
               <div className="absolute inset-0 hero-grid pointer-events-none" />
-              <div className="absolute inset-0 opacity-25 pointer-events-none">
-                <div className="absolute -top-24 -right-16 w-80 h-80 bg-[var(--color-brand)] rounded-full blur-[130px]" />
-                <div className="absolute -bottom-24 left-1/3 w-56 h-56 bg-[var(--color-gold)] rounded-full blur-[120px]" />
-              </div>
 
               {/* Animated market chart — right side, decorative, desktop only */}
               <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-[46%] pointer-events-none overflow-hidden" aria-hidden="true">

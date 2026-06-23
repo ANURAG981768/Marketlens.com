@@ -47,7 +47,7 @@ export default function VerifyCertificatePage() {
         {cert ? (
           <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
             {/* Verified banner */}
-            <div className="bg-[var(--color-ink)] px-6 py-5 flex items-center gap-3 border-t-2 border-t-[var(--color-gold)]">
+            <div className="premium-ink px-6 py-5 flex items-center gap-3 border-t-2 border-t-[var(--color-gold)]">
               <div className="w-10 h-10 rounded-full bg-[var(--color-positive)]/15 flex items-center justify-center">
                 <ShieldCheck size={22} className="text-[var(--color-brand-light)]" />
               </div>

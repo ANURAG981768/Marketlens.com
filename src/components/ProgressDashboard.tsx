@@ -60,7 +60,7 @@ export default function ProgressDashboard({ onContinue }: Props) {
   ];
 
   return (
-    <div className="bg-[var(--color-ink)] rounded-2xl overflow-hidden border-t-2 border-t-[var(--color-gold)] mb-6">
+    <div className="premium-ink rounded-2xl overflow-hidden border-t-2 border-t-[var(--color-gold)] mb-6">
       <div className="px-6 py-6 sm:px-8 sm:py-7">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
           <div>
