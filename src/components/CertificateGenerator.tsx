@@ -308,10 +308,14 @@ export default function CertificateGenerator() {
 
     // Performance badge
     if (quizAvg >= 90) {
-      ctx.font = "bold 12px sans-serif"; ctx.fillStyle = "#b8932f"; ctx.fillText("★  DISTINCTION — Top Performer  ★", 700, 764);
+      ctx.font = "bold 12px sans-serif"; ctx.fillStyle = "#b8932f"; ctx.fillText("★  DISTINCTION — Top Performer  ★", 700, 760);
     } else if (quizAvg >= 80) {
-      ctx.font = "bold 12px sans-serif"; ctx.fillStyle = "#0a7c3f"; ctx.fillText("✓  MERIT — Strong Performance", 700, 764);
+      ctx.font = "bold 12px sans-serif"; ctx.fillStyle = "#0a7c3f"; ctx.fillText("✓  MERIT — Strong Performance", 700, 760);
     }
+
+    // Motivating note
+    ctx.font = "italic 17px serif"; ctx.fillStyle = "#5a6677";
+    ctx.fillText("“The best investment you will ever make is in your own learning.”", 700, 800);
 
     // Signatures
     ctx.strokeStyle = "rgba(200,168,78,0.4)"; ctx.lineWidth = 1;
@@ -642,6 +646,10 @@ export default function CertificateGenerator() {
                     <p className="text-[8px] text-[var(--color-text-muted)] uppercase tracking-wider mt-0.5">Date Issued</p>
                   </div>
                 </div>
+
+                <p className="font-display italic text-sm text-[#5a6677] mt-6 max-w-sm mx-auto">
+                  &ldquo;The best investment you will ever make is in your own learning.&rdquo;
+                </p>
               </div>
             </div>
             <div className="p-4 flex items-center justify-between gap-2 bg-[var(--color-surface)]">
