@@ -72,8 +72,10 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
     else if (sma200) signals--;
     if (macd && macd > 0) signals++;
     else if (macd) signals--;
-    if (rsiVal && rsiVal > 30 && rsiVal < 70) signals++;
-    else if (rsiVal) signals--;
+    // RSI convention: oversold (<30) leans bullish (mean-reversion bounce),
+    // overbought (>70) leans bearish; the neutral band is a non-signal.
+    if (rsiVal && rsiVal < 30) signals++;
+    else if (rsiVal && rsiVal > 70) signals--;
 
     let overall: "Bullish" | "Bearish" | "Neutral" = "Neutral";
     if (signals >= 3) overall = "Bullish";
@@ -115,8 +117,10 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
     return v ? `$${v.toFixed(2)}` : "—";
   }
 
-  function signalBadge(condition: boolean | null) {
+  function signalBadge(condition: boolean | "neutral" | null) {
     if (condition === null) return <span className="text-[10px] text-[var(--color-text-muted)]">N/A</span>;
+    if (condition === "neutral")
+      return <span className="text-[10px] font-semibold text-[var(--color-warning)]">NEUTRAL</span>;
     return condition ? (
       <span className="text-[10px] font-semibold text-[var(--color-positive)]">BUY</span>
     ) : (
@@ -158,8 +162,14 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
     {
       label: "RSI (14)",
       value: indicators.rsiVal ? indicators.rsiVal.toFixed(2) : "—",
-      signal: indicators.rsiVal ? indicators.rsiVal > 30 && indicators.rsiVal < 70 : null,
-    },
+      signal: indicators.rsiVal
+        ? indicators.rsiVal < 30
+          ? true // oversold → bullish lean
+          : indicators.rsiVal > 70
+          ? false // overbought → bearish lean
+          : "neutral"
+        : null,
+    } as { label: string; value: string; signal: boolean | "neutral" | null },
   ];
 
   const rsiPct = indicators.rsiVal ? indicators.rsiVal : 50;
