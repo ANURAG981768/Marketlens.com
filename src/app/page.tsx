@@ -348,37 +348,37 @@ export default function Home() {
         <div className="hidden md:block border-t border-[var(--color-border)] bg-white/50">
           <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
             {/* Row 1: Research & Analysis */}
-            <div className="flex items-center gap-0.5 py-1 border-b border-[var(--color-border)]/50">
-              <span className="text-[9px] font-semibold text-[var(--color-text-muted)]/60 uppercase tracking-widest mr-2 shrink-0">Research</span>
+            <div className="flex items-center gap-1 py-1.5 border-b border-[var(--color-border)]/50">
+              <span className="text-[10px] font-semibold text-[var(--color-text-muted)]/70 uppercase tracking-widest mr-2.5 shrink-0">Research</span>
               {NAV_ROW1.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                     activeTab === tab.key
                       ? "bg-[var(--color-brand)] text-white shadow-sm shadow-[var(--color-brand)]/25"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/80"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/80"
                   }`}
                 >
-                  <tab.icon size={12} />
+                  <tab.icon size={16} className="shrink-0" />
                   {tab.label}
                 </button>
               ))}
             </div>
             {/* Row 2: Trading & Learning */}
-            <div className="flex items-center gap-0.5 py-1">
-              <span className="text-[9px] font-semibold text-[var(--color-text-muted)]/60 uppercase tracking-widest mr-2 shrink-0">Learn</span>
+            <div className="flex items-center gap-1 py-1.5">
+              <span className="text-[10px] font-semibold text-[var(--color-text-muted)]/70 uppercase tracking-widest mr-2.5 shrink-0">Learn</span>
               {NAV_ROW2.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                     activeTab === tab.key
                       ? "bg-[var(--color-brand)] text-white shadow-sm shadow-[var(--color-brand)]/25"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/80"
+                      : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/80"
                   }`}
                 >
-                  <tab.icon size={12} />
+                  <tab.icon size={16} className="shrink-0" />
                   {tab.label}
                 </button>
               ))}
