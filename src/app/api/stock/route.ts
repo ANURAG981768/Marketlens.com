@@ -10,17 +10,74 @@ const num = (v: unknown): number => {
   if (v && typeof v === "object" && typeof (v as { raw?: number }).raw === "number") return (v as { raw: number }).raw;
   return 0;
 };
-const str = (v: unknown): string => {
-  if (typeof v === "string") return v;
-  if (v && typeof v === "object" && typeof (v as { fmt?: string }).fmt === "string") return (v as { fmt: string }).fmt;
-  return "";
-};
 const safeDiv = (a: number, b: number) => (b ? a / b : 0);
 
 async function quoteSummary(symbol: string, crumb: string, cookie: string) {
   const mods = "assetProfile,price,summaryDetail,defaultKeyStatistics,financialData,incomeStatementHistory";
   const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${mods}&crumb=${encodeURIComponent(crumb)}`;
   return fetch(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 120 } });
+}
+
+// Full annual income statements from Yahoo's fundamentals-timeseries endpoint.
+// (The legacy quoteSummary income module now returns only revenue + net income.)
+async function fetchIncome(symbol: string, crumb: string, cookie: string, shares: number): Promise<unknown[]> {
+  try {
+    const types = "annualTotalRevenue,annualCostOfRevenue,annualGrossProfit,annualOperatingIncome,annualNetIncome,annualEBITDA,annualDilutedEPS,annualOperatingExpense";
+    const p2 = Math.floor(Date.now() / 1000);
+    const url = `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(symbol)}?symbol=${encodeURIComponent(symbol)}&type=${types}&period1=1500000000&period2=${p2}&crumb=${encodeURIComponent(crumb)}`;
+    const res = await fetch(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 3600 } });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const groups: Array<Record<string, unknown>> = json?.timeseries?.result || [];
+
+    const byDate: Record<string, Record<string, number>> = {};
+    const put = (typeName: string, field: string) => {
+      const g = groups.find((x) => (x.meta as { type?: string[] })?.type?.[0] === typeName);
+      const arr = (g?.[typeName] as Array<{ asOfDate?: string; reportedValue?: { raw?: number } }>) || [];
+      for (const item of arr) {
+        if (!item?.asOfDate) continue;
+        byDate[item.asOfDate] = byDate[item.asOfDate] || {};
+        byDate[item.asOfDate][field] = item.reportedValue?.raw ?? 0;
+      }
+    };
+    put("annualTotalRevenue", "revenue");
+    put("annualCostOfRevenue", "costOfRevenue");
+    put("annualGrossProfit", "grossProfit");
+    put("annualOperatingIncome", "operatingIncome");
+    put("annualNetIncome", "netIncome");
+    put("annualEBITDA", "ebitda");
+    put("annualDilutedEPS", "eps");
+    put("annualOperatingExpense", "operatingExpenses");
+
+    const dates = Object.keys(byDate).sort().reverse(); // newest first
+    return dates.map((d) => {
+      const v = byDate[d];
+      const revenue = v.revenue || 0;
+      const grossProfit = v.grossProfit || 0;
+      const operatingIncome = v.operatingIncome || 0;
+      const netIncome = v.netIncome || 0;
+      const eps = v.eps != null ? v.eps : safeDiv(netIncome, shares);
+      return {
+        date: d,
+        calendarYear: d.slice(0, 4),
+        period: "FY",
+        revenue,
+        grossProfit,
+        grossProfitRatio: safeDiv(grossProfit, revenue),
+        operatingIncome,
+        operatingIncomeRatio: safeDiv(operatingIncome, revenue),
+        netIncome,
+        netIncomeRatio: safeDiv(netIncome, revenue),
+        eps,
+        epsdiluted: eps,
+        ebitda: v.ebitda || operatingIncome,
+        operatingExpenses: v.operatingExpenses || (revenue - operatingIncome),
+        costOfRevenue: v.costOfRevenue || (revenue - grossProfit),
+      };
+    });
+  } catch {
+    return [];
+  }
 }
 
 async function fetchHistory(symbol: string): Promise<unknown[]> {
@@ -64,7 +121,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid ticker symbol" }, { status: 400 });
   }
 
-  const auth = await getYahooAuth();
+  let auth = await getYahooAuth();
   if (!auth) return NextResponse.json({ error: "demo" }, { status: 200 });
 
   try {
@@ -73,6 +130,7 @@ export async function GET(req: NextRequest) {
       invalidateYahooAuth();
       const fresh = await getYahooAuth(true);
       if (!fresh) return NextResponse.json({ error: "demo" }, { status: 200 });
+      auth = fresh;
       res = await quoteSummary(symbol, fresh.crumb, fresh.cookie);
     }
     if (!res.ok) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -161,33 +219,10 @@ export async function GET(req: NextRequest) {
       revenueGrowthTTM: num(fd.revenueGrowth),
     };
 
-    const rawIncome = r.incomeStatementHistory?.incomeStatementHistory || [];
-    const income = rawIncome.map((s: Record<string, unknown>) => {
-      const revenue = num(s.totalRevenue);
-      const grossProfit = num(s.grossProfit);
-      const operatingIncome = num(s.operatingIncome);
-      const netIncome = num(s.netIncome);
-      const year = str(s.endDate).slice(0, 4);
-      return {
-        date: str(s.endDate),
-        calendarYear: year,
-        period: "FY",
-        revenue,
-        grossProfit,
-        grossProfitRatio: safeDiv(grossProfit, revenue),
-        operatingIncome,
-        operatingIncomeRatio: safeDiv(operatingIncome, revenue),
-        netIncome,
-        netIncomeRatio: safeDiv(netIncome, revenue),
-        eps: safeDiv(netIncome, shares),
-        epsdiluted: safeDiv(netIncome, shares),
-        ebitda: num(s.ebit) || operatingIncome,
-        operatingExpenses: num(s.totalOperatingExpenses) || (revenue - operatingIncome),
-        costOfRevenue: num(s.costOfRevenue) || (revenue - grossProfit),
-      };
-    });
-
-    const history = await fetchHistory(symbol);
+    const [income, history] = await Promise.all([
+      fetchIncome(symbol, auth.crumb, auth.cookie, shares),
+      fetchHistory(symbol),
+    ]);
 
     return NextResponse.json({ profile, quote, metrics, income, history });
   } catch {
