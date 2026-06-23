@@ -1,64 +1,996 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useCallback } from "react";
+import type { StockData } from "@/lib/types";
+import { DEMO_DATA } from "@/lib/demo-data";
+import { DEMO_PEERS } from "@/lib/demo-peers";
+import SearchBar from "@/components/SearchBar";
+import StockHeader from "@/components/StockHeader";
+import PriceChart from "@/components/PriceChart";
+import RevenueChart from "@/components/RevenueChart";
+import KeyMetricsGrid from "@/components/KeyMetricsGrid";
+import FinancialTable from "@/components/FinancialTable";
+import QuickStats from "@/components/QuickStats";
+import CompanyOverview from "@/components/CompanyOverview";
+import PeerComparison from "@/components/PeerComparison";
+import PeerBarChart from "@/components/PeerBarChart";
+import MarginTrend from "@/components/MarginTrend";
+import ScoreCard from "@/components/ScoreCard";
+import DCFModel from "@/components/DCFModel";
+import NewsFeed from "@/components/NewsFeed";
+import WatchlistButton from "@/components/WatchlistButton";
+import AddToPortfolio from "@/components/AddToPortfolio";
+import WatchlistPanel from "@/components/WatchlistPanel";
+import PortfolioPanel from "@/components/PortfolioPanel";
+import StockScreener from "@/components/StockScreener";
+import MarketOverview from "@/components/MarketOverview";
+import EarningsCalendar from "@/components/EarningsCalendar";
+import TechnicalIndicators from "@/components/TechnicalIndicators";
+import DividendHistory from "@/components/DividendHistory";
+import PaperTrading from "@/components/PaperTrading";
+import QuickTrade from "@/components/QuickTrade";
+import FinanceQuiz from "@/components/FinanceQuiz";
+import Glossary from "@/components/Glossary";
+import TradeJournal from "@/components/TradeJournal";
+import Achievements from "@/components/Achievements";
+import AIAnalyst from "@/components/AIAnalyst";
+import LessonsHub from "@/components/LessonsHub";
+import StockCompare from "@/components/StockCompare";
+import InvestmentCalculator from "@/components/InvestmentCalculator";
+import SectorHeatmap from "@/components/SectorHeatmap";
+import EarningsTranscripts from "@/components/EarningsTranscripts";
+import EconomicCalendar from "@/components/EconomicCalendar";
+import PortfolioAnalytics from "@/components/PortfolioAnalytics";
+import RatioExplainer from "@/components/RatioExplainer";
+import CertificateGenerator from "@/components/CertificateGenerator";
+import { LogoMark, LogoHero, FeatureIcon } from "@/components/Logo";
+import {
+  BarChart3,
+  AlertCircle,
+  Home as HomeIcon,
+  Star,
+  Briefcase,
+  Filter,
+  Activity,
+  Calendar,
+  TrendingUp,
+  Globe,
+  Zap,
+  ArrowRight,
+  Search,
+  DollarSign,
+  Bitcoin,
+  GraduationCap,
+  BookText,
+  BookMarked,
+  Medal,
+  Scale,
+  Calculator,
+  ChevronRight,
+  Sparkles,
+  Users,
+  BarChart2,
+  BookOpen,
+  Target,
+  Shield,
+  LayoutGrid,
+  FileText,
+  Award,
+} from "lucide-react";
+
+const POPULAR = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "JPM"];
+
+const TRENDING = [
+  { symbol: "NVDA", name: "NVIDIA", change: 3.21 },
+  { symbol: "AAPL", name: "Apple", change: 1.69 },
+  { symbol: "TSLA", name: "Tesla", change: -0.84 },
+  { symbol: "MSFT", name: "Microsoft", change: 0.52 },
+  { symbol: "AMD", name: "AMD", change: 2.45 },
+  { symbol: "AMZN", name: "Amazon", change: 1.13 },
+];
+
+const GLOBAL_INDICES = [
+  { name: "S&P 500", value: "5,667.20", change: "+0.58%", positive: true, flag: "🇺🇸" },
+  { name: "NASDAQ", value: "18,352.76", change: "+0.80%", positive: true, flag: "🇺🇸" },
+  { name: "Nifty 50", value: "24,834.85", change: "+0.42%", positive: true, flag: "🇮🇳" },
+  { name: "Sensex", value: "81,721.34", change: "+0.38%", positive: true, flag: "🇮🇳" },
+  { name: "SSE Composite", value: "3,261.56", change: "-0.21%", positive: false, flag: "🇨🇳" },
+  { name: "Hang Seng", value: "18,456.32", change: "+1.12%", positive: true, flag: "🇭🇰" },
+  { name: "Nikkei 225", value: "39,583.08", change: "+0.67%", positive: true, flag: "🇯🇵" },
+  { name: "FTSE 100", value: "8,312.89", change: "-0.15%", positive: false, flag: "🇬🇧" },
+  { name: "DAX", value: "18,692.01", change: "+0.33%", positive: true, flag: "🇩🇪" },
+  { name: "CAC 40", value: "7,628.45", change: "+0.19%", positive: true, flag: "🇫🇷" },
+];
+
+const CRYPTO_PRICES = [
+  { symbol: "BTC-USD", name: "Bitcoin", price: "104,256.83", change: "+2.14%", positive: true, icon: "₿" },
+  { symbol: "ETH-USD", name: "Ethereum", price: "3,892.45", change: "+1.87%", positive: true, icon: "Ξ" },
+  { symbol: "SOL-USD", name: "Solana", price: "178.62", change: "+4.32%", positive: true, icon: "◎" },
+  { symbol: "BNB-USD", name: "BNB", price: "612.30", change: "-0.45%", positive: false, icon: "⬡" },
+  { symbol: "XRP-USD", name: "XRP", price: "2.34", change: "+0.89%", positive: true, icon: "✕" },
+  { symbol: "DOGE-USD", name: "Dogecoin", price: "0.4125", change: "+6.21%", positive: true, icon: "Ð" },
+  { symbol: "ADA-USD", name: "Cardano", price: "1.12", change: "-1.23%", positive: false, icon: "₳" },
+  { symbol: "AVAX-USD", name: "Avalanche", price: "42.87", change: "+3.15%", positive: true, icon: "🔺" },
+  { symbol: "DOT-USD", name: "Polkadot", price: "8.94", change: "+1.56%", positive: true, icon: "●" },
+  { symbol: "LINK-USD", name: "Chainlink", price: "18.73", change: "+2.78%", positive: true, icon: "⬡" },
+];
+
+type Tab = "home" | "watchlist" | "portfolio" | "screener" | "market" | "earnings" | "paper" | "quiz" | "glossary" | "journal" | "achievements" | "lessons" | "compare" | "calculator" | "heatmap" | "transcripts" | "economy" | "analytics" | "ratios" | "certificates";
 
 export default function Home() {
+  const [data, setData] = useState<StockData | null>(null);
+  const [peers, setPeers] = useState<any[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
+  const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [activeTab, setActiveTab] = useState<Tab>("screener");
+
+  const refresh = () => setRefreshKey((k) => k + 1);
+
+  const fetchPeers = useCallback(async (symbol: string, demo: boolean) => {
+    if (demo) {
+      setPeers(DEMO_PEERS.peers);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/peers?symbol=${encodeURIComponent(symbol)}`);
+      const json = await res.json();
+      if (json.error === "demo") {
+        setPeers(DEMO_PEERS.peers);
+      } else if (json.peers) {
+        setPeers(json.peers);
+      }
+    } catch {
+      setPeers(null);
+    }
+  }, []);
+
+  const fetchStock = useCallback(
+    async (symbol: string) => {
+      setLoading(true);
+      setError(null);
+      setIsDemo(false);
+      setPeers(null);
+      setActiveSymbol(symbol);
+      setActiveTab("home");
+
+      try {
+
+        const res = await fetch(
+          `/api/stock?symbol=${encodeURIComponent(symbol)}`
+        );
+        const json = await res.json();
+
+        if (json.error === "demo") {
+          setData(DEMO_DATA);
+          setIsDemo(true);
+          fetchPeers(symbol, true);
+          return;
+        }
+
+        if (!res.ok) {
+          setError(json.error || "Failed to fetch data");
+          return;
+        }
+
+        setData(json);
+        fetchPeers(symbol, false);
+      } catch {
+        setError("Network error. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchPeers]
+  );
+
+  const NAV_TABS: { key: Tab; label: string; icon: typeof HomeIcon }[] = [
+    { key: "home", label: "Research", icon: HomeIcon },
+    { key: "market", label: "Market", icon: Activity },
+    { key: "screener", label: "Screener", icon: Filter },
+    { key: "earnings", label: "Earnings", icon: Calendar },
+    { key: "paper", label: "Trade", icon: DollarSign },
+    { key: "quiz", label: "Quiz", icon: GraduationCap },
+    { key: "lessons", label: "Lessons", icon: BookMarked },
+    { key: "compare", label: "Compare", icon: Scale },
+    { key: "calculator", label: "Calc", icon: Calculator },
+    { key: "heatmap", label: "Heatmap", icon: LayoutGrid },
+    { key: "transcripts", label: "Transcripts", icon: FileText },
+    { key: "economy", label: "Economy", icon: Globe },
+    { key: "analytics", label: "Analytics", icon: Shield },
+    { key: "ratios", label: "Ratios", icon: BookOpen },
+    { key: "certificates", label: "Certs", icon: Award },
+    { key: "glossary", label: "Glossary", icon: BookText },
+    { key: "achievements", label: "Awards", icon: Medal },
+    { key: "watchlist", label: "Watchlist", icon: Star },
+    { key: "portfolio", label: "Portfolio", icon: Briefcase },
+  ];
+
+  const TICKER_ITEMS = [
+    ...GLOBAL_INDICES.map(i => ({ label: i.name, value: i.value, change: i.change, positive: i.positive })),
+    { label: "BTC", value: "$104,250", change: "+2.41%", positive: true },
+    { label: "ETH", value: "$3,892", change: "+1.85%", positive: true },
+    { label: "Gold", value: "$2,438", change: "+0.32%", positive: true },
+    { label: "Oil", value: "$78.42", change: "-0.67%", positive: false },
+    { label: "VIX", value: "13.28", change: "-2.14%", positive: false },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen">
+      {/* Live Market Ticker Bar */}
+      <div className="bg-[#0f1419] text-white overflow-hidden relative z-50">
+        <div className="flex items-center">
+          <div className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 bg-[var(--color-brand)] text-white text-[10px] font-bold uppercase tracking-wider z-10">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+            Live
+          </div>
+          <div className="overflow-hidden flex-1">
+            <div className="ticker-track flex items-center gap-8 py-1.5 whitespace-nowrap">
+              {[...TICKER_ITEMS, ...TICKER_ITEMS].map((item, i) => (
+                <span key={i} className="flex items-center gap-2 text-[11px]">
+                  <span className="text-gray-400 font-medium">{item.label}</span>
+                  <span className="font-semibold text-white tabular-nums">{item.value}</span>
+                  <span className={`font-semibold tabular-nums ${item.positive ? "text-[#00e676]" : "text-[#ff5252]"}`}>
+                    {item.change}
+                  </span>
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      {/* Header */}
+      <header className="sticky top-0 z-40 glass bg-white/80 border-b border-[var(--color-border)] shadow-sm">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-5 shrink-0">
+            <div
+              className="flex items-center gap-2.5 cursor-pointer group"
+              onClick={() => {
+                setData(null);
+                setActiveSymbol(null);
+                setActiveTab("screener");
+              }}
+            >
+              <LogoMark size={36} className="shadow-lg shadow-[var(--color-brand)]/20 group-hover:shadow-[var(--color-brand)]/30 transition-shadow rounded-[10px]" />
+              <div>
+                <h1 className="text-base font-bold tracking-tight leading-none text-[var(--color-text-primary)]">
+                  Market<span className="text-gradient-brand">Lens</span>
+                </h1>
+                <p className="text-[9px] text-[var(--color-text-muted)] leading-none mt-0.5 tracking-wider uppercase">
+                  Research Platform
+                </p>
+              </div>
+            </div>
+
+            {/* Nav Tabs */}
+            <nav className="hidden lg:flex items-center gap-0.5 ml-2 bg-[var(--color-surface-card)]/80 rounded-xl p-1 border border-[var(--color-border)]">
+              {NAV_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                    activeTab === tab.key
+                      ? "bg-[var(--color-brand)] text-white shadow-md shadow-[var(--color-brand)]/25"
+                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/60"
+                  }`}
+                >
+                  <tab.icon size={13} />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
+          </div>
+          <SearchBar onSearch={fetchStock} loading={loading} />
         </div>
+
+        {/* Mobile Nav */}
+        <div className="lg:hidden border-t border-[var(--color-border)] overflow-x-auto bg-white/60 glass">
+          <div className="flex items-center gap-1 px-4 py-2 min-w-max">
+            {NAV_TABS.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
+                  activeTab === tab.key
+                    ? "bg-[var(--color-brand)] text-white shadow-sm"
+                    : "text-[var(--color-text-muted)]"
+                }`}
+              >
+                <tab.icon size={12} />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Demo Banner */}
+        {isDemo && activeTab === "home" && (
+          <div className="mb-5 flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--color-warning)]/8 border border-[var(--color-warning)]/15 text-[var(--color-warning)] text-xs">
+            <AlertCircle size={14} />
+            <span>
+              Demo mode — showing sample Apple data. Add your free{" "}
+              <strong>Financial Modeling Prep</strong> API key to{" "}
+              <code className="bg-[var(--color-surface-card)] px-1.5 py-0.5 rounded text-[var(--color-warning)]">
+                .env.local
+              </code>{" "}
+              for live data.
+            </span>
+          </div>
+        )}
+
+        {/* Error */}
+        {error && (
+          <div className="mb-5 flex items-center gap-2 px-4 py-3 rounded-xl bg-[var(--color-negative)]/8 border border-[var(--color-negative)]/15 text-[var(--color-negative)] text-xs">
+            <AlertCircle size={14} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Market Tab */}
+        {activeTab === "market" && (
+          <div className="max-w-5xl mx-auto animate-fade-in-up">
+            <MarketOverview />
+          </div>
+        )}
+
+        {/* Screener Tab — Default Landing */}
+        {activeTab === "screener" && (
+          <div className="animate-fade-in-up">
+            {/* Hero Welcome Banner */}
+            <div className="relative overflow-hidden rounded-2xl mb-8 bg-gradient-to-br from-[#0f1419] via-[#1a2332] to-[#0f1419]">
+              <div className="absolute inset-0 opacity-20 pointer-events-none">
+                <div className="absolute -top-20 -right-20 w-72 h-72 bg-[var(--color-brand)] rounded-full blur-[120px]" />
+                <div className="absolute -bottom-20 -left-20 w-52 h-52 bg-blue-500 rounded-full blur-[100px]" />
+              </div>
+              <div className="relative px-6 sm:px-8 py-8 sm:py-10">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+                  <div className="min-w-0">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[var(--color-brand)] text-xs font-medium mb-4">
+                      <Sparkles size={12} />
+                      Free for Students Worldwide
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">
+                      Research. Learn. <span className="text-gradient-brand">Invest Smarter.</span>
+                    </h2>
+                    <p className="text-sm text-gray-400 max-w-md leading-relaxed">
+                      Professional-grade equity research, paper trading, and financial education — built for the next generation of investors.
+                    </p>
+                  </div>
+                  <div className="flex flex-row lg:flex-col gap-2 lg:gap-2.5 shrink-0">
+                    {[
+                      { icon: BarChart2, label: "5,000+ Stocks", sub: "Global coverage" },
+                      { icon: BookOpen, label: "12 Courses", sub: "Learn investing" },
+                      { icon: Target, label: "$1M Paper $", sub: "Risk-free trading" },
+                    ].map((stat) => (
+                      <div key={stat.label} className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10">
+                        <stat.icon size={16} className="text-[var(--color-brand)] shrink-0" />
+                        <div>
+                          <p className="text-xs font-bold text-white leading-none">{stat.label}</p>
+                          <p className="text-[10px] text-gray-500 leading-none mt-0.5">{stat.sub}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Access Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8 animate-fade-in-up animate-delay-100">
+              {[
+                { tab: "paper" as Tab, icon: DollarSign, label: "Paper Trade", desc: "Practice risk-free", gradient: "from-emerald-500 to-green-600" },
+                { tab: "lessons" as Tab, icon: BookMarked, label: "Learn", desc: "10 guided courses", gradient: "from-blue-500 to-indigo-600" },
+                { tab: "heatmap" as Tab, icon: LayoutGrid, label: "Heatmap", desc: "Sector performance", gradient: "from-violet-500 to-purple-600" },
+                { tab: "quiz" as Tab, icon: GraduationCap, label: "Quiz", desc: "210+ questions", gradient: "from-amber-500 to-orange-600" },
+              ].map((card) => (
+                <button
+                  key={card.label}
+                  onClick={() => setActiveTab(card.tab)}
+                  className="card-glow bg-white rounded-xl p-4 text-left border border-[var(--color-border)] group"
+                >
+                  <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-3 shadow-sm`}>
+                    <card.icon size={18} className="text-white" />
+                  </div>
+                  <h4 className="text-sm font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-brand)] transition-colors">{card.label}</h4>
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{card.desc}</p>
+                </button>
+              ))}
+            </div>
+
+            {/* Screener Component */}
+            <div className="max-w-5xl mx-auto animate-fade-in-up animate-delay-200">
+              <StockScreener onSelect={fetchStock} />
+            </div>
+          </div>
+        )}
+
+        {/* Earnings Tab */}
+        {activeTab === "earnings" && (
+          <div className="max-w-4xl mx-auto animate-fade-in-up">
+            <EarningsCalendar onSelect={fetchStock} />
+          </div>
+        )}
+
+        {/* Paper Trading Tab */}
+        {activeTab === "paper" && (
+          <div className="max-w-4xl mx-auto animate-fade-in-up">
+            <PaperTrading onSelect={fetchStock} />
+          </div>
+        )}
+
+        {/* Quiz / Learn Tab */}
+        {activeTab === "quiz" && (
+          <div className="animate-fade-in-up">
+            <FinanceQuiz />
+          </div>
+        )}
+
+        {/* Glossary Tab */}
+        {activeTab === "glossary" && (
+          <div className="animate-fade-in-up">
+            <Glossary />
+          </div>
+        )}
+
+        {/* Trade Journal Tab */}
+        {activeTab === "journal" && (
+          <div className="animate-fade-in-up">
+            <TradeJournal />
+          </div>
+        )}
+
+        {/* Lessons Tab */}
+        {activeTab === "lessons" && (
+          <div className="animate-fade-in-up">
+            <LessonsHub onNavigateToQuiz={() => setActiveTab("quiz")} onNavigateToCerts={() => setActiveTab("certificates")} />
+          </div>
+        )}
+
+        {/* Achievements Tab */}
+        {activeTab === "achievements" && (
+          <div className="animate-fade-in-up">
+            <Achievements />
+          </div>
+        )}
+
+        {/* Compare Tab */}
+        {activeTab === "compare" && (
+          <div className="animate-fade-in-up">
+            <StockCompare />
+          </div>
+        )}
+
+        {/* Calculator Tab */}
+        {activeTab === "calculator" && (
+          <div className="animate-fade-in-up">
+            <InvestmentCalculator />
+          </div>
+        )}
+
+        {/* Heatmap Tab */}
+        {activeTab === "heatmap" && (
+          <div className="max-w-5xl mx-auto animate-fade-in-up">
+            <SectorHeatmap />
+          </div>
+        )}
+
+        {/* Earnings Transcripts Tab */}
+        {activeTab === "transcripts" && (
+          <div className="max-w-4xl mx-auto animate-fade-in-up">
+            <EarningsTranscripts />
+          </div>
+        )}
+
+        {/* Economic Calendar Tab */}
+        {activeTab === "economy" && (
+          <div className="max-w-5xl mx-auto animate-fade-in-up">
+            <EconomicCalendar />
+          </div>
+        )}
+
+        {/* Portfolio Analytics Tab */}
+        {activeTab === "analytics" && (
+          <div className="max-w-5xl mx-auto animate-fade-in-up">
+            <PortfolioAnalytics />
+          </div>
+        )}
+
+        {/* Financial Ratios Guide Tab */}
+        {activeTab === "ratios" && (
+          <div className="max-w-4xl mx-auto animate-fade-in-up">
+            <RatioExplainer />
+          </div>
+        )}
+
+        {/* Certificates Tab */}
+        {activeTab === "certificates" && (
+          <div className="max-w-4xl mx-auto animate-fade-in-up">
+            <CertificateGenerator />
+          </div>
+        )}
+
+        {/* Watchlist Tab */}
+        {activeTab === "watchlist" && (
+          <div className="max-w-3xl mx-auto space-y-6 animate-fade-in-up">
+            <div className="text-center py-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20">
+                <Star size={28} className="text-white" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Watchlist</h2>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Monitor price movements on the equities that matter to you
+              </p>
+            </div>
+            <WatchlistPanel onSelect={fetchStock} refreshKey={refreshKey} />
+            <NewsFeed isDemo />
+          </div>
+        )}
+
+        {/* Portfolio Tab */}
+        {activeTab === "portfolio" && (
+          <div className="max-w-3xl mx-auto space-y-6 animate-fade-in-up">
+            <div className="text-center py-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
+                <Briefcase size={28} className="text-white" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Portfolio</h2>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Track holdings, cost basis, and unrealized P&L at a glance
+              </p>
+            </div>
+            <PortfolioPanel onSelect={fetchStock} refreshKey={refreshKey} />
+            <NewsFeed isDemo />
+          </div>
+        )}
+
+        {/* Home / Research Tab */}
+        {activeTab === "home" && (
+          <>
+            {!data && !loading && !error ? (
+              /* Landing State — Robinhood-style */
+              <div className="animate-fade-in-up">
+                {/* Hero Section */}
+                <div className="relative text-center py-16 mb-10">
+                  <div className="absolute inset-0 bg-gradient-to-b from-[var(--color-brand)]/5 via-transparent to-transparent rounded-3xl pointer-events-none" />
+                  <div className="relative">
+                    <div className="flex justify-center mb-6">
+                      <LogoHero />
+                    </div>
+                    <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[var(--color-brand)]/10 border border-[var(--color-brand)]/20 text-[var(--color-brand)] text-xs font-medium mb-6">
+                      <Zap size={12} />
+                      Your Equity Research Terminal
+                    </div>
+                    <h2 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight text-[var(--color-text-primary)]">
+                      Invest with{" "}
+                      <span className="text-[var(--color-brand)]">
+                        Confidence
+                      </span>
+                    </h2>
+                    <p className="text-[var(--color-text-secondary)] text-base sm:text-lg mb-10 max-w-xl mx-auto leading-relaxed">
+                      Professional-grade research, real-time market intelligence,
+                      and hands-on practice — everything you need to make informed decisions.
+                    </p>
+
+                    {/* Inline Search CTA */}
+                    <div className="max-w-lg mx-auto mb-8">
+                      <SearchBar onSearch={fetchStock} loading={loading} />
+                    </div>
+
+                    {/* Popular Tickers */}
+                    <div className="flex flex-col items-center gap-3">
+                      <p className="text-xs text-[var(--color-text-muted)] uppercase tracking-wider font-medium">
+                        Popular
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {POPULAR.map((ticker) => (
+                          <button
+                            key={ticker}
+                            onClick={() => fetchStock(ticker)}
+                            className="px-4 py-2 text-xs font-semibold bg-white border border-[var(--color-border)] rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-brand)] hover:border-[var(--color-brand)]/30 hover:bg-[var(--color-brand)]/5 transition-all shadow-sm"
+                          >
+                            {ticker}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Global Market Indices Ticker */}
+                <div className="mb-10 animate-fade-in-up animate-delay-100">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Globe size={16} className="text-[var(--color-brand)]" />
+                    <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                      Global Markets
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                    {GLOBAL_INDICES.map((idx) => (
+                      <div
+                        key={idx.name}
+                        className="bg-white border border-[var(--color-border)] rounded-xl p-3.5 hover:shadow-md transition-all"
+                      >
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="text-sm">{idx.flag}</span>
+                          <span className="text-[10px] font-medium text-[var(--color-text-muted)] truncate">
+                            {idx.name}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">
+                          {idx.value}
+                        </p>
+                        <p
+                          className={`text-xs font-semibold tabular-nums mt-0.5 ${
+                            idx.positive
+                              ? "text-[var(--color-positive)]"
+                              : "text-[var(--color-negative)]"
+                          }`}
+                        >
+                          {idx.change}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Crypto Prices */}
+                <div className="mb-10 animate-fade-in-up animate-delay-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Bitcoin size={16} className="text-[#f7931a]" />
+                      <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                        Crypto
+                      </h3>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("paper")}
+                      className="text-xs font-medium text-[var(--color-brand)] hover:underline flex items-center gap-1"
+                    >
+                      Trade Crypto <ArrowRight size={12} />
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+                    {CRYPTO_PRICES.map((coin) => (
+                      <button
+                        key={coin.symbol}
+                        onClick={() => {
+                          setActiveTab("paper");
+                        }}
+                        className="bg-white border border-[var(--color-border)] rounded-xl p-3.5 hover:shadow-md transition-all text-left group"
+                      >
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <span className="text-sm">{coin.icon}</span>
+                          <span className="text-[10px] font-medium text-[var(--color-text-muted)] truncate group-hover:text-[var(--color-text-primary)] transition-colors">
+                            {coin.name}
+                          </span>
+                        </div>
+                        <p className="text-sm font-bold tabular-nums text-[var(--color-text-primary)]">
+                          ${coin.price}
+                        </p>
+                        <p
+                          className={`text-xs font-semibold tabular-nums mt-0.5 ${
+                            coin.positive
+                              ? "text-[var(--color-positive)]"
+                              : "text-[var(--color-negative)]"
+                          }`}
+                        >
+                          {coin.change}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Trending + News Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 animate-fade-in-up animate-delay-200">
+                  {/* Trending Stocks */}
+                  <div className="lg:col-span-2">
+                    <div className="bg-white border border-[var(--color-border)] rounded-xl overflow-hidden h-full shadow-sm">
+                      <div className="p-4 border-b border-[var(--color-border)]">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp size={14} className="text-[var(--color-brand)]" />
+                          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+                            Trending Today
+                          </h3>
+                        </div>
+                      </div>
+                      <div>
+                        {TRENDING.map((stock, i) => (
+                          <button
+                            key={stock.symbol}
+                            onClick={() => fetchStock(stock.symbol)}
+                            className="w-full flex items-center justify-between px-4 py-3.5 border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-hover)] transition-colors group"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-medium text-[var(--color-text-muted)] w-4">
+                                {i + 1}
+                              </span>
+                              <div className="text-left">
+                                <p className="text-sm font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-brand)] transition-colors">
+                                  {stock.symbol}
+                                </p>
+                                <p className="text-[11px] text-[var(--color-text-muted)]">
+                                  {stock.name}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={`text-xs font-bold tabular-nums ${
+                                  stock.change >= 0
+                                    ? "text-[var(--color-positive)]"
+                                    : "text-[var(--color-negative)]"
+                                }`}
+                              >
+                                {stock.change >= 0 ? "+" : ""}
+                                {stock.change.toFixed(2)}%
+                              </span>
+                              <ArrowRight
+                                size={12}
+                                className="text-[var(--color-text-muted)] opacity-0 group-hover:opacity-100 transition-opacity"
+                              />
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Market News */}
+                  <div className="lg:col-span-3">
+                    <NewsFeed isDemo />
+                  </div>
+                </div>
+
+                {/* Feature Cards */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-10 animate-fade-in-up animate-delay-300">
+                  <button
+                    onClick={() => setActiveTab("market")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <FeatureIcon type="market" className="mb-3" />
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Market Pulse
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      Live sector heatmaps, global indices, and breadth indicators
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("screener")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <FeatureIcon type="screener" className="mb-3" />
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Stock Screener
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      Filter 5,000+ equities by fundamentals, sector, and valuation
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("earnings")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <FeatureIcon type="earnings" className="mb-3" />
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Earnings Calendar
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      Upcoming reports, consensus estimates, and surprise history
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("paper")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <FeatureIcon type="trade" className="mb-3" />
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Paper Trading
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      Practice with $1M virtual capital — zero risk, real strategy
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("quiz")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <FeatureIcon type="quiz" className="mb-3" />
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Finance Quizzes
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      150 questions across 10 topics — test what you know
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("glossary")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <FeatureIcon type="glossary" className="mb-3" />
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Finance Dictionary
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      140+ essential terms with clear, plain-language definitions
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("lessons")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-sm mb-3">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <rect x="3" y="2" width="14" height="16" rx="2" stroke="white" strokeWidth="1.5" fill="none" />
+                        <line x1="7" y1="7" x2="13" y2="7" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                        <line x1="7" y1="10" x2="13" y2="10" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                        <line x1="7" y1="13" x2="11" y2="13" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Guided Lessons
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      6 structured courses with AI study coach and key takeaways
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("compare")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-sm mb-3">
+                      <Scale size={20} className="text-white" />
+                    </div>
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Stock Compare
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      Compare up to 4 stocks side-by-side on 18 key metrics
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("calculator")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm mb-3">
+                      <Calculator size={20} className="text-white" />
+                    </div>
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Invest Calculator
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      Compound growth, DCA, and goal planning calculators
+                    </p>
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("achievements")}
+                    className="card-glow bg-white border border-[var(--color-border)] rounded-xl p-5 text-left hover:border-[var(--color-brand)]/30 transition-all group shadow-sm"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm mb-3">
+                      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 3H16L14 10H6L4 3Z" stroke="white" strokeWidth="1.5" fill="none" strokeLinejoin="round" />
+                        <line x1="10" y1="10" x2="10" y2="14" stroke="white" strokeWidth="1.5" />
+                        <line x1="7" y1="14" x2="13" y2="14" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                    <h4 className="text-sm font-bold mb-1 group-hover:text-[var(--color-brand)] transition-colors">
+                      Achievements
+                    </h4>
+                    <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                      Earn badges as you learn, trade, and build your portfolio
+                    </p>
+                  </button>
+                </div>
+
+                <footer className="text-center py-10 text-xs text-[var(--color-text-muted)] space-y-2">
+                  <p>Data provided by Financial Modeling Prep. Not financial advice.</p>
+                  <p>
+                    Questions or suggestions?{" "}
+                    <a href="https://wa.me/15403979223" target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] hover:underline font-medium">WhatsApp</a>
+                    {" · "}
+                    <a href="mailto:mokshaglobal.org@gmail.com" className="text-[var(--color-brand)] hover:underline font-medium">mokshaglobal.org@gmail.com</a>
+                  </p>
+                </footer>
+              </div>
+            ) : data ? (
+              /* Research Dashboard */
+              <div className="space-y-6 animate-fade-in-up">
+                {/* Stock Header + Actions */}
+                <div>
+                  <StockHeader data={data} />
+                  <div className="flex items-center gap-2 mt-3">
+                    <WatchlistButton
+                      symbol={data.profile.symbol}
+                      name={data.profile.companyName}
+                      price={data.quote.price}
+                      change={data.quote.change}
+                      onUpdate={refresh}
+                    />
+                    <AddToPortfolio
+                      symbol={data.profile.symbol}
+                      name={data.profile.companyName}
+                      currentPrice={data.quote.price}
+                      onAdd={refresh}
+                    />
+                    <QuickTrade
+                      symbol={data.profile.symbol}
+                      name={data.profile.companyName}
+                      price={data.quote.price}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 1: Price chart + sidebar */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <PriceChart history={data.history} />
+                  </div>
+                  <div className="space-y-6">
+                    <QuickStats data={data} />
+                    <CompanyOverview profile={data.profile} />
+                    <TechnicalIndicators
+                      history={data.history}
+                      currentPrice={data.quote.price}
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: AI Analysis + Score card + Margin trend */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <AIAnalyst data={data} />
+                  <ScoreCard data={data} />
+                  <MarginTrend income={data.income} />
+                </div>
+
+                {/* Key Metrics */}
+                <KeyMetricsGrid data={data} />
+
+                {/* DCF Valuation Model + Dividend Analysis */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <DCFModel data={data} />
+                  </div>
+                  <DividendHistory data={data} />
+                </div>
+
+                {/* Row 3: Revenue + Peer Benchmark bar chart */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <RevenueChart income={data.income} />
+                  {peers && peers.length > 1 && (
+                    <PeerBarChart peers={peers} />
+                  )}
+                </div>
+
+                {/* Stock News */}
+                <NewsFeed symbol={activeSymbol ?? undefined} isDemo={isDemo} />
+
+                {/* Peer Comparison Table */}
+                {peers && peers.length > 1 && (
+                  <PeerComparison peers={peers} />
+                )}
+
+                {/* Income Statement */}
+                <FinancialTable income={data.income} />
+
+                <footer className="text-center py-8 text-xs text-[var(--color-text-muted)] space-y-2">
+                  <p>Data provided by Financial Modeling Prep. Not financial advice.</p>
+                  <p>
+                    Questions or suggestions?{" "}
+                    <a href="https://wa.me/15403979223" target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] hover:underline font-medium">WhatsApp</a>
+                    {" · "}
+                    <a href="mailto:mokshaglobal.org@gmail.com" className="text-[var(--color-brand)] hover:underline font-medium">mokshaglobal.org@gmail.com</a>
+                  </p>
+                </footer>
+              </div>
+            ) : null}
+          </>
+        )}
       </main>
     </div>
   );
