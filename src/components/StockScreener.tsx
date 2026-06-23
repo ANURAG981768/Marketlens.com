@@ -45,6 +45,7 @@ export default function StockScreener({ onSelect }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchMatches, setSearchMatches] = useState<ScreenResult[]>([]);
+  const [webResults, setWebResults] = useState<{ symbol: string; name: string; exchange?: string }[]>([]);
 
   // Overlay live price / market cap / volume / change% from the batch quote
   // endpoint onto a set of screener rows (one Yahoo call for the whole list).
@@ -151,10 +152,20 @@ export default function StockScreener({ onSelect }: Props) {
         (r.industry && r.industry.toLowerCase().includes(q))
     ).slice(0, 40);
     setSearchMatches(matches);
-    if (matches.length === 0) return;
-    const t = setTimeout(async () => {
-      const live = await overlayLiveQuotes(matches);
-      setSearchMatches((cur) => (cur.length === matches.length ? live : cur));
+    if (matches.length > 0) {
+      setWebResults([]);
+      const t = setTimeout(async () => {
+        const live = await overlayLiveQuotes(matches);
+        setSearchMatches((cur) => (cur.length === matches.length ? live : cur));
+      }, 300);
+      return () => clearTimeout(t);
+    }
+    // No curated match — resolve the query across the whole market (name → ticker)
+    const t = setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(searchQuery.trim())}`)
+        .then((r) => r.json())
+        .then((json) => setWebResults(Array.isArray(json.results) ? json.results.slice(0, 8) : []))
+        .catch(() => setWebResults([]));
     }, 300);
     return () => clearTimeout(t);
   }, [searchQuery, overlayLiveQuotes]);
@@ -167,11 +178,6 @@ export default function StockScreener({ onSelect }: Props) {
     const bv = b[sortKey] ?? 0;
     return sortDir === "desc" ? bv - av : av - bv;
   });
-
-  // A ticker-like query that matches nothing in our list — offer to open it directly
-  const directTicker = isSearching && sorted.length === 0 && /^[A-Za-z.\-]{1,12}$/.test(searchQuery.trim())
-    ? searchQuery.trim().toUpperCase()
-    : null;
 
   return (
     <div className="space-y-6">
@@ -359,22 +365,32 @@ export default function StockScreener({ onSelect }: Props) {
               </tbody>
             </table>
           </div>
-        ) : directTicker ? (
-          <div className="p-8 text-center">
-            <p className="text-sm text-[var(--color-text-secondary)] mb-3">
-              No match in our screener list — but you can pull live data for any ticker.
+        ) : isSearching && webResults.length > 0 ? (
+          <div>
+            <p className="px-4 pt-4 pb-2 text-[11px] uppercase tracking-wider text-[var(--color-text-muted)]">
+              Found on the market — open for live data
             </p>
-            <button
-              onClick={() => onSelect(directTicker)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--color-brand)] text-white text-sm font-semibold hover:bg-[var(--color-brand-dim)] transition-colors"
-            >
-              Open {directTicker} <ChevronRight size={15} />
-            </button>
+            {webResults.map((r) => (
+              <button
+                key={r.symbol}
+                onClick={() => onSelect(r.symbol)}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 border-t border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <CompanyLogo symbol={r.symbol} size={22} />
+                  <span className="font-bold text-[var(--color-gold)] text-xs shrink-0">{r.symbol}</span>
+                  <span className="text-xs text-[var(--color-text-secondary)] truncate">{r.name}</span>
+                </div>
+                <span className="flex items-center gap-1 text-xs font-medium text-[var(--color-brand-dim)] shrink-0">
+                  Open <ChevronRight size={14} />
+                </span>
+              </button>
+            ))}
           </div>
         ) : (
           <div className="p-8 text-center text-xs text-[var(--color-text-muted)]">
             {isSearching
-              ? `No stocks matching "${searchQuery.trim()}".`
+              ? `No stocks matching "${searchQuery.trim()}". Try a ticker or company name.`
               : "No stocks match your criteria. Try adjusting the filters."}
           </div>
         )}
