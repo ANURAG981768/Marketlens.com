@@ -505,8 +505,30 @@ function isEventInRange(event: EconomicEvent, filter: TimeFilter): boolean {
   }
 }
 
+/*
+ * Re-base the event templates onto the current month so the calendar always
+ * reflects the present period, and strip any fabricated "actual"/"outcome"
+ * results — we never show invented release numbers as if they were real.
+ * The day-of-month from each template preserves the real release cadence
+ * (jobs early month, CPI mid-month, GDP/confidence late month, etc.).
+ */
+function rebaseEvents(events: EconomicEvent[]): EconomicEvent[] {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  return events.map((e) => {
+    const origDay = parseInt(e.date.split("-")[2], 10) || 1;
+    const day = Math.min(origDay, daysInMonth);
+    const dateStr = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return { ...e, date: dateStr, actual: null, outcome: null };
+  });
+}
+
+const SCHEDULED_EVENTS: EconomicEvent[] = rebaseEvents(DEMO_EVENTS);
+
 function countThisWeekEvents(): number {
-  return DEMO_EVENTS.filter((e) => isEventInRange(e, "this-week")).length;
+  return SCHEDULED_EVENTS.filter((e) => isEventInRange(e, "this-week")).length;
 }
 
 /* ------------------------------------------------------------------ */
@@ -518,7 +540,7 @@ export default function EconomicCalendar() {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(true);
 
-  const filteredEvents = DEMO_EVENTS.filter((e) => isEventInRange(e, timeFilter)).sort(
+  const filteredEvents = SCHEDULED_EVENTS.filter((e) => isEventInRange(e, timeFilter)).sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
@@ -569,6 +591,11 @@ export default function EconomicCalendar() {
                 economic data can boost corporate earnings expectations, while surprising weakness
                 can trigger market sell-offs. Understanding these releases helps you anticipate
                 market-moving events and make more informed investment decisions.
+              </p>
+              <p className="text-xs text-blue-700/80 leading-relaxed mt-2">
+                <strong>Note:</strong> This calendar shows the typical monthly release schedule with
+                illustrative forecast figures for learning. Confirm exact dates and live figures on
+                official sources (federalreserve.gov, bls.gov).
               </p>
             </div>
           </div>
