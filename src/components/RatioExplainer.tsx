@@ -1,7 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Search, BookOpen, TrendingUp, TrendingDown, Info, ChevronDown, ChevronUp, BarChart3, Target, Shield, DollarSign, Percent } from "lucide-react";
+import { Search, BookOpen, TrendingUp, TrendingDown, Info, ChevronDown, ChevronUp, BarChart3, Target, Shield, DollarSign, Percent, Scale, Droplets, Gauge, Sprout, type LucideIcon } from "lucide-react";
+
+// Cohesive, on-brand icon per ratio category (replaces generic emoji)
+const CAT_ICON: Record<string, { Icon: LucideIcon; color: string; bg: string }> = {
+  Valuation: { Icon: BarChart3, color: "#185fa5", bg: "rgba(24,95,165,0.10)" },
+  Profitability: { Icon: TrendingUp, color: "#0a7c3f", bg: "rgba(10,124,63,0.10)" },
+  Liquidity: { Icon: Droplets, color: "#0e7490", bg: "rgba(14,116,144,0.10)" },
+  Leverage: { Icon: Scale, color: "#a8851a", bg: "rgba(184,147,47,0.12)" },
+  Efficiency: { Icon: Gauge, color: "#6d28d9", bg: "rgba(109,40,217,0.10)" },
+  Growth: { Icon: Sprout, color: "#15803d", bg: "rgba(21,128,61,0.10)" },
+};
 
 interface RatioDefinition {
   name: string;
@@ -320,7 +330,15 @@ export default function RatioExplainer() {
                 className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-[var(--color-surface-hover)]/50 transition-colors"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <span className="text-xl shrink-0">{ratio.icon}</span>
+                  {(() => {
+                    const c = CAT_ICON[ratio.category] || CAT_ICON.Valuation;
+                    const I = c.Icon;
+                    return (
+                      <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: c.bg }}>
+                        <I size={17} style={{ color: c.color }} />
+                      </div>
+                    );
+                  })()}
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-[var(--color-text-primary)]">

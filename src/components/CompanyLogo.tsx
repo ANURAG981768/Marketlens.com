@@ -74,18 +74,31 @@ export default function CompanyLogo({ symbol, size = 24, className = "" }: Compa
   // Real company logo, falling back to the letter tile on any load error
   return (
     <div
-      className={`rounded-lg overflow-hidden shrink-0 bg-white flex items-center justify-center border border-black/5 ${className}`}
+      className={`relative rounded-lg overflow-hidden shrink-0 bg-white flex items-center justify-center border border-black/5 ${className}`}
       style={{ width: size, height: size }}
     >
+      {/* Faint letter behind, so the tile is never blank if the logo is
+          transparent/empty; a real opaque logo covers it. */}
+      <span
+        className="absolute inset-0 flex items-center justify-center font-bold text-[var(--color-text-muted)]/40 select-none"
+        style={{ fontSize }}
+        aria-hidden="true"
+      >
+        {icon || cleanSymbol.slice(0, 2)}
+      </span>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={`https://assets.parqet.com/logos/symbol/${cleanSymbol}?format=png&size=64`}
+        src={`https://assets.parqet.com/logos/symbol/${cleanSymbol}?format=png&size=128`}
         alt={cleanSymbol}
         width={size}
         height={size}
         loading="lazy"
         onError={() => setFailed(true)}
-        className="w-full h-full object-contain"
+        onLoad={(e) => {
+          const img = e.currentTarget;
+          if (img.naturalWidth <= 1 || img.naturalHeight <= 1) setFailed(true);
+        }}
+        className="relative w-full h-full object-contain"
         style={{ padding: size > 28 ? 3 : 2 }}
       />
     </div>
