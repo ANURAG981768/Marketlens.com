@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Award, Download, CheckCircle, Lock, BookOpen, Trophy, User, Sparkles, ShieldCheck, Clock, Target, AlertTriangle } from "lucide-react";
+import { Award, Download, CheckCircle, Lock, BookOpen, Trophy, User, Sparkles, ShieldCheck, Clock, Target, AlertTriangle, Copy, Check } from "lucide-react";
 import { LESSONS } from "@/lib/lessons-data";
+import { encodeCertificate } from "@/lib/certificate";
 
 const STORAGE_KEY = "marketlens_lessons_progress";
 const CERT_KEY = "marketlens_certificates";
@@ -110,6 +111,31 @@ export default function CertificateGenerator() {
   const [nameInput, setNameInput] = useState("");
   const [showNamePrompt, setShowNamePrompt] = useState(false);
   const [pendingClaimId, setPendingClaimId] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  function getVerifyUrl(trackId: string, trackTitle: string, lessons: number): string {
+    const cert = certificates[trackId];
+    if (!cert || typeof window === "undefined") return "";
+    const token = encodeCertificate({
+      n: cert.name,
+      t: trackTitle,
+      d: cert.date,
+      id: cert.certId,
+      s: cert.quizAvg,
+      l: lessons,
+    });
+    return `${window.location.origin}/verify/${token}`;
+  }
+
+  async function copyVerifyLink(trackId: string, trackTitle: string, lessons: number) {
+    const url = getVerifyUrl(trackId, trackTitle, lessons);
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2200);
+    } catch {}
+  }
 
   useEffect(() => {
     setProgress(loadProgress());
@@ -276,7 +302,7 @@ export default function CertificateGenerator() {
     // Verification footer
     ctx.font = "10px sans-serif"; ctx.fillStyle = "#3a4a5a";
     ctx.fillText("MarketLens — Free Equity Research & Education for Students Worldwide", 700, 925);
-    ctx.fillText(`Verify: marketlens-com.vercel.app • Certificate ID: ${certId}`, 700, 945);
+    ctx.fillText(`Verify authenticity at ${typeof window !== "undefined" ? window.location.host : "marketlens-com.vercel.app"}/verify • Certificate ID: ${certId}`, 700, 945);
 
     const link = document.createElement("a");
     link.download = `MarketLens_${track.title.replace(/\s+/g, "_")}_${name.replace(/\s+/g, "_")}.png`;
@@ -587,11 +613,21 @@ export default function CertificateGenerator() {
                 </div>
               </div>
             </div>
-            <div className="p-4 flex items-center justify-between bg-[var(--color-surface)]">
+            <div className="p-4 flex items-center justify-between gap-2 bg-[var(--color-surface)]">
               <button onClick={() => setShowCertificate(false)} className="px-4 py-2 rounded-xl text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">Close</button>
-              <button onClick={handleDownload} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-dim)] transition-colors shadow-lg shadow-[var(--color-brand)]/20">
-                <Download size={14} /> Download Certificate
-              </button>
+              <div className="flex items-center gap-2">
+                {certificates[activeCert.id] && (
+                  <button
+                    onClick={() => copyVerifyLink(activeCert.id, activeCert.title, activeCert.lessonsRequired.length)}
+                    className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors"
+                  >
+                    {copiedLink ? <><Check size={14} className="text-[var(--color-positive)]" /> Link copied</> : <><Copy size={14} /> Copy verify link</>}
+                  </button>
+                )}
+                <button onClick={handleDownload} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-dim)] transition-colors shadow-lg shadow-[var(--color-brand)]/20">
+                  <Download size={14} /> Download Certificate
+                </button>
+              </div>
             </div>
           </div>
         </div>
