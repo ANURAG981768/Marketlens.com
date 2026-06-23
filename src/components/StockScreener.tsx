@@ -45,9 +45,43 @@ export default function StockScreener({ onSelect }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Overlay live price / market cap / volume / change% from the batch quote
+  // endpoint onto a set of screener rows (one Yahoo call for the whole list).
+  const overlayLiveQuotes = useCallback(async (rows: ScreenResult[]): Promise<ScreenResult[]> => {
+    const symbols = rows.map((r) => r.symbol).slice(0, 60);
+    if (symbols.length === 0) return rows;
+    try {
+      const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(symbols.join(","))}`);
+      const json = await res.json();
+      if (!json.quotes) return rows;
+      return rows.map((r) => {
+        const q = json.quotes[r.symbol.toUpperCase()];
+        if (!q) return r;
+        return {
+          ...r,
+          price: q.price ?? r.price,
+          marketCap: q.marketCap || r.marketCap,
+          volume: q.volume || r.volume,
+          changePercent: q.changePercent,
+        };
+      });
+    } catch {
+      return rows;
+    }
+  }, []);
+
   const fetchStocks = useCallback(async (sectorVal: string, capIdx: number) => {
     setLoading(true);
     const preset = capIdx >= 0 ? MARKET_CAP_PRESETS[capIdx] : null;
+
+    function staticUniverse(): ScreenResult[] {
+      let filtered = SCREENER_DATABASE;
+      if (sectorVal) filtered = filtered.filter((r) => r.sector === sectorVal);
+      if (preset) {
+        filtered = filtered.filter((r) => r.marketCap >= preset.min && r.marketCap < preset.max);
+      }
+      return filtered;
+    }
 
     try {
       const params = new URLSearchParams();
@@ -62,37 +96,38 @@ export default function StockScreener({ onSelect }: Props) {
       const json = await res.json();
 
       if (json.error === "demo") {
+        // No paid screener key — use the curated universe but overlay LIVE quotes
+        // so prices, market caps and volumes are real, not stale samples.
         setIsDemo(true);
-        let filtered = SCREENER_DATABASE;
-        if (sectorVal) filtered = filtered.filter((r) => r.sector === sectorVal);
-        if (preset) {
-          filtered = filtered.filter(
-            (r) => r.marketCap >= preset.min && r.marketCap < preset.max
-          );
-        }
-        setResults(filtered);
+        const base = staticUniverse();
+        setResults(base); // show immediately
+        const live = await overlayLiveQuotes(base);
+        setResults(live);
       } else {
         setIsDemo(false);
         setResults(json.results ?? []);
       }
     } catch {
       setIsDemo(true);
-      let filtered = SCREENER_DATABASE;
-      if (sectorVal) filtered = filtered.filter((r) => r.sector === sectorVal);
-      if (preset) {
-        filtered = filtered.filter(
-          (r) => r.marketCap >= preset.min && r.marketCap < preset.max
-        );
-      }
-      setResults(filtered);
+      setResults(await overlayLiveQuotes(staticUniverse()));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [overlayLiveQuotes]);
 
   useEffect(() => {
     fetchStocks(sector, capPreset);
   }, [sector, capPreset, fetchStocks]);
+
+  // Keep prices fresh while the user is looking at the screener.
+  useEffect(() => {
+    if (results.length === 0) return;
+    const interval = setInterval(async () => {
+      const live = await overlayLiveQuotes(results);
+      setResults(live);
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [results, overlayLiveQuotes]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -127,8 +162,9 @@ export default function StockScreener({ onSelect }: Props) {
           </div>
           <div>
             <h2 className="font-display text-xl font-semibold leading-tight">Stock Screener</h2>
-            <p className="text-xs text-[var(--color-text-muted)]">
-              {isDemo ? "Reference fundamentals · search any ticker for live data" : "Live data via FMP"}
+            <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)] animate-pulse" />
+              Live prices · refreshes every 60s
             </p>
           </div>
         </div>
@@ -227,6 +263,9 @@ export default function StockScreener({ onSelect }: Props) {
                     Industry
                   </th>
                   <SortHeader label="Price" sortKey="price" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
+                  <th className="text-right py-3 px-4 text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
+                    Chg %
+                  </th>
                   <SortHeader label="Market Cap" sortKey="marketCap" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
                   <SortHeader label="Beta" sortKey="beta" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
                   <SortHeader label="Dividend" sortKey="lastAnnualDividend" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
@@ -257,6 +296,15 @@ export default function StockScreener({ onSelect }: Props) {
                     </td>
                     <td className="py-2.5 px-4 text-xs tabular-nums font-medium text-[var(--color-text-primary)]">
                       ${(r.price ?? 0).toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-4 text-xs tabular-nums text-right font-medium">
+                      {typeof r.changePercent === "number" ? (
+                        <span className={r.changePercent >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}>
+                          {r.changePercent >= 0 ? "+" : ""}{r.changePercent.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-[var(--color-text-muted)]">—</span>
+                      )}
                     </td>
                     <td className="py-2.5 px-4 text-xs tabular-nums text-[var(--color-text-secondary)]">
                       {formatCurrency(r.marketCap)}

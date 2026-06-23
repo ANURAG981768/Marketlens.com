@@ -9,6 +9,7 @@ export interface ScreenResult {
   lastAnnualDividend: number;
   volume: number;
   exchange: string;
+  changePercent?: number;
 }
 
 export const SCREENER_DATABASE: ScreenResult[] = [
