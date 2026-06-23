@@ -48,6 +48,8 @@ import CookieConsent from "@/components/CookieConsent";
 import CompanyLogo from "@/components/CompanyLogo";
 import { LogoMark, LogoHero, FeatureIcon } from "@/components/Logo";
 import AccountMenu from "@/components/AccountMenu";
+import ProgressDashboard from "@/components/ProgressDashboard";
+import { recordActivity } from "@/lib/streak";
 import {
   BarChart3,
   AlertCircle,
@@ -133,6 +135,9 @@ export default function Home() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("screener");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [openLessonId, setOpenLessonId] = useState<string | null>(null);
+
+  useEffect(() => { recordActivity(); }, []);
   const [cryptoPrices, setCryptoPrices] = useState(CRYPTO_DEFAULTS);
   const [globalIndices, setGlobalIndices] = useState(GLOBAL_INDICES_DEFAULT);
 
@@ -657,8 +662,14 @@ export default function Home() {
 
         {/* Lessons Tab */}
         {activeTab === "lessons" && (
-          <div className="animate-fade-in-up">
-            <LessonsHub onNavigateToQuiz={() => setActiveTab("quiz")} onNavigateToCerts={() => setActiveTab("certificates")} />
+          <div className="max-w-5xl mx-auto animate-fade-in-up">
+            <ProgressDashboard onContinue={(id) => setOpenLessonId(id)} />
+            <LessonsHub
+              openLessonId={openLessonId}
+              onLessonOpened={() => setOpenLessonId(null)}
+              onNavigateToQuiz={() => setActiveTab("quiz")}
+              onNavigateToCerts={() => setActiveTab("certificates")}
+            />
           </div>
         )}
 

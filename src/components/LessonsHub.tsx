@@ -48,7 +48,7 @@ const DIFFICULTY_COLORS = {
   Advanced: "bg-red-100 text-red-700",
 };
 
-export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts }: { onNavigateToQuiz?: () => void; onNavigateToCerts?: () => void }) {
+export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLessonId, onLessonOpened }: { onNavigateToQuiz?: () => void; onNavigateToCerts?: () => void; openLessonId?: string | null; onLessonOpened?: () => void }) {
   const [progress, setProgress] = useState<Record<string, string[]>>({});
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [activeSection, setActiveSection] = useState(0);
@@ -56,6 +56,18 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts }: { on
   useEffect(() => {
     setProgress(loadProgress());
   }, []);
+
+  // Open a specific lesson when requested from the progress dashboard
+  useEffect(() => {
+    if (!openLessonId) return;
+    const lesson = LESSONS.find((l) => l.id === openLessonId);
+    if (lesson) {
+      const done = (loadProgress()[lesson.id] || []).length;
+      setActiveLesson(lesson);
+      setActiveSection(done < lesson.sections.length ? done : 0);
+      onLessonOpened?.();
+    }
+  }, [openLessonId, onLessonOpened]);
 
   const completedLessons = useMemo(() => {
     return LESSONS.filter((l) => {
