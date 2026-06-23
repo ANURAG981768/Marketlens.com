@@ -1146,7 +1146,7 @@ export default function Home() {
                 </div>
 
                 <footer className="text-center py-10 text-xs text-[var(--color-text-muted)] space-y-2">
-                  <p>Data provided by Financial Modeling Prep. Not financial advice.</p>
+                  <p>Market data via Yahoo Finance · prices may be delayed · not financial advice.</p>
                   <p>
                     Questions or suggestions?{" "}
                     <a href="https://wa.me/15403979223" target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] hover:underline font-medium">WhatsApp</a>
@@ -1183,18 +1183,18 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Row 1: Price chart + sidebar */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
+                {/* Row 1: Price chart + technicals (left) · stats + about (right) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+                  <div className="lg:col-span-2 space-y-6">
                     <PriceChart history={data.history} />
-                  </div>
-                  <div className="space-y-6">
-                    <QuickStats data={data} />
-                    <CompanyOverview profile={data.profile} />
                     <TechnicalIndicators
                       history={data.history}
                       currentPrice={data.quote.price}
                     />
+                  </div>
+                  <div className="space-y-6">
+                    <QuickStats data={data} />
+                    <CompanyOverview profile={data.profile} />
                   </div>
                 </div>
 
