@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Filter, Search, ChevronDown, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import CompanyLogo from "./CompanyLogo";
 import { SCREENER_DATABASE, type ScreenResult } from "@/lib/screener-data";
 
 const SECTORS = [
@@ -242,8 +243,11 @@ export default function StockScreener({ onSelect }: Props) {
                     onClick={() => onSelect(r.symbol)}
                     className="border-b border-[var(--color-border)] last:border-b-0 hover:bg-[var(--color-surface-hover)] transition-colors cursor-pointer group"
                   >
-                    <td className="py-2.5 px-4 font-bold text-[var(--color-gold)] text-xs group-hover:text-[var(--color-gold-light)]">
-                      {r.symbol}
+                    <td className="py-2.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <CompanyLogo symbol={r.symbol} size={22} />
+                        <span className="font-bold text-[var(--color-gold)] text-xs group-hover:text-[var(--color-gold-light)]">{r.symbol}</span>
+                      </div>
                     </td>
                     <td className="py-2.5 px-4 text-xs text-[var(--color-text-secondary)] max-w-[180px] truncate">
                       {r.companyName}

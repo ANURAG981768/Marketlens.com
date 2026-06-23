@@ -94,6 +94,7 @@ export function QuizSectionIcon({ icon, className = "" }: { icon: string; classN
     "🌍": { bg: "from-teal-500 to-cyan-600", fg: "text-white", symbol: "G" },
     "🧮": { bg: "from-rose-500 to-pink-600", fg: "text-white", symbol: "P" },
     "🧠": { bg: "from-fuchsia-500 to-purple-600", fg: "text-white", symbol: "B" },
+    "🌱": { bg: "from-green-500 to-teal-600", fg: "text-white", symbol: "E" },
   };
 
   const config = iconConfig[icon] || { bg: "from-gray-500 to-gray-600", fg: "text-white", symbol: "?" };

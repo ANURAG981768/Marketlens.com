@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type { StockData } from "@/lib/types";
 import { DEMO_DATA } from "@/lib/demo-data";
 import { DEMO_PEERS } from "@/lib/demo-peers";
@@ -43,6 +43,9 @@ import EconomicCalendar from "@/components/EconomicCalendar";
 import PortfolioAnalytics from "@/components/PortfolioAnalytics";
 import RatioExplainer from "@/components/RatioExplainer";
 import CertificateGenerator from "@/components/CertificateGenerator";
+import Footer from "@/components/Footer";
+import CookieConsent from "@/components/CookieConsent";
+import CompanyLogo from "@/components/CompanyLogo";
 import { LogoMark, LogoHero, FeatureIcon } from "@/components/Logo";
 import {
   BarChart3,
@@ -89,7 +92,7 @@ const TRENDING = [
   { symbol: "AMZN", name: "Amazon", change: 1.13 },
 ];
 
-const GLOBAL_INDICES = [
+const GLOBAL_INDICES_DEFAULT = [
   { name: "S&P 500", value: "5,667.20", change: "+0.58%", positive: true, flag: "🇺🇸" },
   { name: "NASDAQ", value: "18,352.76", change: "+0.80%", positive: true, flag: "🇺🇸" },
   { name: "Nifty 50", value: "24,834.85", change: "+0.42%", positive: true, flag: "🇮🇳" },
@@ -102,17 +105,17 @@ const GLOBAL_INDICES = [
   { name: "CAC 40", value: "7,628.45", change: "+0.19%", positive: true, flag: "🇫🇷" },
 ];
 
-const CRYPTO_PRICES = [
-  { symbol: "BTC-USD", name: "Bitcoin", price: "104,256.83", change: "+2.14%", positive: true, icon: "₿" },
-  { symbol: "ETH-USD", name: "Ethereum", price: "3,892.45", change: "+1.87%", positive: true, icon: "Ξ" },
-  { symbol: "SOL-USD", name: "Solana", price: "178.62", change: "+4.32%", positive: true, icon: "◎" },
-  { symbol: "BNB-USD", name: "BNB", price: "612.30", change: "-0.45%", positive: false, icon: "⬡" },
-  { symbol: "XRP-USD", name: "XRP", price: "2.34", change: "+0.89%", positive: true, icon: "✕" },
-  { symbol: "DOGE-USD", name: "Dogecoin", price: "0.4125", change: "+6.21%", positive: true, icon: "Ð" },
-  { symbol: "ADA-USD", name: "Cardano", price: "1.12", change: "-1.23%", positive: false, icon: "₳" },
-  { symbol: "AVAX-USD", name: "Avalanche", price: "42.87", change: "+3.15%", positive: true, icon: "🔺" },
-  { symbol: "DOT-USD", name: "Polkadot", price: "8.94", change: "+1.56%", positive: true, icon: "●" },
-  { symbol: "LINK-USD", name: "Chainlink", price: "18.73", change: "+2.78%", positive: true, icon: "⬡" },
+const CRYPTO_DEFAULTS = [
+  { symbol: "BTC-USD", name: "Bitcoin", price: "64,014.00", change: "-0.31%", positive: false },
+  { symbol: "ETH-USD", name: "Ethereum", price: "1,727.67", change: "-0.49%", positive: false },
+  { symbol: "SOL-USD", name: "Solana", price: "71.81", change: "-2.66%", positive: false },
+  { symbol: "BNB-USD", name: "BNB", price: "590.99", change: "-0.07%", positive: false },
+  { symbol: "XRP-USD", name: "XRP", price: "1.13", change: "-0.64%", positive: false },
+  { symbol: "DOGE-USD", name: "Dogecoin", price: "0.0819", change: "-1.50%", positive: false },
+  { symbol: "ADA-USD", name: "Cardano", price: "0.1589", change: "-0.34%", positive: false },
+  { symbol: "AVAX-USD", name: "Avalanche", price: "6.29", change: "+0.66%", positive: true },
+  { symbol: "DOT-USD", name: "Polkadot", price: "0.9355", change: "-2.00%", positive: false },
+  { symbol: "LINK-USD", name: "Chainlink", price: "7.88", change: "-0.33%", positive: false },
 ];
 
 type Tab = "home" | "watchlist" | "portfolio" | "screener" | "market" | "earnings" | "paper" | "quiz" | "glossary" | "journal" | "achievements" | "lessons" | "compare" | "calculator" | "heatmap" | "transcripts" | "economy" | "analytics" | "ratios" | "certificates";
@@ -126,6 +129,63 @@ export default function Home() {
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("screener");
+  const [cryptoPrices, setCryptoPrices] = useState(CRYPTO_DEFAULTS);
+  const [globalIndices, setGlobalIndices] = useState(GLOBAL_INDICES_DEFAULT);
+
+  useEffect(() => {
+    function loadIndices() {
+      fetch("/api/indices")
+        .then((r) => r.json())
+        .then((json) => {
+          if (!json.indices) return;
+          setGlobalIndices((prev) =>
+            prev.map((idx) => {
+              const live = json.indices.find((i: { name: string }) => i.name === idx.name);
+              if (!live) return idx;
+              return {
+                ...idx,
+                value: live.value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+                change: `${live.changePct >= 0 ? "+" : ""}${live.changePct.toFixed(2)}%`,
+                positive: live.changePct >= 0,
+              };
+            })
+          );
+        })
+        .catch(() => {});
+    }
+    loadIndices();
+    const interval = setInterval(loadIndices, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    function refreshCrypto() {
+      fetch("/api/crypto")
+        .then((r) => r.json())
+        .then((json) => {
+          if (json.prices) {
+            setCryptoPrices((prev) =>
+              prev.map((coin) => {
+                const live = json.prices[coin.symbol];
+                if (!live) return coin;
+                const p = live.price;
+                const ch = live.change24h;
+                return {
+                  ...coin,
+                  price: p >= 1 ? p.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : p.toPrecision(4),
+                  change: `${ch >= 0 ? "+" : ""}${ch.toFixed(2)}%`,
+                  positive: ch >= 0,
+                };
+              })
+            );
+          }
+        })
+        .catch(() => {});
+    }
+    refreshCrypto();
+    const interval = setInterval(refreshCrypto, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const refresh = () => setRefreshKey((k) => k + 1);
 
@@ -186,32 +246,40 @@ export default function Home() {
     [fetchPeers]
   );
 
-  const NAV_TABS: { key: Tab; label: string; icon: typeof HomeIcon }[] = [
+  const NAV_ROW1: { key: Tab; label: string; icon: typeof HomeIcon }[] = [
     { key: "home", label: "Research", icon: HomeIcon },
     { key: "market", label: "Market", icon: Activity },
     { key: "screener", label: "Screener", icon: Filter },
-    { key: "earnings", label: "Earnings", icon: Calendar },
-    { key: "paper", label: "Trade", icon: DollarSign },
-    { key: "quiz", label: "Quiz", icon: GraduationCap },
-    { key: "lessons", label: "Lessons", icon: BookMarked },
-    { key: "compare", label: "Compare", icon: Scale },
-    { key: "calculator", label: "Calc", icon: Calculator },
     { key: "heatmap", label: "Heatmap", icon: LayoutGrid },
+    { key: "earnings", label: "Earnings", icon: Calendar },
     { key: "transcripts", label: "Transcripts", icon: FileText },
     { key: "economy", label: "Economy", icon: Globe },
-    { key: "analytics", label: "Analytics", icon: Shield },
+    { key: "compare", label: "Compare", icon: Scale },
+    { key: "calculator", label: "Calc", icon: Calculator },
     { key: "ratios", label: "Ratios", icon: BookOpen },
-    { key: "certificates", label: "Certs", icon: Award },
-    { key: "glossary", label: "Glossary", icon: BookText },
-    { key: "achievements", label: "Awards", icon: Medal },
-    { key: "watchlist", label: "Watchlist", icon: Star },
-    { key: "portfolio", label: "Portfolio", icon: Briefcase },
   ];
 
+  const NAV_ROW2: { key: Tab; label: string; icon: typeof HomeIcon }[] = [
+    { key: "paper", label: "Trade", icon: DollarSign },
+    { key: "watchlist", label: "Watchlist", icon: Star },
+    { key: "portfolio", label: "Portfolio", icon: Briefcase },
+    { key: "analytics", label: "Analytics", icon: Shield },
+    { key: "lessons", label: "Lessons", icon: BookMarked },
+    { key: "quiz", label: "Quiz", icon: GraduationCap },
+    { key: "certificates", label: "Certs", icon: Award },
+    { key: "journal", label: "Journal", icon: BookText },
+    { key: "glossary", label: "Glossary", icon: BookText },
+    { key: "achievements", label: "Awards", icon: Medal },
+  ];
+
+  const ALL_TABS = [...NAV_ROW1, ...NAV_ROW2];
+
+  const btcLive = cryptoPrices.find(c => c.symbol === "BTC-USD");
+  const ethLive = cryptoPrices.find(c => c.symbol === "ETH-USD");
   const TICKER_ITEMS = [
-    ...GLOBAL_INDICES.map(i => ({ label: i.name, value: i.value, change: i.change, positive: i.positive })),
-    { label: "BTC", value: "$104,250", change: "+2.41%", positive: true },
-    { label: "ETH", value: "$3,892", change: "+1.85%", positive: true },
+    ...globalIndices.map(i => ({ label: i.name, value: i.value, change: i.change, positive: i.positive })),
+    { label: "BTC", value: `$${btcLive?.price || "64,014"}`, change: btcLive?.change || "-0.39%", positive: btcLive?.positive ?? false },
+    { label: "ETH", value: `$${ethLive?.price || "1,728"}`, change: ethLive?.change || "-0.49%", positive: ethLive?.positive ?? false },
     { label: "Gold", value: "$2,438", change: "+0.32%", positive: true },
     { label: "Oil", value: "$78.42", change: "-0.67%", positive: false },
     { label: "VIX", value: "13.28", change: "-2.14%", positive: false },
@@ -244,65 +312,110 @@ export default function Home() {
 
       {/* Header */}
       <header className="sticky top-0 z-40 glass bg-white/80 border-b border-[var(--color-border)] shadow-sm">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-5 shrink-0">
-            <div
-              className="flex items-center gap-2.5 cursor-pointer group"
-              onClick={() => {
-                setData(null);
-                setActiveSymbol(null);
-                setActiveTab("screener");
-              }}
-            >
-              <LogoMark size={36} className="shadow-lg shadow-[var(--color-brand)]/20 group-hover:shadow-[var(--color-brand)]/30 transition-shadow rounded-[10px]" />
-              <div>
-                <h1 className="text-base font-bold tracking-tight leading-none text-[var(--color-text-primary)]">
-                  Market<span className="text-gradient-brand">Lens</span>
-                </h1>
-                <p className="text-[9px] text-[var(--color-text-muted)] leading-none mt-0.5 tracking-wider uppercase">
-                  Research Platform
-                </p>
-              </div>
+        {/* Top bar: logo + search */}
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-6">
+          <div
+            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+            onClick={() => {
+              setData(null);
+              setActiveSymbol(null);
+              setActiveTab("screener");
+            }}
+          >
+            <LogoMark size={32} className="shadow-lg shadow-[var(--color-brand)]/20 group-hover:shadow-[var(--color-brand)]/30 transition-shadow rounded-[10px]" />
+            <div>
+              <h1 className="text-sm font-bold tracking-tight leading-none text-[var(--color-text-primary)]">
+                Market<span className="text-gradient-brand">Lens</span>
+              </h1>
+              <p className="text-[8px] text-[var(--color-text-muted)] leading-none mt-0.5 tracking-wider uppercase">
+                Research Platform
+              </p>
             </div>
+          </div>
+          <div className="flex-1 max-w-md">
+            <SearchBar onSearch={fetchStock} loading={loading} />
+          </div>
+        </div>
 
-            {/* Nav Tabs */}
-            <nav className="hidden lg:flex items-center gap-0.5 ml-2 bg-[var(--color-surface-card)]/80 rounded-xl p-1 border border-[var(--color-border)]">
-              {NAV_TABS.map((tab) => (
+        {/* Two-row nav — Desktop */}
+        <div className="hidden md:block border-t border-[var(--color-border)] bg-white/50">
+          <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Row 1: Research & Analysis */}
+            <div className="flex items-center gap-0.5 py-1 border-b border-[var(--color-border)]/50">
+              <span className="text-[9px] font-semibold text-[var(--color-text-muted)]/60 uppercase tracking-widest mr-2 shrink-0">Research</span>
+              {NAV_ROW1.map((tab) => (
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 ${
                     activeTab === tab.key
-                      ? "bg-[var(--color-brand)] text-white shadow-md shadow-[var(--color-brand)]/25"
-                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/60"
+                      ? "bg-[var(--color-brand)] text-white shadow-sm shadow-[var(--color-brand)]/25"
+                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/80"
                   }`}
                 >
-                  <tab.icon size={13} />
+                  <tab.icon size={12} />
                   {tab.label}
                 </button>
               ))}
-            </nav>
+            </div>
+            {/* Row 2: Trading & Learning */}
+            <div className="flex items-center gap-0.5 py-1">
+              <span className="text-[9px] font-semibold text-[var(--color-text-muted)]/60 uppercase tracking-widest mr-2 shrink-0">Learn</span>
+              {NAV_ROW2.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all duration-200 ${
+                    activeTab === tab.key
+                      ? "bg-[var(--color-brand)] text-white shadow-sm shadow-[var(--color-brand)]/25"
+                      : "text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:bg-white/80"
+                  }`}
+                >
+                  <tab.icon size={12} />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <SearchBar onSearch={fetchStock} loading={loading} />
         </div>
 
-        {/* Mobile Nav */}
-        <div className="lg:hidden border-t border-[var(--color-border)] overflow-x-auto bg-white/60 glass">
-          <div className="flex items-center gap-1 px-4 py-2 min-w-max">
-            {NAV_TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all ${
-                  activeTab === tab.key
-                    ? "bg-[var(--color-brand)] text-white shadow-sm"
-                    : "text-[var(--color-text-muted)]"
-                }`}
-              >
-                <tab.icon size={12} />
-                {tab.label}
-              </button>
-            ))}
+        {/* Mobile Nav — two rows */}
+        <div className="md:hidden border-t border-[var(--color-border)] bg-white/60 glass">
+          <div className="overflow-x-auto">
+            <div className="flex items-center gap-1 px-3 py-1.5 min-w-max">
+              {NAV_ROW1.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all ${
+                    activeTab === tab.key
+                      ? "bg-[var(--color-brand)] text-white shadow-sm"
+                      : "text-[var(--color-text-muted)]"
+                  }`}
+                >
+                  <tab.icon size={11} />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="overflow-x-auto border-t border-[var(--color-border)]/50">
+            <div className="flex items-center gap-1 px-3 py-1.5 min-w-max">
+              {NAV_ROW2.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all ${
+                    activeTab === tab.key
+                      ? "bg-[var(--color-brand)] text-white shadow-sm"
+                      : "text-[var(--color-text-muted)]"
+                  }`}
+                >
+                  <tab.icon size={11} />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>
@@ -384,7 +497,7 @@ export default function Home() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8 animate-fade-in-up animate-delay-100">
               {[
                 { tab: "paper" as Tab, icon: DollarSign, label: "Paper Trade", desc: "Practice risk-free", gradient: "from-emerald-500 to-green-600" },
-                { tab: "lessons" as Tab, icon: BookMarked, label: "Learn", desc: "10 guided courses", gradient: "from-blue-500 to-indigo-600" },
+                { tab: "lessons" as Tab, icon: BookMarked, label: "Learn", desc: "12 guided courses", gradient: "from-blue-500 to-indigo-600" },
                 { tab: "heatmap" as Tab, icon: LayoutGrid, label: "Heatmap", desc: "Sector performance", gradient: "from-violet-500 to-purple-600" },
                 { tab: "quiz" as Tab, icon: GraduationCap, label: "Quiz", desc: "210+ questions", gradient: "from-amber-500 to-orange-600" },
               ].map((card) => (
@@ -591,8 +704,9 @@ export default function Home() {
                           <button
                             key={ticker}
                             onClick={() => fetchStock(ticker)}
-                            className="px-4 py-2 text-xs font-semibold bg-white border border-[var(--color-border)] rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-brand)] hover:border-[var(--color-brand)]/30 hover:bg-[var(--color-brand)]/5 transition-all shadow-sm"
+                            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold bg-white border border-[var(--color-border)] rounded-xl text-[var(--color-text-secondary)] hover:text-[var(--color-brand)] hover:border-[var(--color-brand)]/30 hover:bg-[var(--color-brand)]/5 transition-all shadow-sm"
                           >
+                            <CompanyLogo symbol={ticker} size={18} />
                             {ticker}
                           </button>
                         ))}
@@ -610,7 +724,7 @@ export default function Home() {
                     </h3>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                    {GLOBAL_INDICES.map((idx) => (
+                    {globalIndices.map((idx) => (
                       <div
                         key={idx.name}
                         className="bg-white border border-[var(--color-border)] rounded-xl p-3.5 hover:shadow-md transition-all"
@@ -655,7 +769,7 @@ export default function Home() {
                     </button>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
-                    {CRYPTO_PRICES.map((coin) => (
+                    {cryptoPrices.map((coin) => (
                       <button
                         key={coin.symbol}
                         onClick={() => {
@@ -664,7 +778,7 @@ export default function Home() {
                         className="bg-white border border-[var(--color-border)] rounded-xl p-3.5 hover:shadow-md transition-all text-left group"
                       >
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className="text-sm">{coin.icon}</span>
+                          <CompanyLogo symbol={coin.symbol} size={18} />
                           <span className="text-[10px] font-medium text-[var(--color-text-muted)] truncate group-hover:text-[var(--color-text-primary)] transition-colors">
                             {coin.name}
                           </span>
@@ -710,6 +824,7 @@ export default function Home() {
                               <span className="text-[10px] font-medium text-[var(--color-text-muted)] w-4">
                                 {i + 1}
                               </span>
+                              <CompanyLogo symbol={stock.symbol} size={28} />
                               <div className="text-left">
                                 <p className="text-sm font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-brand)] transition-colors">
                                   {stock.symbol}
@@ -806,7 +921,7 @@ export default function Home() {
                       Finance Quizzes
                     </h4>
                     <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                      150 questions across 10 topics — test what you know
+                      210 questions across 14 topics — test what you know
                     </p>
                   </button>
                   <button
@@ -978,20 +1093,14 @@ export default function Home() {
                 {/* Income Statement */}
                 <FinancialTable income={data.income} />
 
-                <footer className="text-center py-8 text-xs text-[var(--color-text-muted)] space-y-2">
-                  <p>Data provided by Financial Modeling Prep. Not financial advice.</p>
-                  <p>
-                    Questions or suggestions?{" "}
-                    <a href="https://wa.me/15403979223" target="_blank" rel="noopener noreferrer" className="text-[var(--color-brand)] hover:underline font-medium">WhatsApp</a>
-                    {" · "}
-                    <a href="mailto:mokshaglobal.org@gmail.com" className="text-[var(--color-brand)] hover:underline font-medium">mokshaglobal.org@gmail.com</a>
-                  </p>
-                </footer>
               </div>
             ) : null}
           </>
         )}
       </main>
+
+      <Footer />
+      <CookieConsent />
     </div>
   );
 }

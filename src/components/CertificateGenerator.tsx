@@ -1,260 +1,285 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { Award, Download, Share2, CheckCircle, Lock, ChevronRight, BookOpen, Target, Trophy } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Award, Download, CheckCircle, Lock, BookOpen, Trophy, User, Sparkles, ShieldCheck, Clock, Target, AlertTriangle } from "lucide-react";
 import { LESSONS } from "@/lib/lessons-data";
 
 const STORAGE_KEY = "marketlens_lessons_progress";
 const CERT_KEY = "marketlens_certificates";
+const NAME_KEY = "marketlens_user_name";
+const QUIZ_KEY = "marketlens_quiz_results";
 
-interface Certificate {
-  id: string;
-  title: string;
-  earnedDate: string;
-  lessonsRequired: string[];
-  quizMinScore?: number;
+interface CertRecord {
+  date: string;
+  name: string;
+  certId: string;
+  quizAvg: number;
 }
 
-const CERTIFICATE_TRACKS: {
-  id: string;
-  title: string;
-  subtitle: string;
-  icon: string;
-  gradient: string;
-  lessonsRequired: string[];
-  description: string;
-}[] = [
+interface QuizResult {
+  sectionId: string;
+  score: number;
+  total: number;
+}
+
+const QUIZ_MAP: Record<string, string[]> = {
+  foundations: ["market-fundamentals", "financial-statements"],
+  analyst: ["market-fundamentals", "financial-statements", "valuation-methods", "technical-analysis"],
+  "portfolio-manager": ["portfolio-management", "risk-management", "behavioral-finance"],
+  complete: ["market-fundamentals", "financial-statements", "valuation-methods", "technical-analysis", "options-derivatives", "risk-management", "fixed-income", "macroeconomics", "portfolio-management", "behavioral-finance", "etfs-index-funds", "behavioral-finance-biases", "global-markets", "esg-investing"],
+};
+
+const CERTIFICATE_TRACKS = [
   {
     id: "foundations",
     title: "Investment Foundations",
     subtitle: "Core knowledge every investor needs",
-    icon: "🏛️",
+    icon: "\u{1F3DB}️",
     gradient: "from-emerald-500 to-green-600",
+    color: "#10b981",
     lessonsRequired: ["intro-stock-market", "reading-financial-statements", "valuation-basics"],
-    description: "Complete the Stock Market, Financial Statements, and Valuation lessons to earn this certificate.",
+    minQuizScore: 70,
+    description: "Complete 3 lessons + pass 2 quizzes with 70%+ average.",
   },
   {
     id: "analyst",
     title: "Junior Equity Analyst",
-    subtitle: "Technical and fundamental analysis skills",
-    icon: "📊",
+    subtitle: "Technical and fundamental analysis",
+    icon: "\u{1F4CA}",
     gradient: "from-blue-500 to-indigo-600",
+    color: "#6366f1",
     lessonsRequired: ["intro-stock-market", "reading-financial-statements", "valuation-basics", "technical-analysis-intro", "risk-management"],
-    description: "Complete 5 core lessons including technical analysis and risk management.",
+    minQuizScore: 75,
+    description: "Complete 5 lessons + pass 4 quizzes with 75%+ average.",
   },
   {
     id: "portfolio-manager",
     title: "Portfolio Strategist",
     subtitle: "Advanced portfolio and global market knowledge",
-    icon: "🎯",
+    icon: "\u{1F3AF}",
     gradient: "from-violet-500 to-purple-600",
+    color: "#8b5cf6",
     lessonsRequired: ["portfolio-construction", "etfs-index-investing", "risk-management", "global-markets", "behavioral-finance"],
-    description: "Master portfolio construction, ETFs, global markets, and behavioral finance.",
+    minQuizScore: 80,
+    description: "Complete 5 lessons + pass 3 quizzes with 80%+ average.",
   },
   {
     id: "complete",
     title: "MarketLens Scholar",
-    subtitle: "All courses completed — full platform mastery",
-    icon: "🏆",
+    subtitle: "Full platform mastery — the ultimate credential",
+    icon: "\u{1F3C6}",
     gradient: "from-amber-500 to-orange-600",
+    color: "#f59e0b",
     lessonsRequired: LESSONS.map((l) => l.id),
-    description: "Complete every single lesson on MarketLens to earn this prestigious certificate.",
+    minQuizScore: 80,
+    description: "Complete ALL 12 lessons + pass ALL 14 quizzes with 80%+ average.",
   },
 ];
 
 function loadProgress(): Record<string, string[]> {
   if (typeof window === "undefined") return {};
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
 }
-
-function loadCertificates(): Record<string, string> {
+function loadCertificates(): Record<string, CertRecord> {
   if (typeof window === "undefined") return {};
-  try {
-    const raw = localStorage.getItem(CERT_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
+  try { return JSON.parse(localStorage.getItem(CERT_KEY) || "{}"); } catch { return {}; }
 }
-
-function saveCertificate(certId: string) {
-  const certs = loadCertificates();
-  if (!certs[certId]) {
-    certs[certId] = new Date().toISOString();
-    localStorage.setItem(CERT_KEY, JSON.stringify(certs));
-  }
-  return certs[certId];
+function loadQuizResults(): QuizResult[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(localStorage.getItem(QUIZ_KEY) || "[]"); } catch { return []; }
 }
-
 function isLessonComplete(progress: Record<string, string[]>, lessonId: string): boolean {
   const lesson = LESSONS.find((l) => l.id === lessonId);
   if (!lesson) return false;
-  const completed = progress[lessonId] || [];
-  return completed.length >= lesson.sections.length;
+  return (progress[lessonId] || []).length >= lesson.sections.length;
+}
+function generateCertId(trackId: string): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  return `ML-${trackId.slice(0, 4).toUpperCase()}-${code}`;
 }
 
 export default function CertificateGenerator() {
   const [progress, setProgress] = useState<Record<string, string[]>>({});
-  const [certificates, setCertificates] = useState<Record<string, string>>({});
+  const [certificates, setCertificates] = useState<Record<string, CertRecord>>({});
+  const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [selectedCert, setSelectedCert] = useState<string | null>(null);
   const [showCertificate, setShowCertificate] = useState(false);
-  const certRef = useRef<HTMLDivElement>(null);
+  const [userName, setUserName] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [showNamePrompt, setShowNamePrompt] = useState(false);
+  const [pendingClaimId, setPendingClaimId] = useState<string | null>(null);
 
   useEffect(() => {
     setProgress(loadProgress());
     setCertificates(loadCertificates());
+    setQuizResults(loadQuizResults());
+    const saved = localStorage.getItem(NAME_KEY);
+    if (saved) { setUserName(saved); setNameInput(saved); }
   }, []);
 
   const totalLessonsCompleted = LESSONS.filter((l) => isLessonComplete(progress, l.id)).length;
+  const totalQuizzesPassed = quizResults.filter((r) => (r.score / r.total) * 100 >= 70).length;
 
-  function handleClaim(trackId: string) {
-    const date = saveCertificate(trackId);
-    setCertificates((prev) => ({ ...prev, [trackId]: date }));
+  function getQuizAvg(trackId: string): number {
+    const requiredQuizzes = QUIZ_MAP[trackId] || [];
+    const scores = requiredQuizzes.map((qId) => {
+      const result = quizResults.find((r) => r.sectionId === qId);
+      return result ? (result.score / result.total) * 100 : 0;
+    });
+    if (scores.length === 0) return 0;
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  }
+
+  function getQuizzesDone(trackId: string): { done: number; total: number } {
+    const requiredQuizzes = QUIZ_MAP[trackId] || [];
+    const done = requiredQuizzes.filter((qId) => {
+      const result = quizResults.find((r) => r.sectionId === qId);
+      return result && (result.score / result.total) * 100 >= 70;
+    }).length;
+    return { done, total: requiredQuizzes.length };
+  }
+
+  function handleStartClaim(trackId: string) {
+    if (userName) { finalizeClaim(trackId, userName); }
+    else { setPendingClaimId(trackId); setShowNamePrompt(true); }
+  }
+
+  function handleNameSubmit() {
+    const name = nameInput.trim();
+    if (!name) return;
+    setUserName(name);
+    localStorage.setItem(NAME_KEY, name);
+    setShowNamePrompt(false);
+    if (pendingClaimId) { finalizeClaim(pendingClaimId, name); setPendingClaimId(null); }
+  }
+
+  function finalizeClaim(trackId: string, name: string) {
+    const certs = loadCertificates();
+    if (!certs[trackId]) {
+      certs[trackId] = { date: new Date().toISOString(), name, certId: generateCertId(trackId), quizAvg: getQuizAvg(trackId) };
+      localStorage.setItem(CERT_KEY, JSON.stringify(certs));
+    }
+    setCertificates(certs);
     setSelectedCert(trackId);
     setShowCertificate(true);
   }
 
   function handleDownload() {
-    if (!certRef.current || !selectedCert) return;
+    if (!selectedCert) return;
     const track = CERTIFICATE_TRACKS.find((t) => t.id === selectedCert);
     if (!track) return;
+    const cert = certificates[track.id];
+    const name = cert?.name || userName || "Student";
+    const certId = cert?.certId || generateCertId(track.id);
+    const quizAvg = cert?.quizAvg || getQuizAvg(track.id);
+    const dateStr = cert ? new Date(cert.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+    canvas.width = 1400;
+    canvas.height = 1000;
 
-    canvas.width = 1200;
-    canvas.height = 850;
+    // BG
+    const bg = ctx.createLinearGradient(0, 0, 1400, 1000);
+    bg.addColorStop(0, "#06090d"); bg.addColorStop(0.3, "#0c1420"); bg.addColorStop(0.7, "#0c1420"); bg.addColorStop(1, "#06090d");
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, 1400, 1000);
 
-    // Background
-    const bgGrad = ctx.createLinearGradient(0, 0, 1200, 850);
-    bgGrad.addColorStop(0, "#0f1419");
-    bgGrad.addColorStop(0.5, "#1a2332");
-    bgGrad.addColorStop(1, "#0f1419");
-    ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, 1200, 850);
+    // Double border
+    ctx.strokeStyle = "#c8a84e"; ctx.lineWidth = 3; ctx.strokeRect(24, 24, 1352, 952);
+    ctx.strokeStyle = "rgba(200,168,78,0.25)"; ctx.lineWidth = 1; ctx.strokeRect(34, 34, 1332, 932);
 
-    // Border
-    ctx.strokeStyle = "#00c805";
-    ctx.lineWidth = 3;
-    ctx.strokeRect(30, 30, 1140, 790);
-
-    // Inner border
-    ctx.strokeStyle = "rgba(0, 200, 5, 0.2)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(40, 40, 1120, 770);
-
-    // Corner decorations
-    const cornerSize = 40;
-    ctx.strokeStyle = "#00c805";
-    ctx.lineWidth = 2;
-    [[45, 45], [1115, 45], [45, 765], [1115, 765]].forEach(([x, y]) => {
-      ctx.beginPath();
-      ctx.moveTo(x, y + cornerSize);
-      ctx.lineTo(x, y);
-      ctx.lineTo(x + (x < 600 ? cornerSize : -cornerSize), y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x + (x < 600 ? cornerSize : -cornerSize), y + (y < 400 ? 0 : 0));
-      ctx.stroke();
+    // Corner L-brackets
+    ctx.strokeStyle = "#c8a84e"; ctx.lineWidth = 3;
+    ([[42, 42, 1, 1], [1318, 42, -1, 1], [42, 918, 1, -1], [1318, 918, -1, -1]] as [number, number, number, number][]).forEach(([x, y, dx, dy]) => {
+      ctx.beginPath(); ctx.moveTo(x, y + dy * 50); ctx.lineTo(x, y); ctx.lineTo(x + dx * 50, y); ctx.stroke();
     });
 
-    // Green glow circle
-    const glowGrad = ctx.createRadialGradient(600, 200, 0, 600, 200, 300);
-    glowGrad.addColorStop(0, "rgba(0, 200, 5, 0.08)");
-    glowGrad.addColorStop(1, "rgba(0, 200, 5, 0)");
-    ctx.fillStyle = glowGrad;
-    ctx.fillRect(0, 0, 1200, 850);
+    // Glow
+    const glow = ctx.createRadialGradient(700, 200, 0, 700, 200, 400);
+    glow.addColorStop(0, "rgba(200,168,78,0.06)"); glow.addColorStop(1, "rgba(200,168,78,0)");
+    ctx.fillStyle = glow; ctx.fillRect(0, 0, 1400, 600);
+
+    ctx.textAlign = "center";
 
     // Icon
-    ctx.font = "64px serif";
-    ctx.textAlign = "center";
-    ctx.fillText(track.icon, 600, 150);
+    ctx.font = "64px serif"; ctx.fillText(track.icon, 700, 130);
 
-    // "Certificate of Completion" text
-    ctx.font = "14px sans-serif";
-    ctx.fillStyle = "#00c805";
-    ctx.letterSpacing = "6px";
-    ctx.fillText("C E R T I F I C A T E   O F   C O M P L E T I O N", 600, 210);
+    // Certificate header
+    ctx.font = "bold 13px sans-serif"; ctx.fillStyle = "#c8a84e";
+    ctx.fillText("C E R T I F I C A T E   O F   A C H I E V E M E N T", 700, 185);
 
-    // Title
-    ctx.font = "bold 42px sans-serif";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(track.title, 600, 290);
+    // Line
+    const lineGrad = ctx.createLinearGradient(380, 0, 1020, 0);
+    lineGrad.addColorStop(0, "rgba(200,168,78,0)"); lineGrad.addColorStop(0.5, "rgba(200,168,78,0.6)"); lineGrad.addColorStop(1, "rgba(200,168,78,0)");
+    ctx.strokeStyle = lineGrad; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(380, 200); ctx.lineTo(1020, 200); ctx.stroke();
 
-    // Subtitle
-    ctx.font = "16px sans-serif";
-    ctx.fillStyle = "#8899a6";
-    ctx.fillText(track.subtitle, 600, 330);
+    // Track title
+    ctx.font = "bold 40px sans-serif"; ctx.fillStyle = "#ffffff"; ctx.fillText(track.title, 700, 260);
+    ctx.font = "16px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText(track.subtitle, 700, 295);
+
+    // "Awarded to"
+    ctx.font = "14px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("This is to certify that", 700, 360);
+
+    // NAME
+    ctx.font = "bold 50px serif"; ctx.fillStyle = "#c8a84e"; ctx.fillText(name, 700, 425);
+    const nw = ctx.measureText(name).width;
+    ctx.strokeStyle = "rgba(200,168,78,0.35)"; ctx.beginPath(); ctx.moveTo(700 - nw / 2 - 30, 442); ctx.lineTo(700 + nw / 2 + 30, 442); ctx.stroke();
+
+    // Achievement
+    ctx.font = "14px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("has demonstrated proficiency in equity research by completing the", 700, 490);
+    ctx.font = "bold 22px sans-serif"; ctx.fillStyle = "#00c805"; ctx.fillText(`${track.title} Track`, 700, 525);
+    ctx.font = "13px sans-serif"; ctx.fillStyle = "#7a8a9a";
+    ctx.fillText(`${track.lessonsRequired.length} lessons completed • ${(QUIZ_MAP[track.id] || []).length} quizzes passed • ${quizAvg}% average score`, 700, 560);
+    ctx.fillText("on the MarketLens Research Platform", 700, 585);
 
     // Divider
-    const divGrad = ctx.createLinearGradient(300, 0, 900, 0);
-    divGrad.addColorStop(0, "rgba(0, 200, 5, 0)");
-    divGrad.addColorStop(0.5, "rgba(0, 200, 5, 0.5)");
-    divGrad.addColorStop(1, "rgba(0, 200, 5, 0)");
-    ctx.strokeStyle = divGrad;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(300, 365);
-    ctx.lineTo(900, 365);
-    ctx.stroke();
+    ctx.strokeStyle = lineGrad; ctx.beginPath(); ctx.moveTo(300, 620); ctx.lineTo(1100, 620); ctx.stroke();
 
-    // "This certifies that"
-    ctx.font = "14px sans-serif";
-    ctx.fillStyle = "#8899a6";
-    ctx.fillText("This certifies that a student of", 600, 410);
+    // Stats row
+    // Lessons
+    ctx.font = "bold 36px sans-serif"; ctx.fillStyle = "#00c805"; ctx.fillText(`${track.lessonsRequired.length}`, 330, 690);
+    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("LESSONS", 330, 710);
 
-    // Platform name
-    ctx.font = "bold 28px sans-serif";
-    ctx.fillStyle = "#00c805";
-    ctx.fillText("MarketLens Research Platform", 600, 455);
+    // Quiz avg
+    ctx.font = "bold 36px sans-serif"; ctx.fillStyle = quizAvg >= 90 ? "#c8a84e" : "#00c805"; ctx.fillText(`${quizAvg}%`, 560, 690);
+    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("QUIZ SCORE", 560, 710);
 
-    // Achievement text
-    ctx.font = "14px sans-serif";
-    ctx.fillStyle = "#8899a6";
-    ctx.fillText(`has successfully completed the ${track.title} track`, 600, 500);
-    ctx.fillText(`comprising ${track.lessonsRequired.length} comprehensive lessons in equity research and investing`, 600, 525);
-
-    // Second divider
-    ctx.strokeStyle = divGrad;
-    ctx.beginPath();
-    ctx.moveTo(300, 565);
-    ctx.lineTo(900, 565);
-    ctx.stroke();
-
-    // Lessons completed
-    ctx.font = "bold 48px sans-serif";
-    ctx.fillStyle = "#00c805";
-    ctx.fillText(`${track.lessonsRequired.length}`, 400, 640);
-    ctx.font = "12px sans-serif";
-    ctx.fillStyle = "#8899a6";
-    ctx.fillText("LESSONS COMPLETED", 400, 665);
+    // Cert ID
+    ctx.font = "bold 15px monospace"; ctx.fillStyle = "#ffffff"; ctx.fillText(certId, 790, 690);
+    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("CERTIFICATE ID", 790, 710);
 
     // Date
-    const dateStr = certificates[track.id]
-      ? new Date(certificates[track.id]).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-      : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-    ctx.font = "bold 20px sans-serif";
-    ctx.fillStyle = "#ffffff";
-    ctx.fillText(dateStr, 800, 635);
-    ctx.font = "12px sans-serif";
-    ctx.fillStyle = "#8899a6";
-    ctx.fillText("DATE ISSUED", 800, 665);
+    ctx.font = "bold 16px sans-serif"; ctx.fillStyle = "#ffffff"; ctx.fillText(dateStr, 1050, 690);
+    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("DATE ISSUED", 1050, 710);
 
-    // Footer
-    ctx.font = "11px sans-serif";
-    ctx.fillStyle = "#536471";
-    ctx.fillText("MarketLens — Free Equity Research & Education Platform for Students Worldwide", 600, 760);
-    ctx.fillText("marketlens.app • Verify at marketlens.app/verify", 600, 780);
+    // Credential badge
+    if (quizAvg >= 90) {
+      ctx.font = "bold 11px sans-serif"; ctx.fillStyle = "#c8a84e"; ctx.fillText("★ DISTINCTION — Top Performer ★", 700, 760);
+    } else if (quizAvg >= 80) {
+      ctx.font = "bold 11px sans-serif"; ctx.fillStyle = "#00c805"; ctx.fillText("✓ MERIT — Strong Performance", 700, 760);
+    }
 
-    // Download
+    // Signatures
+    ctx.strokeStyle = "rgba(200,168,78,0.25)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(230, 860); ctx.lineTo(530, 860); ctx.stroke();
+    ctx.font = "italic 17px serif"; ctx.fillStyle = "#c8a84e"; ctx.fillText("MarketLens", 380, 850);
+    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("PLATFORM DIRECTOR", 380, 876);
+
+    ctx.beginPath(); ctx.moveTo(870, 860); ctx.lineTo(1170, 860); ctx.stroke();
+    ctx.font = "italic 17px serif"; ctx.fillStyle = "#c8a84e"; ctx.fillText("Equity Education", 1020, 850);
+    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("HEAD OF CURRICULUM", 1020, 876);
+
+    // Verification footer
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#3a4a5a";
+    ctx.fillText("MarketLens — Free Equity Research & Education for Students Worldwide", 700, 925);
+    ctx.fillText(`Verify: marketlens-com.vercel.app • Certificate ID: ${certId}`, 700, 945);
+
     const link = document.createElement("a");
-    link.download = `MarketLens_Certificate_${track.title.replace(/\s+/g, "_")}.png`;
+    link.download = `MarketLens_${track.title.replace(/\s+/g, "_")}_${name.replace(/\s+/g, "_")}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
   }
@@ -262,151 +287,203 @@ export default function CertificateGenerator() {
   const activeCert = CERTIFICATE_TRACKS.find((t) => t.id === selectedCert);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="text-center py-6">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20">
           <Award size={28} className="text-white" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Certificates</h2>
-        <p className="text-sm text-[var(--color-text-muted)]">
-          Complete lesson tracks to earn downloadable certificates
+        <h2 className="text-2xl font-bold mb-2">Certificates of Achievement</h2>
+        <p className="text-sm text-[var(--color-text-muted)] max-w-md mx-auto">
+          Earn verified credentials by completing lessons <strong>and</strong> passing quizzes. Each certificate has a unique ID.
         </p>
       </div>
 
-      {/* Overall Progress */}
-      <div className="bg-white border border-[var(--color-border)] rounded-xl p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <BookOpen size={16} className="text-[var(--color-brand)]" />
-            <p className="text-sm font-bold">Learning Progress</p>
+      {/* Profile + Stats Card */}
+      <div className="bg-gradient-to-r from-[#0f1419] to-[#1a2332] rounded-2xl p-6 text-white shadow-xl overflow-hidden relative">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-brand)]/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="relative flex items-center justify-between gap-4 mb-5">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-xl font-bold shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/20">
+              {userName ? userName.charAt(0).toUpperCase() : <User size={22} />}
+            </div>
+            <div>
+              {userName ? (
+                <>
+                  <p className="text-base font-bold">{userName}</p>
+                  <p className="text-[11px] text-gray-400">MarketLens Student</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-gray-300">Set your name to get started</p>
+                  <p className="text-[11px] text-gray-500">Required for certificates</p>
+                </>
+              )}
+            </div>
           </div>
-          <p className="text-sm font-bold text-[var(--color-brand)]">
-            {totalLessonsCompleted} / {LESSONS.length} lessons
-          </p>
+          <button
+            onClick={() => { setShowNamePrompt(true); setPendingClaimId(null); }}
+            className="px-4 py-2 rounded-xl text-xs font-medium bg-white/10 hover:bg-white/20 border border-white/10 transition-all"
+          >
+            {userName ? "Edit" : "Enter Name"}
+          </button>
         </div>
-        <div className="w-full h-3 bg-[var(--color-surface-card)] rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-green-500 rounded-full transition-all duration-700"
-            style={{ width: `${(totalLessonsCompleted / LESSONS.length) * 100}%` }}
-          />
-        </div>
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-[10px] text-[var(--color-text-muted)]">
-            {Object.keys(certificates).length} certificate{Object.keys(certificates).length !== 1 ? "s" : ""} earned
-          </span>
-          <span className="text-[10px] text-[var(--color-text-muted)]">
-            {LESSONS.length - totalLessonsCompleted} lessons remaining
-          </span>
+
+        {/* Stats grid */}
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { icon: BookOpen, label: "Lessons", value: `${totalLessonsCompleted}/${LESSONS.length}`, pct: (totalLessonsCompleted / LESSONS.length) * 100, color: "from-emerald-500 to-green-500" },
+            { icon: Target, label: "Quizzes Passed", value: `${totalQuizzesPassed}`, pct: Math.min(totalQuizzesPassed * 15, 100), color: "from-blue-500 to-indigo-500" },
+            { icon: Award, label: "Certificates", value: `${Object.keys(certificates).length}`, pct: (Object.keys(certificates).length / 4) * 100, color: "from-amber-500 to-orange-500" },
+            { icon: ShieldCheck, label: "Avg Score", value: quizResults.length > 0 ? `${Math.round(quizResults.reduce((a, r) => a + (r.score / r.total) * 100, 0) / quizResults.length)}%` : "—", pct: quizResults.length > 0 ? quizResults.reduce((a, r) => a + (r.score / r.total) * 100, 0) / quizResults.length : 0, color: "from-violet-500 to-purple-500" },
+          ].map((stat) => (
+            <div key={stat.label} className="bg-white/5 border border-white/10 rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <stat.icon size={13} className="text-gray-400" />
+                <span className="text-[10px] text-gray-400 font-medium">{stat.label}</span>
+              </div>
+              <p className="text-lg font-bold mb-1.5">{stat.value}</p>
+              <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div className={`h-full rounded-full bg-gradient-to-r ${stat.color} transition-all duration-700`} style={{ width: `${Math.min(stat.pct, 100)}%` }} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Certificate Tracks */}
-      <div className="space-y-3">
+      <div className="space-y-4">
+        <h3 className="text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-2">
+          <ShieldCheck size={16} className="text-[var(--color-brand)]" />
+          Certificate Tracks
+          <span className="text-[10px] font-normal text-[var(--color-text-muted)] ml-1">Requires lessons + quizzes</span>
+        </h3>
+
         {CERTIFICATE_TRACKS.map((track) => {
-          const completedCount = track.lessonsRequired.filter((id) => isLessonComplete(progress, id)).length;
+          const completedLessons = track.lessonsRequired.filter((id) => isLessonComplete(progress, id)).length;
           const totalRequired = track.lessonsRequired.length;
-          const pct = Math.round((completedCount / totalRequired) * 100);
-          const isEarned = !!certificates[track.id];
-          const canClaim = completedCount === totalRequired && !isEarned;
+          const lessonPct = Math.round((completedLessons / totalRequired) * 100);
+          const quizInfo = getQuizzesDone(track.id);
+          const quizAvg = getQuizAvg(track.id);
+          const cert = certificates[track.id];
+          const isEarned = !!cert;
+
+          const lessonsOk = completedLessons === totalRequired;
+          const quizzesOk = quizInfo.done === quizInfo.total;
+          const scoreOk = quizAvg >= track.minQuizScore;
+          const canClaim = lessonsOk && quizzesOk && scoreOk && !isEarned && !!userName;
 
           return (
             <div
               key={track.id}
-              className={`bg-white border rounded-xl overflow-hidden transition-all ${
+              className={`bg-white border rounded-2xl overflow-hidden transition-all ${
                 isEarned
-                  ? "border-[var(--color-brand)]/30 shadow-md"
+                  ? "border-[var(--color-brand)]/30 shadow-lg ring-1 ring-[var(--color-brand)]/10"
                   : canClaim
-                  ? "border-amber-300 shadow-lg shadow-amber-100"
-                  : "border-[var(--color-border)]"
+                  ? "border-amber-300 shadow-xl shadow-amber-100/50"
+                  : "border-[var(--color-border)] shadow-sm"
               }`}
             >
               <div className="p-5">
                 <div className="flex items-start gap-4">
-                  {/* Icon */}
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${track.gradient} flex items-center justify-center shadow-md shrink-0`}>
+                  <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${track.gradient} flex items-center justify-center shadow-lg shrink-0`}>
                     <span className="text-2xl">{track.icon}</span>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
-                        {track.title}
-                      </h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="text-sm font-bold">{track.title}</h3>
                       {isEarned && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] text-[10px] font-semibold">
-                          <CheckCircle size={10} />
-                          Earned
+                        <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] text-[10px] font-bold">
+                          <CheckCircle size={10} /> Verified
                         </span>
                       )}
                       {canClaim && (
-                        <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-semibold animate-pulse">
-                          <Trophy size={10} />
-                          Ready to Claim!
+                        <span className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold animate-pulse">
+                          <Trophy size={10} /> Ready!
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-[var(--color-text-muted)] mb-3">{track.subtitle}</p>
+                    <p className="text-xs text-[var(--color-text-muted)] mb-3">{track.description}</p>
 
-                    {/* Required lessons */}
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {track.lessonsRequired.map((lessonId) => {
-                        const lesson = LESSONS.find((l) => l.id === lessonId);
-                        const done = isLessonComplete(progress, lessonId);
-                        return (
-                          <span
-                            key={lessonId}
-                            className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium ${
-                              done
-                                ? "bg-[var(--color-brand)]/10 text-[var(--color-brand)]"
-                                : "bg-[var(--color-surface-card)] text-[var(--color-text-muted)]"
-                            }`}
-                          >
-                            {done ? <CheckCircle size={9} /> : <Lock size={9} />}
-                            {lesson?.title.split(" ").slice(0, 3).join(" ") || lessonId}
-                          </span>
-                        );
-                      })}
+                    {/* Requirements checklist */}
+                    <div className="grid grid-cols-3 gap-2 mb-3">
+                      {/* Lessons */}
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium border ${lessonsOk ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-gray-50 border-gray-200 text-gray-500"}`}>
+                        {lessonsOk ? <CheckCircle size={12} /> : <BookOpen size={12} />}
+                        <span>{completedLessons}/{totalRequired} Lessons</span>
+                      </div>
+                      {/* Quizzes */}
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium border ${quizzesOk ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-gray-50 border-gray-200 text-gray-500"}`}>
+                        {quizzesOk ? <CheckCircle size={12} /> : <Target size={12} />}
+                        <span>{quizInfo.done}/{quizInfo.total} Quizzes</span>
+                      </div>
+                      {/* Score */}
+                      <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[11px] font-medium border ${scoreOk ? "bg-emerald-50 border-emerald-200 text-emerald-700" : quizAvg > 0 ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-gray-50 border-gray-200 text-gray-500"}`}>
+                        {scoreOk ? <CheckCircle size={12} /> : quizAvg > 0 ? <AlertTriangle size={12} /> : <ShieldCheck size={12} />}
+                        <span>{quizAvg > 0 ? `${quizAvg}%` : "—"} / {track.minQuizScore}% min</span>
+                      </div>
                     </div>
 
                     {/* Progress bar */}
                     <div className="flex items-center gap-3">
                       <div className="flex-1 h-2 bg-[var(--color-surface-card)] rounded-full overflow-hidden">
                         <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            isEarned ? "bg-[var(--color-brand)]" : "bg-gradient-to-r from-blue-500 to-indigo-500"
-                          }`}
-                          style={{ width: `${pct}%` }}
+                          className={`h-full rounded-full transition-all duration-700 ${isEarned ? "bg-[var(--color-brand)]" : "bg-gradient-to-r from-blue-500 to-indigo-500"}`}
+                          style={{ width: `${lessonPct}%` }}
                         />
                       </div>
-                      <span className="text-[10px] font-semibold text-[var(--color-text-muted)] tabular-nums shrink-0">
-                        {completedCount}/{totalRequired}
-                      </span>
+                      <span className="text-[10px] font-bold text-[var(--color-text-muted)] tabular-nums">{lessonPct}%</span>
                     </div>
+
+                    {/* Cert ID if earned */}
+                    {isEarned && cert && (
+                      <div className="mt-3 flex items-center gap-4 px-3 py-2 rounded-lg bg-[var(--color-surface-card)] border border-[var(--color-border)]">
+                        <div className="flex items-center gap-1.5 text-[10px]">
+                          <ShieldCheck size={11} className="text-[var(--color-brand)]" />
+                          <span className="font-mono font-bold text-[var(--color-text-primary)]">{cert.certId}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)]">
+                          <Clock size={10} />
+                          {new Date(cert.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)]">
+                          <Target size={10} />
+                          {cert.quizAvg}% avg
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Action */}
-                  <div className="shrink-0">
+                  <div className="shrink-0 flex flex-col items-end gap-1.5">
                     {isEarned ? (
                       <button
                         onClick={() => { setSelectedCert(track.id); setShowCertificate(true); }}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-dim)] transition-colors shadow-sm"
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-dim)] transition-colors shadow-md shadow-[var(--color-brand)]/20"
                       >
-                        <Download size={13} />
-                        Download
+                        <Download size={13} /> Download
                       </button>
                     ) : canClaim ? (
                       <button
-                        onClick={() => handleClaim(track.id)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-all shadow-md shadow-amber-200 animate-pulse"
+                        onClick={() => handleStartClaim(track.id)}
+                        className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg shadow-amber-200 animate-pulse"
                       >
-                        <Award size={13} />
-                        Claim
+                        <Award size={13} /> Claim Certificate
+                      </button>
+                    ) : !userName ? (
+                      <button
+                        onClick={() => { setShowNamePrompt(true); setPendingClaimId(null); }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-medium border border-amber-300 text-amber-600 hover:bg-amber-50 transition-colors"
+                      >
+                        <User size={12} /> Set name first
                       </button>
                     ) : (
-                      <div className="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
-                        <Lock size={12} />
-                        {totalRequired - completedCount} left
+                      <div className="text-right">
+                        <div className="flex items-center gap-1 text-[11px] text-[var(--color-text-muted)]">
+                          <Lock size={12} />
+                          In Progress
+                        </div>
                       </div>
                     )}
                   </div>
@@ -417,71 +494,104 @@ export default function CertificateGenerator() {
         })}
       </div>
 
+      {/* How It Works */}
+      <div className="bg-[var(--color-surface-card)] border border-[var(--color-border)] rounded-2xl p-5">
+        <h4 className="text-xs font-bold mb-3 text-[var(--color-text-primary)]">How Certificates Work</h4>
+        <div className="grid grid-cols-4 gap-3">
+          {[
+            { step: "1", title: "Complete Lessons", desc: "Read all sections in required lessons" },
+            { step: "2", title: "Pass Quizzes", desc: "Score above minimum on related quizzes" },
+            { step: "3", title: "Enter Your Name", desc: "Your real name for the certificate" },
+            { step: "4", title: "Download & Share", desc: "Get a verified PNG with unique ID" },
+          ].map((s) => (
+            <div key={s.step} className="text-center">
+              <div className="w-8 h-8 rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] text-xs font-bold flex items-center justify-center mx-auto mb-2">{s.step}</div>
+              <p className="text-[11px] font-bold text-[var(--color-text-primary)]">{s.title}</p>
+              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Name Modal */}
+      {showNamePrompt && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => { setShowNamePrompt(false); setPendingClaimId(null); }}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <Sparkles size={22} className="text-white" />
+              </div>
+              <h3 className="text-lg font-bold text-center mb-1">Enter Your Full Name</h3>
+              <p className="text-xs text-[var(--color-text-muted)] text-center mb-5">
+                This will appear on your certificate exactly as typed. Use your real name.
+              </p>
+              <input
+                type="text"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleNameSubmit()}
+                placeholder="e.g. Anurag Pondey"
+                className="w-full px-4 py-3 rounded-xl border-2 border-[var(--color-border)] text-sm font-medium focus:outline-none focus:border-[var(--color-brand)] focus:ring-2 focus:ring-[var(--color-brand)]/20 transition-all placeholder:text-gray-300"
+                autoFocus
+              />
+            </div>
+            <div className="px-6 pb-5 flex gap-2">
+              <button onClick={() => { setShowNamePrompt(false); setPendingClaimId(null); }} className="flex-1 px-4 py-2.5 rounded-xl text-xs font-medium text-[var(--color-text-muted)] border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors">Cancel</button>
+              <button onClick={handleNameSubmit} disabled={!nameInput.trim()} className="flex-1 px-4 py-2.5 rounded-xl text-xs font-semibold bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-dim)] transition-colors shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
+                {pendingClaimId ? "Save & Claim" : "Save Name"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Certificate Preview Modal */}
       {showCertificate && activeCert && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden animate-fade-in-scale">
-            {/* Certificate Preview */}
-            <div ref={certRef} className="relative bg-gradient-to-br from-[#0f1419] via-[#1a2332] to-[#0f1419] p-8 sm:p-12">
-              {/* Decorative border */}
-              <div className="absolute inset-4 border-2 border-[var(--color-brand)]/30 rounded-xl pointer-events-none" />
-              <div className="absolute inset-5 border border-[var(--color-brand)]/10 rounded-lg pointer-events-none" />
-
-              {/* Green glow */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-48 bg-[var(--color-brand)]/10 rounded-full blur-[100px] pointer-events-none" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowCertificate(false)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+            <div className="relative bg-gradient-to-br from-[#06090d] via-[#0c1420] to-[#06090d] p-8 sm:p-10">
+              <div className="absolute inset-4 border-2 border-[#c8a84e]/25 rounded-xl pointer-events-none" />
+              <div className="absolute inset-5 border border-[#c8a84e]/10 rounded-lg pointer-events-none" />
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-40 bg-[#c8a84e]/8 rounded-full blur-[80px] pointer-events-none" />
 
               <div className="relative text-center">
-                <span className="text-5xl mb-4 block">{activeCert.icon}</span>
-                <p className="text-[10px] text-[var(--color-brand)] uppercase tracking-[0.3em] font-semibold mb-4">
-                  Certificate of Completion
+                <span className="text-4xl mb-3 block">{activeCert.icon}</span>
+                <p className="text-[9px] text-[#c8a84e] uppercase tracking-[0.3em] font-bold mb-3">Certificate of Achievement</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">{activeCert.title}</h3>
+                <p className="text-xs text-gray-500 mb-5">{activeCert.subtitle}</p>
+
+                <div className="w-40 h-px bg-gradient-to-r from-transparent via-[#c8a84e]/40 to-transparent mx-auto mb-4" />
+
+                <p className="text-[10px] text-gray-500 mb-1">Awarded to</p>
+                <p className="text-2xl sm:text-3xl font-bold text-[#c8a84e] font-serif mb-1">
+                  {certificates[activeCert.id]?.name || userName || "Student"}
                 </p>
-                <h3 className="text-2xl sm:text-3xl font-bold text-white mb-2">{activeCert.title}</h3>
-                <p className="text-sm text-gray-400 mb-6">{activeCert.subtitle}</p>
+                <div className="w-56 h-px bg-[#c8a84e]/25 mx-auto mb-4" />
 
-                <div className="w-48 h-px bg-gradient-to-r from-transparent via-[var(--color-brand)]/50 to-transparent mx-auto mb-6" />
-
-                <p className="text-xs text-gray-500 mb-1">This certifies that a student of</p>
-                <p className="text-lg font-bold text-[var(--color-brand)] mb-1">MarketLens Research Platform</p>
-                <p className="text-xs text-gray-500 mb-6">
-                  has successfully completed the {activeCert.title} track<br />
-                  comprising {activeCert.lessonsRequired.length} comprehensive lessons
+                <p className="text-[10px] text-gray-500 mb-5">
+                  {activeCert.lessonsRequired.length} lessons • {(QUIZ_MAP[activeCert.id] || []).length} quizzes passed • {certificates[activeCert.id]?.quizAvg || getQuizAvg(activeCert.id)}% avg score
                 </p>
 
-                <div className="flex items-center justify-center gap-12">
+                <div className="flex items-center justify-center gap-6 text-center">
                   <div>
-                    <p className="text-3xl font-bold text-[var(--color-brand)]">{activeCert.lessonsRequired.length}</p>
-                    <p className="text-[9px] text-gray-500 uppercase tracking-wider">Lessons</p>
+                    <p className="text-xs font-mono font-bold text-white">{certificates[activeCert.id]?.certId || "—"}</p>
+                    <p className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Certificate ID</p>
                   </div>
-                  <div className="w-px h-10 bg-gray-700" />
+                  <div className="w-px h-8 bg-gray-700" />
                   <div>
-                    <p className="text-sm font-bold text-white">
-                      {certificates[activeCert.id]
-                        ? new Date(certificates[activeCert.id]).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })
-                        : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
+                    <p className="text-xs font-bold text-white">
+                      {certificates[activeCert.id] ? new Date(certificates[activeCert.id].date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
                     </p>
-                    <p className="text-[9px] text-gray-500 uppercase tracking-wider">Date Issued</p>
+                    <p className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Date Issued</p>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="p-5 flex items-center justify-between bg-[var(--color-surface)]">
-              <button
-                onClick={() => setShowCertificate(false)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
-              >
-                Close
+            <div className="p-4 flex items-center justify-between bg-[var(--color-surface)]">
+              <button onClick={() => setShowCertificate(false)} className="px-4 py-2 rounded-xl text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors">Close</button>
+              <button onClick={handleDownload} className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-dim)] transition-colors shadow-lg shadow-[var(--color-brand)]/20">
+                <Download size={14} /> Download Certificate
               </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDownload}
-                  className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-semibold bg-[var(--color-brand)] text-white hover:bg-[var(--color-brand-dim)] transition-colors shadow-md shadow-[var(--color-brand)]/20"
-                >
-                  <Download size={14} />
-                  Download PNG
-                </button>
-              </div>
             </div>
           </div>
         </div>

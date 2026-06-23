@@ -3,6 +3,7 @@
 import type { StockData } from "@/lib/types";
 import { formatCurrency, formatPercentRaw } from "@/lib/format";
 import { TrendingUp, TrendingDown, Building2, Globe, Users } from "lucide-react";
+import CompanyLogo from "./CompanyLogo";
 
 interface Props {
   data: StockData;
@@ -17,6 +18,7 @@ export default function StockHeader({ data }: Props) {
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div className="space-y-2">
           <div className="flex items-center gap-3">
+            <CompanyLogo symbol={profile.symbol} size={36} />
             <h2 className="text-2xl font-bold tracking-tight">
               {profile.symbol}
             </h2>

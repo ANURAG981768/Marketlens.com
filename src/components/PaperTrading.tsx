@@ -95,6 +95,13 @@ export default function PaperTrading({ onSelect }: Props) {
     const p = getPaperPortfolio();
     setPortfolio(p);
     fetchLivePrices(p);
+
+    const interval = setInterval(() => {
+      const current = getPaperPortfolio();
+      setPortfolio(current);
+      fetchLivePrices(current);
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   async function fetchLivePrices(p: PaperPortfolio) {
@@ -104,9 +111,9 @@ export default function PaperTrading({ onSelect }: Props) {
     await Promise.all(
       symbols.map(async (sym) => {
         try {
-          const res = await fetch(`/api/stock?symbol=${encodeURIComponent(sym)}`);
+          const res = await fetch(`/api/quote?symbol=${encodeURIComponent(sym)}`);
           const json = await res.json();
-          if (json.quote?.price) prices[sym] = json.quote.price;
+          if (json.price) prices[sym] = json.price;
         } catch {}
       })
     );
@@ -116,17 +123,47 @@ export default function PaperTrading({ onSelect }: Props) {
   const fetchPrice = useCallback(async (symbol: string) => {
     setPriceLoading(true);
     try {
-      const res = await fetch(`/api/stock?symbol=${encodeURIComponent(symbol)}`);
+      const res = await fetch(`/api/quote?symbol=${encodeURIComponent(symbol)}`);
       const json = await res.json();
-      if (json.quote?.price) {
-        setTradePrice(json.quote.price.toFixed(2));
-      } else if (json.error === "demo") {
-        setTradePrice("214.24");
+      if (json.price) {
+        setTradePrice(json.price.toFixed(2));
       }
     } catch {} finally {
       setPriceLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (!activeSector || sectorStocks.length === 0) return;
+    const interval = setInterval(async () => {
+      const batch = sectorStocks.slice(0, 20);
+      const prices: Record<string, number> = {};
+      await Promise.all(
+        batch.map(async (s) => {
+          try {
+            const res = await fetch(`/api/quote?symbol=${encodeURIComponent(s.symbol)}`);
+            const json = await res.json();
+            if (json.price) prices[s.symbol] = json.price;
+          } catch {}
+        })
+      );
+      setSectorStocks((prev) =>
+        prev.map((s) => (prices[s.symbol] ? { ...s, price: prices[s.symbol] } : s))
+      );
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [activeSector, sectorStocks.length]);
+
+  useEffect(() => {
+    if (!tradeSymbol) return;
+    const interval = setInterval(() => {
+      fetch(`/api/quote?symbol=${encodeURIComponent(tradeSymbol)}`)
+        .then((r) => r.json())
+        .then((json) => { if (json.price) setTradePrice(json.price.toFixed(2)); })
+        .catch(() => {});
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [tradeSymbol]);
 
   async function fetchSectorStocks(sector: string) {
     setActiveSector(sector);
@@ -134,43 +171,96 @@ export default function PaperTrading({ onSelect }: Props) {
     setSectorStocks([]);
     setSectorSearch("");
 
-    if (sector === "Crypto") {
-      const cryptoStocks = STOCK_DATABASE
-        .filter((s) => s.exchange === "CRYPTO")
-        .map((s) => ({ symbol: s.symbol, companyName: s.name, price: 0, sector: "Crypto" }));
-      setSectorStocks(cryptoStocks);
-      setSectorLoading(false);
-      return;
-    }
+    const SECTOR_STOCKS: Record<string, { symbol: string; companyName: string }[]> = {
+      Crypto: STOCK_DATABASE.filter((s) => s.exchange === "CRYPTO").map((s) => ({ symbol: s.symbol, companyName: s.name })),
+      Technology: [
+        { symbol: "AAPL", companyName: "Apple Inc." }, { symbol: "MSFT", companyName: "Microsoft Corp." },
+        { symbol: "NVDA", companyName: "NVIDIA Corp." }, { symbol: "GOOGL", companyName: "Alphabet Inc." },
+        { symbol: "META", companyName: "Meta Platforms" }, { symbol: "TSLA", companyName: "Tesla Inc." },
+        { symbol: "AVGO", companyName: "Broadcom Inc." }, { symbol: "AMD", companyName: "AMD Inc." },
+        { symbol: "CRM", companyName: "Salesforce Inc." }, { symbol: "ADBE", companyName: "Adobe Inc." },
+        { symbol: "INTC", companyName: "Intel Corp." }, { symbol: "CSCO", companyName: "Cisco Systems" },
+        { symbol: "ORCL", companyName: "Oracle Corp." }, { symbol: "QCOM", companyName: "Qualcomm" },
+        { symbol: "IBM", companyName: "IBM Corp." }, { symbol: "NFLX", companyName: "Netflix Inc." },
+      ],
+      Healthcare: [
+        { symbol: "UNH", companyName: "UnitedHealth Group" }, { symbol: "JNJ", companyName: "Johnson & Johnson" },
+        { symbol: "LLY", companyName: "Eli Lilly" }, { symbol: "ABBV", companyName: "AbbVie Inc." },
+        { symbol: "MRK", companyName: "Merck & Co." }, { symbol: "TMO", companyName: "Thermo Fisher" },
+        { symbol: "ABT", companyName: "Abbott Labs" }, { symbol: "PFE", companyName: "Pfizer Inc." },
+      ],
+      "Financial Services": [
+        { symbol: "JPM", companyName: "JPMorgan Chase" }, { symbol: "V", companyName: "Visa Inc." },
+        { symbol: "MA", companyName: "Mastercard" }, { symbol: "BAC", companyName: "Bank of America" },
+        { symbol: "GS", companyName: "Goldman Sachs" }, { symbol: "MS", companyName: "Morgan Stanley" },
+        { symbol: "PYPL", companyName: "PayPal Holdings" }, { symbol: "AXP", companyName: "American Express" },
+      ],
+      "Consumer Cyclical": [
+        { symbol: "AMZN", companyName: "Amazon.com" }, { symbol: "HD", companyName: "Home Depot" },
+        { symbol: "NKE", companyName: "Nike Inc." }, { symbol: "SBUX", companyName: "Starbucks" },
+        { symbol: "TGT", companyName: "Target Corp." }, { symbol: "F", companyName: "Ford Motor" },
+        { symbol: "GM", companyName: "General Motors" }, { symbol: "ABNB", companyName: "Airbnb Inc." },
+      ],
+      "Communication Services": [
+        { symbol: "GOOG", companyName: "Alphabet (C)" }, { symbol: "DIS", companyName: "Walt Disney" },
+        { symbol: "T", companyName: "AT&T Inc." }, { symbol: "VZ", companyName: "Verizon" },
+        { symbol: "SNAP", companyName: "Snap Inc." }, { symbol: "SPOT", companyName: "Spotify" },
+      ],
+      Industrials: [
+        { symbol: "CAT", companyName: "Caterpillar" }, { symbol: "BA", companyName: "Boeing Co." },
+        { symbol: "GE", companyName: "GE Aerospace" }, { symbol: "UPS", companyName: "United Parcel Service" },
+        { symbol: "HON", companyName: "Honeywell" }, { symbol: "DE", companyName: "Deere & Co." },
+      ],
+      "Consumer Defensive": [
+        { symbol: "WMT", companyName: "Walmart Inc." }, { symbol: "PG", companyName: "Procter & Gamble" },
+        { symbol: "KO", companyName: "Coca-Cola" }, { symbol: "PEP", companyName: "PepsiCo" },
+        { symbol: "COST", companyName: "Costco Wholesale" }, { symbol: "CL", companyName: "Colgate-Palmolive" },
+      ],
+      Energy: [
+        { symbol: "XOM", companyName: "Exxon Mobil" }, { symbol: "CVX", companyName: "Chevron Corp." },
+        { symbol: "COP", companyName: "ConocoPhillips" }, { symbol: "SLB", companyName: "Schlumberger" },
+        { symbol: "EOG", companyName: "EOG Resources" }, { symbol: "OXY", companyName: "Occidental Petroleum" },
+      ],
+    };
+
+    const stocks = SECTOR_STOCKS[sector] || SECTOR_STOCKS["Technology"];
+    const initial = stocks.map((s) => ({ ...s, price: 0, sector }));
+    setSectorStocks(initial);
 
     try {
       const res = await fetch(`/api/screener?sector=${encodeURIComponent(sector)}&limit=50`);
       const json = await res.json();
-      if (json.results) setSectorStocks(json.results);
-      else if (json.error === "demo") {
-        setSectorStocks([
-          { symbol: "AAPL", companyName: "Apple Inc.", price: 214.24, sector: "Technology" },
-          { symbol: "MSFT", companyName: "Microsoft Corp.", price: 467.56, sector: "Technology" },
-          { symbol: "NVDA", companyName: "NVIDIA Corp.", price: 135.58, sector: "Technology" },
-          { symbol: "GOOGL", companyName: "Alphabet Inc.", price: 176.42, sector: "Technology" },
-          { symbol: "META", companyName: "Meta Platforms", price: 507.81, sector: "Technology" },
-        ]);
+      if (json.results && json.error !== "demo") {
+        setSectorStocks(json.results);
+        setSectorLoading(false);
+        return;
       }
-    } catch {
-      setSectorStocks([]);
-    } finally {
-      setSectorLoading(false);
-    }
+    } catch {}
+
+    const prices: Record<string, number> = {};
+    const batch = stocks.slice(0, 20);
+    await Promise.all(
+      batch.map(async (s) => {
+        try {
+          const res = await fetch(`/api/quote?symbol=${encodeURIComponent(s.symbol)}`);
+          const json = await res.json();
+          if (json.price) prices[s.symbol] = json.price;
+        } catch {}
+      })
+    );
+    setSectorStocks(
+      stocks.map((s) => ({ ...s, price: prices[s.symbol] || 0, sector }))
+    );
+    setSectorLoading(false);
   }
 
   function selectSectorStock(stock: any) {
     setTradeSymbol(stock.symbol);
     setTradeName(stock.companyName);
     setSearchQuery(stock.symbol);
-    setTradePrice(stock.price?.toFixed(2) || "");
     setActiveSector(null);
-    if (stock.price) setTradePrice(stock.price.toFixed(2));
-    else fetchPrice(stock.symbol);
+    if (stock.price && stock.price > 0) setTradePrice(stock.price.toFixed(2));
+    fetchPrice(stock.symbol);
   }
 
   function handleSearchStock(query: string) {

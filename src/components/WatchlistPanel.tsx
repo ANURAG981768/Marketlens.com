@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Star, X, TrendingUp, TrendingDown } from "lucide-react";
+import CompanyLogo from "./CompanyLogo";
 import {
   getWatchlist,
   removeFromWatchlist,
@@ -47,7 +48,9 @@ export default function WatchlistPanel({ onSelect, refreshKey }: Props) {
             className="flex items-center justify-between px-4 py-2.5 hover:bg-[var(--color-surface-hover)] transition-colors group cursor-pointer"
             onClick={() => onSelect(item.symbol)}
           >
-            <div>
+            <div className="flex items-center gap-2">
+              <CompanyLogo symbol={item.symbol} size={22} />
+              <div>
               <p className="text-xs font-semibold text-[var(--color-text-primary)]">
                 {item.symbol}
               </p>
@@ -56,6 +59,7 @@ export default function WatchlistPanel({ onSelect, refreshKey }: Props) {
                   {item.name}
                 </p>
               )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               {item.price && (

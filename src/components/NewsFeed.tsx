@@ -46,39 +46,41 @@ function getSiteColor(site: string): string {
   return "#6b7280";
 }
 
-export default function NewsFeed({ symbol, isDemo }: Props) {
+export default function NewsFeed({ symbol }: Props) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
-  const fetchNews = useCallback(async () => {
-    setLoading(true);
+  const [isLive, setIsLive] = useState(false);
 
-    if (isDemo) {
-      setArticles(symbol ? DEMO_NEWS_AAPL : DEMO_NEWS_GENERAL);
-      setLoading(false);
-      return;
-    }
+  const fetchNews = useCallback(async (background = false) => {
+    if (!background) setLoading(true);
 
+    // News is sourced live from Yahoo Finance RSS and works regardless of demo mode.
     try {
       const params = symbol ? `?symbol=${encodeURIComponent(symbol)}` : "";
       const res = await fetch(`/api/news${params}`);
       const json = await res.json();
 
-      if (json.error === "demo") {
-        setArticles(symbol ? DEMO_NEWS_AAPL : DEMO_NEWS_GENERAL);
-      } else if (json.articles) {
+      if (json.articles && json.articles.length > 0) {
         setArticles(json.articles);
+        setIsLive(true);
+      } else {
+        setArticles(symbol ? DEMO_NEWS_AAPL : DEMO_NEWS_GENERAL);
+        setIsLive(false);
       }
     } catch {
       setArticles(symbol ? DEMO_NEWS_AAPL : DEMO_NEWS_GENERAL);
+      setIsLive(false);
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
-  }, [symbol, isDemo]);
+  }, [symbol]);
 
   useEffect(() => {
     fetchNews();
+    const interval = setInterval(() => fetchNews(true), 300000); // refresh every 5 min
+    return () => clearInterval(interval);
   }, [fetchNews]);
 
   const displayed = showAll ? articles : articles.slice(0, 5);
@@ -91,6 +93,11 @@ export default function NewsFeed({ symbol, isDemo }: Props) {
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
             {symbol ? `${symbol} News` : "Market News"}
           </h3>
+          {isLive && (
+            <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> LIVE
+            </span>
+          )}
         </div>
         <p className="text-xs text-[var(--color-text-muted)] mt-1">
           {symbol

@@ -1,19 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TrendingUp, TrendingDown, Info, BarChart3 } from "lucide-react";
 
 interface SectorData {
   name: string;
   change: number;
   marketCap: string;
-  topStocks: { symbol: string; change: number }[];
+  topStocks: { symbol: string; change: number | null }[];
   weekChange: number;
   monthChange: number;
   ytdChange: number;
 }
 
-const SECTOR_DATA: SectorData[] = [
+const SECTOR_DATA_DEFAULT: SectorData[] = [
   {
     name: "Technology",
     change: 1.42,
@@ -205,10 +205,59 @@ function getTextColor(change: number, maxAbs: number): string {
 export default function SectorHeatmap() {
   const [timeFrame, setTimeFrame] = useState<TimeFrame>("today");
   const [selectedSector, setSelectedSector] = useState<SectorData | null>(null);
+  const [sectorData, setSectorData] = useState<SectorData[]>(SECTOR_DATA_DEFAULT);
+  const [isLive, setIsLive] = useState(false);
 
-  const maxAbs = Math.max(...SECTOR_DATA.map((s) => Math.abs(getChangeValue(s, timeFrame))));
+  // Load live sector performance from sector ETFs
+  useEffect(() => {
+    function loadSectors() {
+      fetch("/api/sectors")
+        .then((r) => r.json())
+        .then((json) => {
+          if (!json.sectors) return;
+          setSectorData((prev) =>
+            prev.map((s) => {
+              const live = json.sectors.find((x: { name: string }) => x.name === s.name);
+              if (!live) return s;
+              return {
+                ...s,
+                change: live.change,
+                weekChange: live.weekChange,
+                monthChange: live.monthChange,
+                ytdChange: live.ytdChange,
+                topStocks: (live.topStocks as string[]).map((sym) => ({ symbol: sym, change: null })),
+              };
+            })
+          );
+          setIsLive(true);
+        })
+        .catch(() => {});
+    }
+    loadSectors();
+    const interval = setInterval(loadSectors, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const sorted = [...SECTOR_DATA].sort(
+  // When a sector is selected, fetch live day-change for its top holdings
+  const loadHoldingChanges = useCallback(async (sector: SectorData) => {
+    const updated = await Promise.all(
+      sector.topStocks.map(async (st) => {
+        try {
+          const res = await fetch(`/api/quote?symbol=${encodeURIComponent(st.symbol)}`);
+          const j = await res.json();
+          if (j.price && j.previousClose) {
+            return { symbol: st.symbol, change: ((j.price - j.previousClose) / j.previousClose) * 100 };
+          }
+        } catch {}
+        return { symbol: st.symbol, change: st.change };
+      })
+    );
+    setSelectedSector((cur) => (cur && cur.name === sector.name ? { ...cur, topStocks: updated } : cur));
+  }, []);
+
+  const maxAbs = Math.max(...sectorData.map((s) => Math.abs(getChangeValue(s, timeFrame))), 0.01);
+
+  const sorted = [...sectorData].sort(
     (a, b) => getChangeValue(b, timeFrame) - getChangeValue(a, timeFrame)
   );
 
@@ -224,9 +273,16 @@ export default function SectorHeatmap() {
             <BarChart3 size={18} className="text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold leading-tight">Sector Heatmap</h2>
+            <h2 className="text-lg font-bold leading-tight flex items-center gap-2">
+              Sector Heatmap
+              {isLive && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> LIVE
+                </span>
+              )}
+            </h2>
             <p className="text-xs text-[var(--color-text-muted)]">
-              {gainers} sectors up · {losers} sectors down
+              {gainers} sectors up · {losers} sectors down{isLive ? " · via sector ETFs" : ""}
             </p>
           </div>
         </div>
@@ -266,7 +322,14 @@ export default function SectorHeatmap() {
           return (
             <button
               key={sector.name}
-              onClick={() => setSelectedSector(isSelected ? null : sector)}
+              onClick={() => {
+                if (isSelected) {
+                  setSelectedSector(null);
+                } else {
+                  setSelectedSector(sector);
+                  loadHoldingChanges(sector);
+                }
+              }}
               className={`relative rounded-xl p-4 text-left transition-all duration-200 border-2 ${
                 isSelected
                   ? "border-[var(--color-brand)] shadow-lg scale-[1.02]"
@@ -337,16 +400,20 @@ export default function SectorHeatmap() {
                   <span className="text-xs font-bold text-[var(--color-text-primary)]">
                     {stock.symbol}
                   </span>
-                  <span
-                    className={`text-xs font-semibold tabular-nums ${
-                      stock.change >= 0
-                        ? "text-[var(--color-positive)]"
-                        : "text-[var(--color-negative)]"
-                    }`}
-                  >
-                    {stock.change >= 0 ? "+" : ""}
-                    {stock.change.toFixed(2)}%
-                  </span>
+                  {stock.change === null ? (
+                    <span className="text-xs text-[var(--color-text-muted)]">…</span>
+                  ) : (
+                    <span
+                      className={`text-xs font-semibold tabular-nums ${
+                        stock.change >= 0
+                          ? "text-[var(--color-positive)]"
+                          : "text-[var(--color-negative)]"
+                      }`}
+                    >
+                      {stock.change >= 0 ? "+" : ""}
+                      {stock.change.toFixed(2)}%
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
@@ -360,17 +427,17 @@ export default function SectorHeatmap() {
         <div className="flex items-center gap-2 mb-2">
           <div
             className="h-3 rounded-full bg-[var(--color-positive)]"
-            style={{ width: `${(gainers / SECTOR_DATA.length) * 100}%` }}
+            style={{ width: `${(gainers / sectorData.length) * 100}%` }}
           />
           <div
             className="h-3 rounded-full bg-[var(--color-negative)]"
-            style={{ width: `${(losers / SECTOR_DATA.length) * 100}%` }}
+            style={{ width: `${(losers / sectorData.length) * 100}%` }}
           />
-          {gainers + losers < SECTOR_DATA.length && (
+          {gainers + losers < sectorData.length && (
             <div
               className="h-3 rounded-full bg-gray-300"
               style={{
-                width: `${((SECTOR_DATA.length - gainers - losers) / SECTOR_DATA.length) * 100}%`,
+                width: `${((sectorData.length - gainers - losers) / sectorData.length) * 100}%`,
               }}
             />
           )}

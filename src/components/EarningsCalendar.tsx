@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Clock, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface EarningsEvent {
@@ -45,6 +45,20 @@ interface Props {
 
 export default function EarningsCalendar({ onSelect }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [earnings, setEarnings] = useState<EarningsEvent[]>(DEMO_EARNINGS);
+  const [isLive, setIsLive] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/earnings")
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.earnings && json.earnings.length > 0) {
+          setEarnings(json.earnings);
+          setIsLive(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -62,7 +76,7 @@ export default function EarningsCalendar({ onSelect }: Props) {
 
   function getEventsForDate(d: Date) {
     const ds = formatDate(d);
-    return DEMO_EARNINGS.filter((e) => e.date === ds);
+    return earnings.filter((e) => e.date === ds);
   }
 
   const weekLabel = `${weekDays[0].toLocaleDateString("en-US", {
@@ -74,7 +88,7 @@ export default function EarningsCalendar({ onSelect }: Props) {
     year: "numeric",
   })}`;
 
-  const upcomingEvents = DEMO_EARNINGS.filter(
+  const upcomingEvents = earnings.filter(
     (e) => new Date(e.date) >= today
   ).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -82,9 +96,16 @@ export default function EarningsCalendar({ onSelect }: Props) {
     <div className="space-y-6">
       <div className="text-center py-4">
         <Calendar size={32} className="text-[var(--color-brand)] mx-auto mb-3" />
-        <h2 className="text-xl font-bold mb-1">Earnings Calendar</h2>
+        <h2 className="text-xl font-bold mb-1 flex items-center justify-center gap-2">
+          Earnings Calendar
+          {isLive && (
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> LIVE
+            </span>
+          )}
+        </h2>
         <p className="text-xs text-[var(--color-text-muted)]">
-          Track upcoming earnings releases for major companies.
+          {isLive ? "Real earnings dates & analyst estimates via Yahoo Finance." : "Track upcoming earnings releases for major companies."}
         </p>
       </div>
 

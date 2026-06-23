@@ -1,1 +1,1 @@
-﻿{"version":"0.0.1","configurations":[{"name":"equityiq-dev","runtimeExecutable":"node","runtimeArgs":["C:\\Program Files\\nodejs\\node_modules\\npm\\bin\\npm-cli.js","run","dev"],"port":3000}]}
+﻿{"version":"0.0.1","configurations":[{"name":"equityiq-dev","runtimeExecutable":"C:\\Program Files\\nodejs\\node.exe","runtimeArgs":["C:\\Users\\apondey7912\\projects\\equityiq\\node_modules\\.bin\\next","dev"],"port":3000,"autoPort":true,"cwd":"C:\\Users\\apondey7912\\projects\\equityiq"}]}

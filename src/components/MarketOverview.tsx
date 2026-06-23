@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Activity, Globe } from "lucide-react";
 
 interface SectorData {
@@ -55,8 +55,67 @@ const GLOBAL_INDICES: IndexData[] = [
 ];
 
 export default function MarketOverview() {
-  const [sectors] = useState(DEMO_SECTORS);
+  const [sectors, setSectors] = useState(DEMO_SECTORS);
   const [regionFilter, setRegionFilter] = useState<string>("all");
+
+  useEffect(() => {
+    function loadSectors() {
+      fetch("/api/sectors")
+        .then((r) => r.json())
+        .then((json) => {
+          if (!json.sectors) return;
+          setSectors((prev) =>
+            prev.map((s) => {
+              const live = json.sectors.find((x: { name: string }) =>
+                x.name === s.name || (s.name === "Financial" && x.name === "Financial Services") || (s.name === "Communication" && x.name === "Communication Services")
+              );
+              return live ? { ...s, change: live.change } : s;
+            })
+          );
+        })
+        .catch(() => {});
+    }
+    loadSectors();
+    const interval = setInterval(loadSectors, 60000);
+    return () => clearInterval(interval);
+  }, []);
+  const [usIndices, setUsIndices] = useState<IndexData[]>(US_INDICES);
+  const [globalIndices, setGlobalIndices] = useState<IndexData[]>(GLOBAL_INDICES);
+  const [isLive, setIsLive] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const flagMap: Record<string, { flag: string; region: string }> = {};
+    [...US_INDICES, ...GLOBAL_INDICES].forEach((i) => {
+      flagMap[i.name] = { flag: i.flag, region: i.region };
+    });
+
+    async function loadIndices() {
+      try {
+        const res = await fetch("/api/indices");
+        const json = await res.json();
+        if (!json.indices) return;
+        const usNames = new Set(US_INDICES.map((i) => i.name));
+        const mapped: IndexData[] = json.indices.map((idx: { name: string; value: number; change: number; changePct: number; flag: string; region: string }) => ({
+          name: idx.name,
+          value: idx.value,
+          change: idx.change,
+          changePct: idx.changePct,
+          flag: idx.flag || flagMap[idx.name]?.flag || "🏳️",
+          region: idx.region || flagMap[idx.name]?.region || "",
+        }));
+        const us = mapped.filter((i) => usNames.has(i.name));
+        const global = mapped.filter((i) => !usNames.has(i.name));
+        if (us.length) setUsIndices(us);
+        if (global.length) setGlobalIndices(global);
+        setIsLive(true);
+        setUpdatedAt(new Date());
+      } catch {}
+    }
+    loadIndices();
+    const interval = setInterval(loadIndices, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const maxAbsChange = Math.max(...sectors.map((s) => Math.abs(s.change)));
 
@@ -74,8 +133,8 @@ export default function MarketOverview() {
 
   const regions = ["all", "Asia", "Europe", "Americas"];
   const filteredGlobal = regionFilter === "all"
-    ? GLOBAL_INDICES
-    : GLOBAL_INDICES.filter((idx) => {
+    ? globalIndices
+    : globalIndices.filter((idx) => {
         if (regionFilter === "Asia") return ["India", "China", "HK", "Japan", "Korea"].includes(idx.region);
         if (regionFilter === "Europe") return ["UK", "Germany", "France"].includes(idx.region);
         if (regionFilter === "Americas") return ["Brazil", "Canada", "Australia"].includes(idx.region);
@@ -92,6 +151,12 @@ export default function MarketOverview() {
         <p className="text-sm text-[var(--color-text-muted)]">
           US markets, global indices, and sector performance
         </p>
+        {isLive && (
+          <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-green-50 border border-green-200 text-xs font-medium text-green-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            Live · {updatedAt ? `updated ${updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""} · refreshes every 60s
+          </div>
+        )}
       </div>
 
       {/* US Major Indices */}
@@ -101,7 +166,7 @@ export default function MarketOverview() {
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">US Markets</h3>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {US_INDICES.map((idx) => (
+          {usIndices.map((idx) => (
             <div
               key={idx.name}
               className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-4 hover:border-[var(--color-border-light)] transition-colors"

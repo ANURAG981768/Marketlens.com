@@ -116,11 +116,11 @@ const ACHIEVEMENTS: Achievement[] = [
   {
     id: "quiz_all",
     title: "Knowledge Master",
-    description: "Complete all 10 quiz sections",
+    description: "Complete all 14 quiz sections",
     category: "quiz",
     icon: Crown,
     gradient: "from-amber-400 to-amber-600",
-    check: () => Object.keys(getQuizResults()).length >= 10,
+    check: () => Object.keys(getQuizResults()).length >= 14,
   },
   {
     id: "quiz_perfect",
