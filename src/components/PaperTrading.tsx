@@ -451,40 +451,31 @@ export default function PaperTrading({ onSelect }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Account Value — Robinhood hero style */}
-      <div className="pt-6 pb-2">
-        <p className="text-sm text-[var(--color-text-muted)] mb-1">Investing</p>
-        <h2 className="text-4xl font-bold tabular-nums tracking-tight">
+      {/* Account Value — Robinhood-style hero */}
+      <div className="pt-4 pb-1">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] font-semibold mb-1.5">Portfolio value</p>
+        <h2 className="font-display text-4xl sm:text-5xl font-semibold tabular-nums tracking-tight leading-none">
           {formatCurrency(totalValue)}
         </h2>
-        <div className="flex items-center gap-2 mt-2">
-          {totalReturn >= 0 ? (
-            <TrendingUp size={14} className="text-[var(--color-positive)]" />
-          ) : (
-            <TrendingDown size={14} className="text-[var(--color-negative)]" />
-          )}
-          <span className={`text-sm font-semibold tabular-nums ${totalReturn >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}>
+        <div className="mt-3">
+          <span className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full ${totalReturn >= 0 ? "bg-[var(--color-positive)]/10 text-[var(--color-positive)]" : "bg-[var(--color-negative)]/10 text-[var(--color-negative)]"}`}>
+            {totalReturn >= 0 ? <TrendingUp size={15} /> : <TrendingDown size={15} />}
             {totalReturn >= 0 ? "+" : ""}{formatCurrency(Math.abs(totalReturn))} ({totalReturn >= 0 ? "+" : ""}{totalReturnPct.toFixed(2)}%)
+            <span className="font-normal opacity-70">· all time</span>
           </span>
-          <span className="text-xs text-[var(--color-text-muted)]">All time</span>
         </div>
-        {/* Mini stats row */}
-        <div className="flex items-center gap-6 mt-4 text-xs">
-          <div>
-            <span className="text-[var(--color-text-muted)]">Buying Power</span>
-            <p className="font-semibold tabular-nums text-[var(--color-positive)]">{formatCurrency(portfolio.cash)}</p>
-          </div>
-          <div>
-            <span className="text-[var(--color-text-muted)]">Positions</span>
-            <p className="font-semibold">{holdingEntries.length}</p>
-          </div>
-          <div>
-            <span className="text-[var(--color-text-muted)]">Trades</span>
-            <p className="font-semibold">{numTrades}</p>
-          </div>
-          <div>
-            <span className="text-[var(--color-text-muted)]">Day {daysSinceStart}</span>
-          </div>
+        {/* Stat cards */}
+        <div className="grid grid-cols-3 gap-2.5 mt-5">
+          {[
+            { label: "Buying power", value: formatCurrency(portfolio.cash), accent: "text-[var(--color-positive)]" },
+            { label: "Positions", value: String(holdingEntries.length), accent: "text-[var(--color-text-primary)]" },
+            { label: "Trades", value: String(numTrades), accent: "text-[var(--color-text-primary)]" },
+          ].map((s) => (
+            <div key={s.label} className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3">
+              <p className="text-[10px] uppercase tracking-wide text-[var(--color-text-muted)] mb-1">{s.label}</p>
+              <p className={`text-base font-bold tabular-nums ${s.accent}`}>{s.value}</p>
+            </div>
+          ))}
         </div>
       </div>
 
