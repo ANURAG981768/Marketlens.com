@@ -500,6 +500,45 @@ export default function Home() {
                 <div className="absolute -bottom-24 left-1/3 w-56 h-56 bg-[var(--color-gold)] rounded-full blur-[120px]" />
               </div>
 
+              {/* Animated market chart — right side, decorative, desktop only */}
+              <div className="hidden lg:block absolute right-0 top-0 bottom-0 w-[46%] pointer-events-none overflow-hidden" aria-hidden="true">
+                <svg viewBox="0 0 520 360" className="absolute right-0 bottom-0 w-full h-full" preserveAspectRatio="xMaxYMax meet">
+                  <defs>
+                    <linearGradient id="heroArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#00b84a" stopOpacity="0.28" />
+                      <stop offset="100%" stopColor="#00b84a" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+                  {/* candlesticks */}
+                  {[
+                    { x: 70, o: 250, c: 220, h: 210, l: 262, up: true },
+                    { x: 110, o: 222, c: 238, h: 214, l: 244, up: false },
+                    { x: 150, o: 236, c: 200, h: 192, l: 242, up: true },
+                    { x: 190, o: 202, c: 188, h: 178, l: 210, up: true },
+                    { x: 230, o: 190, c: 206, h: 182, l: 214, up: false },
+                    { x: 270, o: 204, c: 166, h: 158, l: 210, up: true },
+                    { x: 310, o: 168, c: 150, h: 140, l: 176, up: true },
+                    { x: 350, o: 152, c: 168, h: 144, l: 176, up: false },
+                    { x: 390, o: 166, c: 120, h: 112, l: 170, up: true },
+                    { x: 430, o: 122, c: 96, h: 88, l: 128, up: true },
+                  ].map((b, i) => {
+                    const col = b.up ? "#00b84a" : "#e5484d";
+                    const top = Math.min(b.o, b.c);
+                    const bh = Math.max(Math.abs(b.o - b.c), 3);
+                    return (
+                      <g key={i} className="hero-bar" style={{ animationDelay: `${0.3 + i * 0.08}s` }}>
+                        <line x1={b.x} y1={b.h} x2={b.x} y2={b.l} stroke={col} strokeWidth="1.5" opacity="0.5" />
+                        <rect x={b.x - 6} y={top} width="12" height={bh} rx="1.5" fill={col} opacity="0.55" />
+                      </g>
+                    );
+                  })}
+                  {/* trend area + line */}
+                  <path className="hero-chart-area" d="M40 256 L90 232 L150 214 L210 196 L270 176 L330 150 L390 128 L450 100 L470 92 L470 360 L40 360 Z" fill="url(#heroArea)" />
+                  <path className="hero-chart-line" d="M40 256 L90 232 L150 214 L210 196 L270 176 L330 150 L390 128 L450 100 L470 92" fill="none" stroke="#1fd35e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                  <circle className="hero-chart-dot" cx="470" cy="92" r="5" fill="#1fd35e" />
+                </svg>
+              </div>
+
               <div className="relative px-6 sm:px-10 py-12 sm:py-16 max-w-3xl">
                 <div className="inline-flex items-center gap-2 mb-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-gold-light)]">
                   <Sparkles size={13} />

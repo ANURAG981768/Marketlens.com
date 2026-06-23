@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+
 const LOGO_COLORS: Record<string, string> = {
   AAPL: "#555555", MSFT: "#00A4EF", GOOGL: "#4285F4", AMZN: "#FF9900",
   NVDA: "#76B900", TSLA: "#CC0000", META: "#0081FB", JPM: "#003A70",
@@ -40,16 +42,45 @@ interface CompanyLogoProps {
 
 export default function CompanyLogo({ symbol, size = 24, className = "" }: CompanyLogoProps) {
   const cleanSymbol = symbol.replace("-USD", "").toUpperCase();
+  const isCrypto = symbol.toUpperCase().endsWith("-USD");
+  const [failed, setFailed] = useState(false);
+
+  // Reset error state when the symbol changes (this component is reused across rows)
+  useEffect(() => { setFailed(false); }, [symbol]);
+
   const bgColor = LOGO_COLORS[cleanSymbol] || generateColor(cleanSymbol);
   const icon = LOGO_ICONS[cleanSymbol];
   const fontSize = size * 0.42;
 
-  return (
+  // Branded letter tile — the guaranteed fallback (and the look for crypto)
+  const tile = (
     <div
       className={`rounded-lg flex items-center justify-center font-bold text-white shrink-0 select-none ${className}`}
       style={{ width: size, height: size, backgroundColor: bgColor, fontSize }}
     >
       {icon || cleanSymbol.slice(0, 2)}
+    </div>
+  );
+
+  if (isCrypto || failed) return tile;
+
+  // Real company logo, falling back to the letter tile on any load error
+  return (
+    <div
+      className={`rounded-lg overflow-hidden shrink-0 bg-white flex items-center justify-center border border-black/5 ${className}`}
+      style={{ width: size, height: size }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={`https://assets.parqet.com/logos/symbol/${cleanSymbol}?format=png&size=64`}
+        alt={cleanSymbol}
+        width={size}
+        height={size}
+        loading="lazy"
+        onError={() => setFailed(true)}
+        className="w-full h-full object-contain"
+        style={{ padding: size > 28 ? 3 : 2 }}
+      />
     </div>
   );
 }

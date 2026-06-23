@@ -71,6 +71,27 @@ input::placeholder {
   color: var(--color-gold);
 }
 
+/* Hero market-chart animations */
+@keyframes draw-line {
+  from { stroke-dashoffset: 1400; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes rise-bar {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes pulse-dot {
+  0%, 100% { r: 5; opacity: 1; }
+  50% { r: 8; opacity: 0.55; }
+}
+.hero-chart-line {
+  stroke-dasharray: 1400;
+  animation: draw-line 2.2s ease-out forwards;
+}
+.hero-chart-area { animation: fade-in-up 1.6s ease-out 0.4s both; }
+.hero-chart-dot { animation: pulse-dot 2.2s ease-in-out infinite; transform-box: fill-box; }
+.hero-bar { transform-box: fill-box; transform-origin: bottom; animation: rise-bar 0.7s cubic-bezier(0.2,0.8,0.3,1) both; }
+
 select option {
   background: #ffffff;
   color: #0f1419;
