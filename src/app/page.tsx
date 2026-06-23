@@ -6,6 +6,7 @@ import { DEMO_DATA } from "@/lib/demo-data";
 import { DEMO_PEERS } from "@/lib/demo-peers";
 import SearchBar from "@/components/SearchBar";
 import StockHeader from "@/components/StockHeader";
+import StockDetailSkeleton from "@/components/StockDetailSkeleton";
 import PriceChart from "@/components/PriceChart";
 import RevenueChart from "@/components/RevenueChart";
 import KeyMetricsGrid from "@/components/KeyMetricsGrid";
@@ -1203,6 +1204,8 @@ export default function Home() {
                 <FinancialTable income={data.income} />
 
               </div>
+            ) : loading ? (
+              <StockDetailSkeleton />
             ) : null}
           </>
         )}

@@ -92,6 +92,14 @@ input::placeholder {
 .hero-chart-dot { animation: pulse-dot 2.2s ease-in-out infinite; transform-box: fill-box; }
 .hero-bar { transform-box: fill-box; transform-origin: bottom; animation: rise-bar 0.7s cubic-bezier(0.2,0.8,0.3,1) both; }
 
+/* Shimmer loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, var(--color-surface-card) 25%, var(--color-surface-hover) 40%, var(--color-surface-card) 60%);
+  background-size: 300% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 8px;
+}
+
 select option {
   background: #ffffff;
   color: #0f1419;
