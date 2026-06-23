@@ -85,6 +85,7 @@ import {
   Award,
   Menu,
   X,
+  CheckCircle2,
 } from "lucide-react";
 
 const POPULAR = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "JPM"];
@@ -593,6 +594,24 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* Trust strip */}
+            <div className="relative mb-8 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden animate-fade-in-up">
+              <div className="h-0.5 w-full bg-gradient-to-r from-transparent via-[var(--color-gold)] to-transparent" />
+              <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-2.5 px-5 py-3.5">
+                {[
+                  "100% free — no credit card",
+                  "Live market data",
+                  "Verifiable certificates",
+                  "Built for students worldwide",
+                ].map((item) => (
+                  <span key={item} className="inline-flex items-center gap-2 text-[13px] font-medium text-[var(--color-text-secondary)]">
+                    <CheckCircle2 size={15} className="text-[var(--color-positive)] shrink-0" />
+                    {item}
+                  </span>
+                ))}
               </div>
             </div>
 
