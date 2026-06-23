@@ -45,8 +45,8 @@ const CERTIFICATE_TRACKS = [
   },
   {
     id: "analyst",
-    title: "Junior Equity Analyst",
-    subtitle: "Technical and fundamental analysis",
+    title: "Stock Analysis Essentials",
+    subtitle: "Fundamental & technical analysis",
     icon: "\u{1F4CA}",
     gradient: "from-blue-500 to-indigo-600",
     color: "#6366f1",
@@ -56,8 +56,8 @@ const CERTIFICATE_TRACKS = [
   },
   {
     id: "portfolio-manager",
-    title: "Portfolio Strategist",
-    subtitle: "Advanced portfolio and global market knowledge",
+    title: "Portfolio Management Essentials",
+    subtitle: "Diversification, risk & global markets",
     icon: "\u{1F3AF}",
     gradient: "from-violet-500 to-purple-600",
     color: "#8b5cf6",
@@ -67,8 +67,8 @@ const CERTIFICATE_TRACKS = [
   },
   {
     id: "complete",
-    title: "MarketLens Scholar",
-    subtitle: "Full platform mastery — the ultimate credential",
+    title: "Complete Investing Program",
+    subtitle: "Full curriculum — every lesson and quiz",
     icon: "\u{1F3C6}",
     gradient: "from-amber-500 to-orange-600",
     color: "#f59e0b",
@@ -235,14 +235,13 @@ export default function CertificateGenerator() {
     canvas.width = 1400;
     canvas.height = 1000;
 
-    // BG
-    const bg = ctx.createLinearGradient(0, 0, 1400, 1000);
-    bg.addColorStop(0, "#06090d"); bg.addColorStop(0.3, "#0c1420"); bg.addColorStop(0.7, "#0c1420"); bg.addColorStop(1, "#06090d");
-    ctx.fillStyle = bg; ctx.fillRect(0, 0, 1400, 1000);
+    // White background with a subtle inner panel
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, 1400, 1000);
+    ctx.fillStyle = "#fbfaf7"; ctx.fillRect(40, 40, 1320, 920);
 
-    // Double border
+    // Double gold border
     ctx.strokeStyle = "#c8a84e"; ctx.lineWidth = 3; ctx.strokeRect(24, 24, 1352, 952);
-    ctx.strokeStyle = "rgba(200,168,78,0.25)"; ctx.lineWidth = 1; ctx.strokeRect(34, 34, 1332, 932);
+    ctx.strokeStyle = "rgba(200,168,78,0.5)"; ctx.lineWidth = 1; ctx.strokeRect(34, 34, 1332, 932);
 
     // Corner L-brackets
     ctx.strokeStyle = "#c8a84e"; ctx.lineWidth = 3;
@@ -250,84 +249,82 @@ export default function CertificateGenerator() {
       ctx.beginPath(); ctx.moveTo(x, y + dy * 50); ctx.lineTo(x, y); ctx.lineTo(x + dx * 50, y); ctx.stroke();
     });
 
-    // Glow
-    const glow = ctx.createRadialGradient(700, 200, 0, 700, 200, 400);
-    glow.addColorStop(0, "rgba(200,168,78,0.06)"); glow.addColorStop(1, "rgba(200,168,78,0)");
-    ctx.fillStyle = glow; ctx.fillRect(0, 0, 1400, 600);
-
     ctx.textAlign = "center";
 
-    // Icon
-    ctx.font = "64px serif"; ctx.fillText(track.icon, 700, 130);
+    // Emblem — gold ascending bars inside a ring (brand mark, no emoji)
+    ctx.strokeStyle = "#c8a84e"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(700, 122, 30, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "#c8a84e";
+    ctx.fillRect(686, 124, 6, 12); ctx.fillRect(696, 118, 6, 18); ctx.fillRect(706, 112, 6, 24);
 
     // Certificate header
-    ctx.font = "bold 13px sans-serif"; ctx.fillStyle = "#c8a84e";
-    ctx.fillText("C E R T I F I C A T E   O F   A C H I E V E M E N T", 700, 185);
+    ctx.font = "bold 14px sans-serif"; ctx.fillStyle = "#b8932f";
+    ctx.fillText("C E R T I F I C A T E   O F   C O M P L E T I O N", 700, 195);
 
-    // Line
+    // Gold hairline
     const lineGrad = ctx.createLinearGradient(380, 0, 1020, 0);
-    lineGrad.addColorStop(0, "rgba(200,168,78,0)"); lineGrad.addColorStop(0.5, "rgba(200,168,78,0.6)"); lineGrad.addColorStop(1, "rgba(200,168,78,0)");
+    lineGrad.addColorStop(0, "rgba(200,168,78,0)"); lineGrad.addColorStop(0.5, "rgba(200,168,78,0.7)"); lineGrad.addColorStop(1, "rgba(200,168,78,0)");
     ctx.strokeStyle = lineGrad; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(380, 200); ctx.lineTo(1020, 200); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(380, 212); ctx.lineTo(1020, 212); ctx.stroke();
 
-    // Track title
-    ctx.font = "bold 40px sans-serif"; ctx.fillStyle = "#ffffff"; ctx.fillText(track.title, 700, 260);
-    ctx.font = "16px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText(track.subtitle, 700, 295);
+    // Course title
+    ctx.font = "bold 44px sans-serif"; ctx.fillStyle = "#14213d"; ctx.fillText(track.title, 700, 268);
+    ctx.font = "17px sans-serif"; ctx.fillStyle = "#6b7280"; ctx.fillText(track.subtitle, 700, 300);
 
-    // "Awarded to"
-    ctx.font = "14px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("This is to certify that", 700, 360);
+    // "This is to certify that"
+    ctx.font = "15px sans-serif"; ctx.fillStyle = "#6b7280"; ctx.fillText("This is to certify that", 700, 362);
 
     // NAME
-    ctx.font = "bold 50px serif"; ctx.fillStyle = "#c8a84e"; ctx.fillText(name, 700, 425);
+    ctx.font = "bold 52px serif"; ctx.fillStyle = "#b8932f"; ctx.fillText(name, 700, 428);
     const nw = ctx.measureText(name).width;
-    ctx.strokeStyle = "rgba(200,168,78,0.35)"; ctx.beginPath(); ctx.moveTo(700 - nw / 2 - 30, 442); ctx.lineTo(700 + nw / 2 + 30, 442); ctx.stroke();
+    ctx.strokeStyle = "rgba(200,168,78,0.45)"; ctx.beginPath(); ctx.moveTo(700 - nw / 2 - 30, 446); ctx.lineTo(700 + nw / 2 + 30, 446); ctx.stroke();
 
-    // Achievement
-    ctx.font = "14px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("has demonstrated proficiency in equity research by completing the", 700, 490);
-    ctx.font = "bold 22px sans-serif"; ctx.fillStyle = "#00c805"; ctx.fillText(`${track.title} Track`, 700, 525);
-    ctx.font = "13px sans-serif"; ctx.fillStyle = "#7a8a9a";
-    ctx.fillText(`${track.lessonsRequired.length} lessons completed • ${(QUIZ_MAP[track.id] || []).length} quizzes passed • ${quizAvg}% average score`, 700, 560);
-    ctx.fillText("on the MarketLens Research Platform", 700, 585);
+    // Completion statement
+    ctx.font = "15px sans-serif"; ctx.fillStyle = "#6b7280"; ctx.fillText("has successfully completed the", 700, 496);
+    ctx.font = "bold 23px sans-serif"; ctx.fillStyle = "#0a7c3f"; ctx.fillText(`${track.title} course`, 700, 530);
+    ctx.font = "14px sans-serif"; ctx.fillStyle = "#6b7280";
+    ctx.fillText(`${track.lessonsRequired.length} lessons completed • ${(QUIZ_MAP[track.id] || []).length} quizzes passed • ${quizAvg}% average score`, 700, 564);
+    ctx.fillText("on the MarketLens Research & Education Platform", 700, 589);
 
     // Divider
-    ctx.strokeStyle = lineGrad; ctx.beginPath(); ctx.moveTo(300, 620); ctx.lineTo(1100, 620); ctx.stroke();
+    ctx.strokeStyle = lineGrad; ctx.beginPath(); ctx.moveTo(300, 624); ctx.lineTo(1100, 624); ctx.stroke();
 
     // Stats row
     // Lessons
-    ctx.font = "bold 36px sans-serif"; ctx.fillStyle = "#00c805"; ctx.fillText(`${track.lessonsRequired.length}`, 330, 690);
-    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("LESSONS", 330, 710);
+    ctx.font = "bold 36px sans-serif"; ctx.fillStyle = "#0a7c3f"; ctx.fillText(`${track.lessonsRequired.length}`, 330, 694);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("LESSONS", 330, 714);
 
     // Quiz avg
-    ctx.font = "bold 36px sans-serif"; ctx.fillStyle = quizAvg >= 90 ? "#c8a84e" : "#00c805"; ctx.fillText(`${quizAvg}%`, 560, 690);
-    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("QUIZ SCORE", 560, 710);
+    ctx.font = "bold 36px sans-serif"; ctx.fillStyle = quizAvg >= 90 ? "#b8932f" : "#0a7c3f"; ctx.fillText(`${quizAvg}%`, 560, 694);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("QUIZ SCORE", 560, 714);
 
     // Cert ID
-    ctx.font = "bold 15px monospace"; ctx.fillStyle = "#ffffff"; ctx.fillText(certId, 790, 690);
-    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("CERTIFICATE ID", 790, 710);
+    ctx.font = "bold 15px monospace"; ctx.fillStyle = "#14213d"; ctx.fillText(certId, 790, 694);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("CERTIFICATE ID", 790, 714);
 
     // Date
-    ctx.font = "bold 16px sans-serif"; ctx.fillStyle = "#ffffff"; ctx.fillText(dateStr, 1050, 690);
-    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("DATE ISSUED", 1050, 710);
+    ctx.font = "bold 16px sans-serif"; ctx.fillStyle = "#14213d"; ctx.fillText(dateStr, 1050, 694);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("DATE ISSUED", 1050, 714);
 
-    // Credential badge
+    // Performance badge
     if (quizAvg >= 90) {
-      ctx.font = "bold 11px sans-serif"; ctx.fillStyle = "#c8a84e"; ctx.fillText("★ DISTINCTION — Top Performer ★", 700, 760);
+      ctx.font = "bold 12px sans-serif"; ctx.fillStyle = "#b8932f"; ctx.fillText("★  DISTINCTION — Top Performer  ★", 700, 764);
     } else if (quizAvg >= 80) {
-      ctx.font = "bold 11px sans-serif"; ctx.fillStyle = "#00c805"; ctx.fillText("✓ MERIT — Strong Performance", 700, 760);
+      ctx.font = "bold 12px sans-serif"; ctx.fillStyle = "#0a7c3f"; ctx.fillText("✓  MERIT — Strong Performance", 700, 764);
     }
 
     // Signatures
-    ctx.strokeStyle = "rgba(200,168,78,0.25)"; ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(200,168,78,0.4)"; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(230, 860); ctx.lineTo(530, 860); ctx.stroke();
-    ctx.font = "italic 17px serif"; ctx.fillStyle = "#c8a84e"; ctx.fillText("MarketLens", 380, 850);
-    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("PLATFORM DIRECTOR", 380, 876);
+    ctx.font = "italic 18px serif"; ctx.fillStyle = "#b8932f"; ctx.fillText("MarketLens", 380, 850);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("PLATFORM DIRECTOR", 380, 876);
 
     ctx.beginPath(); ctx.moveTo(870, 860); ctx.lineTo(1170, 860); ctx.stroke();
-    ctx.font = "italic 17px serif"; ctx.fillStyle = "#c8a84e"; ctx.fillText("Equity Education", 1020, 850);
-    ctx.font = "9px sans-serif"; ctx.fillStyle = "#7a8a9a"; ctx.fillText("HEAD OF CURRICULUM", 1020, 876);
+    ctx.font = "italic 18px serif"; ctx.fillStyle = "#b8932f"; ctx.fillText("Equity Education", 1020, 850);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("HEAD OF CURRICULUM", 1020, 876);
 
     // Verification footer
-    ctx.font = "10px sans-serif"; ctx.fillStyle = "#3a4a5a";
+    ctx.font = "11px sans-serif"; ctx.fillStyle = "#9aa0aa";
     ctx.fillText("MarketLens — Free Equity Research & Education for Students Worldwide", 700, 925);
     ctx.fillText(`Verify authenticity at ${typeof window !== "undefined" ? window.location.host : "marketlens-com.vercel.app"}/verify • Certificate ID: ${certId}`, 700, 945);
 
@@ -346,9 +343,9 @@ export default function CertificateGenerator() {
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20">
           <Award size={28} className="text-white" />
         </div>
-        <h2 className="font-display text-3xl font-semibold mb-2">Certificates of Achievement</h2>
+        <h2 className="font-display text-3xl font-semibold mb-2">Certificates of Completion</h2>
         <p className="text-sm text-[var(--color-text-muted)] max-w-md mx-auto">
-          Earn verified credentials by completing lessons <strong>and</strong> passing quizzes. Each certificate has a unique ID.
+          Earn a certificate of completion by finishing the lessons <strong>and</strong> passing the quizzes in each course. Each certificate has a unique, verifiable ID.
         </p>
       </div>
 
@@ -602,40 +599,47 @@ export default function CertificateGenerator() {
       {showCertificate && activeCert && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowCertificate(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
-            <div className="relative bg-gradient-to-br from-[#06090d] via-[#0c1420] to-[#06090d] p-8 sm:p-10">
-              <div className="absolute inset-4 border-2 border-[#c8a84e]/25 rounded-xl pointer-events-none" />
-              <div className="absolute inset-5 border border-[#c8a84e]/10 rounded-lg pointer-events-none" />
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-80 h-40 bg-[#c8a84e]/8 rounded-full blur-[80px] pointer-events-none" />
+            <div className="relative bg-white p-8 sm:p-10 border-b border-[var(--color-border)]">
+              <div className="absolute inset-4 border-2 border-[#c8a84e]/40 rounded-xl pointer-events-none" />
+              <div className="absolute inset-5 border border-[#c8a84e]/20 rounded-lg pointer-events-none" />
 
               <div className="relative text-center">
-                <span className="text-4xl mb-3 block">{activeCert.icon}</span>
-                <p className="text-[9px] text-[#c8a84e] uppercase tracking-[0.3em] font-bold mb-3">Certificate of Achievement</p>
-                <h3 className="text-xl sm:text-2xl font-bold text-white mb-1">{activeCert.title}</h3>
-                <p className="text-xs text-gray-500 mb-5">{activeCert.subtitle}</p>
+                <div className="w-12 h-12 rounded-full border-2 border-[#c8a84e] flex items-end justify-center gap-0.5 mx-auto mb-3 pb-2.5">
+                  <span className="w-1 h-2 bg-[#c8a84e] rounded-sm" />
+                  <span className="w-1 h-3 bg-[#c8a84e] rounded-sm" />
+                  <span className="w-1 h-4 bg-[#c8a84e] rounded-sm" />
+                </div>
+                <p className="text-[9px] text-[#b8932f] uppercase tracking-[0.3em] font-bold mb-3">Certificate of Completion</p>
+                <h3 className="font-display text-xl sm:text-2xl font-semibold text-[#14213d] mb-1">{activeCert.title}</h3>
+                <p className="text-xs text-[var(--color-text-muted)] mb-5">{activeCert.subtitle}</p>
 
-                <div className="w-40 h-px bg-gradient-to-r from-transparent via-[#c8a84e]/40 to-transparent mx-auto mb-4" />
+                <div className="w-40 h-px bg-gradient-to-r from-transparent via-[#c8a84e]/50 to-transparent mx-auto mb-4" />
 
-                <p className="text-[10px] text-gray-500 mb-1">Awarded to</p>
-                <p className="text-2xl sm:text-3xl font-bold text-[#c8a84e] font-serif mb-1">
+                <p className="text-[10px] text-[var(--color-text-muted)] mb-1">This is to certify that</p>
+                <p className="text-2xl sm:text-3xl font-semibold text-[#b8932f] font-display mb-1">
                   {certificates[activeCert.id]?.name || userName || "Student"}
                 </p>
-                <div className="w-56 h-px bg-[#c8a84e]/25 mx-auto mb-4" />
+                <div className="w-56 h-px bg-[#c8a84e]/30 mx-auto mb-3" />
 
-                <p className="text-[10px] text-gray-500 mb-5">
+                <p className="text-[11px] text-[var(--color-text-secondary)] mb-1">
+                  has successfully completed the{" "}
+                  <span className="font-semibold text-[#0a7c3f]">{activeCert.title}</span> course
+                </p>
+                <p className="text-[10px] text-[var(--color-text-muted)] mb-5">
                   {activeCert.lessonsRequired.length} lessons • {(QUIZ_MAP[activeCert.id] || []).length} quizzes passed • {certificates[activeCert.id]?.quizAvg || getQuizAvg(activeCert.id)}% avg score
                 </p>
 
                 <div className="flex items-center justify-center gap-6 text-center">
                   <div>
-                    <p className="text-xs font-mono font-bold text-white">{certificates[activeCert.id]?.certId || "—"}</p>
-                    <p className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Certificate ID</p>
+                    <p className="text-xs font-mono font-bold text-[#14213d]">{certificates[activeCert.id]?.certId || "—"}</p>
+                    <p className="text-[8px] text-[var(--color-text-muted)] uppercase tracking-wider mt-0.5">Certificate ID</p>
                   </div>
-                  <div className="w-px h-8 bg-gray-700" />
+                  <div className="w-px h-8 bg-[var(--color-border)]" />
                   <div>
-                    <p className="text-xs font-bold text-white">
+                    <p className="text-xs font-bold text-[#14213d]">
                       {certificates[activeCert.id] ? new Date(certificates[activeCert.id].date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : "—"}
                     </p>
-                    <p className="text-[8px] text-gray-500 uppercase tracking-wider mt-0.5">Date Issued</p>
+                    <p className="text-[8px] text-[var(--color-text-muted)] uppercase tracking-wider mt-0.5">Date Issued</p>
                   </div>
                 </div>
               </div>

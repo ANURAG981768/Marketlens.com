@@ -289,11 +289,11 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts }: { on
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-bold text-[var(--color-text-primary)]">
-              {completedLessons >= LESSONS.length ? "All lessons complete! Claim your Scholar certificate" : "Certificates available!"}
+              {completedLessons >= LESSONS.length ? "All lessons complete! Claim your completion certificate" : "Certificates available!"}
             </p>
             <p className="text-xs text-amber-600">
               {completedLessons >= LESSONS.length
-                ? "You've mastered every lesson — download your achievement"
+                ? "You've finished every lesson — pass the quizzes and download your certificate"
                 : `${completedLessons} lessons done — check which certificates you can earn`}
             </p>
           </div>
