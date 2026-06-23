@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
@@ -26,7 +26,19 @@ export const metadata: Metadata = {
     "Professional equity research, real-time market intelligence, and hands-on practice tools for informed investing decisions.",
   icons: {
     icon: "/favicon.svg",
+    apple: "/icon-maskable.svg",
   },
+  appleWebApp: {
+    capable: true,
+    title: "MarketLens",
+    statusBarStyle: "black-translucent",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#00b84a",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
