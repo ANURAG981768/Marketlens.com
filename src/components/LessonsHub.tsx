@@ -256,7 +256,7 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts }: { on
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
           <BookOpen size={28} className="text-white" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Learning Center</h2>
+        <h2 className="font-display text-3xl font-semibold mb-2">Learning Center</h2>
         <p className="text-sm text-[var(--color-text-muted)]">
           Structured lessons to take you from beginner to confident investor
         </p>

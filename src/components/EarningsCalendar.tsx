@@ -96,7 +96,7 @@ export default function EarningsCalendar({ onSelect }: Props) {
     <div className="space-y-6">
       <div className="text-center py-4">
         <Calendar size={32} className="text-[var(--color-brand)] mx-auto mb-3" />
-        <h2 className="text-xl font-bold mb-1 flex items-center justify-center gap-2">
+        <h2 className="font-display text-2xl font-semibold mb-1 flex items-center justify-center gap-2">
           Earnings Calendar
           {isLive && (
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">

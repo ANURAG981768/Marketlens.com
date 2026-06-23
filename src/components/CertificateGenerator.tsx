@@ -293,7 +293,7 @@ export default function CertificateGenerator() {
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20">
           <Award size={28} className="text-white" />
         </div>
-        <h2 className="text-2xl font-bold mb-2">Certificates of Achievement</h2>
+        <h2 className="font-display text-3xl font-semibold mb-2">Certificates of Achievement</h2>
         <p className="text-sm text-[var(--color-text-muted)] max-w-md mx-auto">
           Earn verified credentials by completing lessons <strong>and</strong> passing quizzes. Each certificate has a unique ID.
         </p>

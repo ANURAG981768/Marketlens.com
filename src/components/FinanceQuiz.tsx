@@ -327,7 +327,7 @@ export default function FinanceQuiz() {
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center mx-auto mb-5 shadow-lg shadow-violet-500/20">
           <BookOpen size={32} className="text-white" />
         </div>
-        <h2 className="text-3xl font-bold mb-2">Finance Knowledge Hub</h2>
+        <h2 className="font-display text-4xl font-semibold mb-2">Finance Knowledge Hub</h2>
         <p className="text-sm text-[var(--color-text-muted)] max-w-lg mx-auto leading-relaxed">
           {totalQuestions} questions across {QUIZ_SECTIONS.length} essential topics.
           Test your understanding, track your progress, and master the fundamentals.

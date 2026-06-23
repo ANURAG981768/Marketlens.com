@@ -220,7 +220,7 @@ export default function StockCompare() {
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-blue-500/25">
             <BarChart3 size={32} className="text-white" />
           </div>
-          <h2 className="text-3xl font-bold mb-3 tracking-tight">Compare Stocks</h2>
+          <h2 className="font-display text-4xl font-semibold mb-3 tracking-tight">Compare Stocks</h2>
           <p className="text-[var(--color-text-secondary)] max-w-lg mx-auto">
             Side-by-side analysis of up to {MAX_STOCKS} companies across 20 live metrics — valuation, profitability, growth, financial health, and risk.
           </p>
@@ -298,7 +298,7 @@ export default function StockCompare() {
             <BarChart3 size={20} className="text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Stock Comparison</h2>
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Stock Comparison</h2>
             <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
               Live · {lastUpdated ? `updated ${lastUpdated.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}` : "loading…"}

@@ -122,13 +122,13 @@ export default function StockScreener({ onSelect }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-gold)] to-orange-600 flex items-center justify-center shadow-sm">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-ink)] flex items-center justify-center shadow-sm">
             <Filter size={18} className="text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold leading-tight">Stock Screener</h2>
+            <h2 className="font-display text-xl font-semibold leading-tight">Stock Screener</h2>
             <p className="text-xs text-[var(--color-text-muted)]">
-              {isDemo ? "Demo mode" : "Live data via FMP"}
+              {isDemo ? "Reference fundamentals · search any ticker for live data" : "Live data via FMP"}
             </p>
           </div>
         </div>

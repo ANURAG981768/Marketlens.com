@@ -560,7 +560,7 @@ export default function EconomicCalendar() {
           <Calendar className="w-5 h-5" />
         </div>
         <div>
-          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
+          <h2 className="font-display text-xl font-semibold text-[var(--color-text-primary)]">
             Economic Calendar
           </h2>
           <p className="text-sm text-[var(--color-text-muted)]">

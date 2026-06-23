@@ -273,7 +273,7 @@ export default function SectorHeatmap() {
             <BarChart3 size={18} className="text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold leading-tight flex items-center gap-2">
+            <h2 className="font-display text-xl font-semibold leading-tight flex items-center gap-2">
               Sector Heatmap
               {isLive && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
