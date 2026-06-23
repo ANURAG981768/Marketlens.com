@@ -42,6 +42,7 @@ import SectorHeatmap from "@/components/SectorHeatmap";
 import EarningsTranscripts from "@/components/EarningsTranscripts";
 import EconomicCalendar from "@/components/EconomicCalendar";
 import PortfolioAnalytics from "@/components/PortfolioAnalytics";
+import CompanyOutlook from "@/components/CompanyOutlook";
 import RatioExplainer from "@/components/RatioExplainer";
 import CertificateGenerator from "@/components/CertificateGenerator";
 import Footer from "@/components/Footer";
@@ -139,6 +140,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("screener");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [openLessonId, setOpenLessonId] = useState<string | null>(null);
+  const [analyticsView, setAnalyticsView] = useState<"outlook" | "portfolio">("outlook");
 
   useEffect(() => { recordActivity(); }, []);
   const [cryptoPrices, setCryptoPrices] = useState(CRYPTO_DEFAULTS);
@@ -724,10 +726,32 @@ export default function Home() {
           </div>
         )}
 
-        {/* Portfolio Analytics Tab */}
+        {/* Analytics Tab — Company Outlook + Portfolio risk */}
         {activeTab === "analytics" && (
           <div className="max-w-5xl mx-auto animate-fade-in-up">
-            <PortfolioAnalytics onStartTrading={() => setActiveTab("paper")} />
+            <div className="flex gap-2 mb-6">
+              {([
+                { key: "outlook" as const, label: "Company Outlook" },
+                { key: "portfolio" as const, label: "My Portfolio" },
+              ]).map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setAnalyticsView(t.key)}
+                  className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                    analyticsView === t.key
+                      ? "bg-[var(--color-ink)] text-white"
+                      : "bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {analyticsView === "outlook" ? (
+              <CompanyOutlook />
+            ) : (
+              <PortfolioAnalytics onStartTrading={() => setActiveTab("paper")} />
+            )}
           </div>
         )}
 

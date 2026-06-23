@@ -24,7 +24,7 @@ function LegalModal({ page, onClose }: { page: LegalPage; onClose: () => void })
           <p>Your data lives entirely on your device. If you clear your browser data or switch devices, your progress will be reset. We recommend periodically noting important information externally, as we cannot recover locally-stored data.</p>
 
           <h3 className="text-white font-semibold text-base">3. Third-Party Services</h3>
-          <p>We use Financial Modeling Prep (FMP) API for market data. When you search for stocks, your query is sent to FMP&apos;s servers to retrieve financial information. FMP has its own privacy policy governing how it handles API requests. We do not control or have access to data collected by FMP.</p>
+          <p>We retrieve market data from third-party financial data providers (including Yahoo Finance). When you search for a stock, your query is sent to these providers to retrieve financial information. They have their own privacy policies governing how they handle requests. We do not control or have access to data collected by these providers.</p>
 
           <h3 className="text-white font-semibold text-base">4. Analytics</h3>
           <p>MarketLens does not use Google Analytics, Facebook Pixel, or any other user tracking or analytics tools. We do not track your browsing behavior, clicks, or usage patterns.</p>
@@ -104,7 +104,7 @@ function LegalModal({ page, onClose }: { page: LegalPage; onClose: () => void })
           <p>Before making any investment decisions, we strongly recommend consulting with a qualified financial advisor, tax professional, or other licensed professional who can provide advice tailored to your specific financial situation and goals.</p>
 
           <h3 className="text-white font-semibold text-base">Third-Party Data</h3>
-          <p>Market data and financial information are provided by third-party sources including Financial Modeling Prep. We are not responsible for errors or omissions in third-party data.</p>
+          <p>Market data and financial information are provided by third-party sources including Yahoo Finance. We are not responsible for errors or omissions in third-party data.</p>
         </div>
       ),
     },
@@ -231,7 +231,7 @@ export default function Footer() {
               </div>
             </div>
             <p className="text-center text-[10px] text-[var(--color-text-muted)]/50 mt-3">
-              Data provided by Financial Modeling Prep. Market data may be delayed. All paper trading uses simulated funds.
+              Market data provided by Yahoo Finance. Prices may be delayed. All paper trading uses simulated funds.
             </p>
           </div>
         </div>
