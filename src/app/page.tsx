@@ -727,7 +727,7 @@ export default function Home() {
         {/* Portfolio Analytics Tab */}
         {activeTab === "analytics" && (
           <div className="max-w-5xl mx-auto animate-fade-in-up">
-            <PortfolioAnalytics />
+            <PortfolioAnalytics onStartTrading={() => setActiveTab("paper")} />
           </div>
         )}
 

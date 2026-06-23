@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
+import EmptyState from "./EmptyState";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -119,14 +120,6 @@ const SECTOR_COLORS: Record<string, string> = {
   "Basic Materials": "#84cc16",
 };
 
-const DEMO_HOLDINGS: Holding[] = [
-  { symbol: "AAPL", name: "Apple Inc.", shares: 50, avgCost: 180, currentPrice: 195.5 },
-  { symbol: "MSFT", name: "Microsoft Corp.", shares: 30, avgCost: 380, currentPrice: 415.2 },
-  { symbol: "NVDA", name: "NVIDIA Corp.", shares: 40, avgCost: 110, currentPrice: 135.8 },
-  { symbol: "GOOGL", name: "Alphabet Inc.", shares: 20, avgCost: 155, currentPrice: 178.3 },
-  { symbol: "AMZN", name: "Amazon.com Inc.", shares: 15, avgCost: 175, currentPrice: 192.4 },
-];
-
 const RISK_FREE_RATE = 0.052; // ~5.2% 10-yr proxy
 
 /* ------------------------------------------------------------------ */
@@ -161,10 +154,10 @@ function clamp(v: number, lo: number, hi: number): number {
 /*  Data loading                                                       */
 /* ------------------------------------------------------------------ */
 
-function loadPortfolio(): Holding[] {
-  if (typeof window === "undefined") return DEMO_HOLDINGS;
-
-  // Try the actual paper trading storage first
+// Returns the user's real paper-trading holdings (no prices yet — those are
+// fetched live). currentPrice is seeded to avgCost as a placeholder.
+function loadHoldingsBase(): Holding[] {
+  if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem("marketlens_paper_trading");
     if (raw) {
@@ -177,26 +170,13 @@ function loadPortfolio(): Holding[] {
             name: h.name,
             shares: h.shares,
             avgCost: h.avgCost,
-            // Simulate a current price based on avgCost + small random move
-            currentPrice: h.avgCost * (1 + (Math.random() * 0.2 - 0.05)),
+            currentPrice: h.avgCost,
           }));
         }
       }
     }
   } catch {}
-
-  // Try the alternate key format from the spec
-  try {
-    const raw = localStorage.getItem("marketlens_portfolio");
-    if (raw) {
-      const data = JSON.parse(raw);
-      if (data.holdings?.length > 0) {
-        return data.holdings;
-      }
-    }
-  } catch {}
-
-  return DEMO_HOLDINGS;
+  return [];
 }
 
 /* ------------------------------------------------------------------ */
@@ -225,8 +205,12 @@ function computeMetrics(holdings: Holding[]) {
   // Estimated std dev (using beta-implied vol, assuming market vol ~16%)
   const marketVol = 0.16;
   const portVol = portfolioBeta * marketVol;
-  const annualizedReturn = portfolioReturn * (252 / 60); // rough annualization
-  const sharpeRatio = portVol > 0 ? (annualizedReturn - RISK_FREE_RATE) / portVol : 0;
+  // Annualize the holding-period return, but cap it so a big early paper gain
+  // doesn't produce an absurd (unrealistic) annualized figure.
+  const annualizedReturn = Math.max(-0.9, Math.min(0.6, portfolioReturn * (252 / 60)));
+  const rawSharpe = portVol > 0 ? (annualizedReturn - RISK_FREE_RATE) / portVol : 0;
+  // Real-world Sharpe ratios sit roughly within [-3, 3]; clamp for credibility.
+  const sharpeRatio = Math.max(-3, Math.min(3.5, rawSharpe));
 
   // Diversification score based on HHI and sector count
   const hhi = weights.reduce((s, w) => s + w.weight * w.weight, 0);
@@ -472,18 +456,54 @@ function SectorBar({ sectors }: { sectors: SectorAllocation[] }) {
 /*  Main Component                                                     */
 /* ------------------------------------------------------------------ */
 
-export default function PortfolioAnalytics() {
-  const [holdings, setHoldings] = useState<Holding[]>(DEMO_HOLDINGS);
+export default function PortfolioAnalytics({ onStartTrading }: { onStartTrading?: () => void }) {
+  const [holdings, setHoldings] = useState<Holding[]>([]);
   const [eduOpen, setEduOpen] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    setHoldings(loadPortfolio());
+    const base = loadHoldingsBase();
+    if (base.length === 0) { setReady(true); return; }
+    setHoldings(base); // show immediately with avgCost as placeholder
+    // Fetch real current prices so all analytics are based on live data
+    fetch(`/api/quotes?symbols=${encodeURIComponent(base.map((h) => h.symbol).join(","))}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.quotes) {
+          setHoldings(base.map((h) => ({ ...h, currentPrice: json.quotes[h.symbol]?.price || h.avgCost })));
+        }
+      })
+      .catch(() => {})
+      .finally(() => setReady(true));
   }, []);
 
   const data = useMemo(() => computeMetrics(holdings), [holdings]);
   const { totalValue, totalPnl, portfolioReturn, metrics, sectorAllocation, positions, insights } = data;
 
-  const isDemo = holdings === DEMO_HOLDINGS;
+  const isDemo = false;
+
+  // Empty state — no holdings to analyze yet
+  if (ready && holdings.length === 0) {
+    return (
+      <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl">
+        <EmptyState
+          icon={<Shield size={22} />}
+          title="No portfolio to analyze yet"
+          description="Buy a few stocks in Paper Trading, then come back here for live risk analytics — Sharpe ratio, beta, diversification, and concentration risk on your real positions."
+          action={
+            onStartTrading ? (
+              <button
+                onClick={onStartTrading}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--color-brand)] text-white text-sm font-semibold hover:bg-[var(--color-brand-dim)] transition-colors"
+              >
+                Start paper trading
+              </button>
+            ) : undefined
+          }
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -496,10 +516,9 @@ export default function PortfolioAnalytics() {
             <Shield size={20} className="text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Portfolio Analytics</h2>
+            <h2 className="font-display text-xl font-semibold text-[var(--color-text-primary)]">Portfolio Analytics</h2>
             <p className="text-xs text-[var(--color-text-muted)]">
-              Professional-grade risk metrics
-              {isDemo && " · Demo Data"}
+              Live risk metrics for your paper-trading portfolio
             </p>
           </div>
         </div>
