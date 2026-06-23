@@ -33,6 +33,7 @@ function analyzeStock(data: Props["data"]): {
   strengths: string[];
   risks: string[];
   priceTarget: { low: number; mid: number; high: number };
+  indicatorsUsed: number;
 } {
   const { profile, metrics, quote, income } = data;
   const signals: Signal[] = [];
@@ -234,12 +235,13 @@ function analyzeStock(data: Props["data"]): {
     high: Math.round(price * (overallScore >= 60 ? 1.3 : 1.15) * 100) / 100,
   };
 
-  return { overallScore, verdict, summary, signals, strengths, risks, priceTarget };
+  return { overallScore, verdict, summary, signals, strengths, risks, priceTarget, indicatorsUsed: signals.length };
 }
 
 export default function AIAnalyst({ data }: Props) {
   const analysis = analyzeStock(data);
   const price = data.quote.price;
+  const asOf = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   const verdictColor =
     analysis.verdict === "Strong Buy" || analysis.verdict === "Buy"
@@ -259,19 +261,31 @@ export default function AIAnalyst({ data }: Props) {
     <div className="bg-white border border-[var(--color-border)] rounded-xl overflow-hidden shadow-sm">
       {/* Header */}
       <div className="p-4 border-b border-[var(--color-border)] bg-gradient-to-r from-violet-500/5 to-purple-500/5">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
-            <Brain size={18} className="text-white" />
+        <div className="flex items-center justify-between gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center shadow-sm">
+              <Brain size={18} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
+                AI Stock Analysis
+              </h3>
+              <p className="text-[10px] text-[var(--color-text-muted)]">
+                Computed live from {analysis.indicatorsUsed} fundamental indicators
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold text-[var(--color-text-primary)]">
-              AI Stock Analysis
-            </h3>
-            <p className="text-[10px] text-[var(--color-text-muted)]">
-              Algorithmic fundamental analysis
-            </p>
-          </div>
+          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[var(--color-positive)] bg-green-50 px-2 py-1 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)] animate-pulse" />
+            Live · as of {asOf}
+          </span>
         </div>
+        {analysis.indicatorsUsed < 4 && (
+          <div className="mt-2.5 flex items-start gap-1.5 text-[10px] text-[var(--color-warning)] bg-[var(--color-warning)]/8 rounded-lg px-2.5 py-1.5">
+            <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+            Limited data available for this company — treat this score as preliminary.
+          </div>
+        )}
       </div>
 
       <div className="p-4 space-y-4">
