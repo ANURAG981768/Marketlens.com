@@ -78,8 +78,25 @@ export default function DCFModel({ data }: Props) {
     ? latestRevenue / metrics.revenuePerShareTTM
     : 15000000000;
 
+  // Seed the default growth from the company's REAL historical revenue CAGR
+  // (income is newest-first) rather than a flat 8% for every company — that
+  // flat default valued hyper-growers like NVDA as if they grew 8% forever,
+  // producing absurd "overvalued" verdicts. Fall back to the TTM growth, then 8%.
+  const seededGrowth = (() => {
+    const newest = income[0]?.revenue ?? 0;
+    const oldest = income[income.length - 1]?.revenue ?? 0;
+    const years = income.length - 1;
+    if (newest > 0 && oldest > 0 && years >= 1) {
+      const cagr = ((newest / oldest) ** (1 / years) - 1) * 100;
+      if (isFinite(cagr)) return Math.max(-10, Math.min(40, cagr));
+    }
+    const ttm = (metrics.revenueGrowthTTM ?? 0) * 100;
+    if (ttm > 0) return Math.max(-10, Math.min(40, ttm));
+    return 8;
+  })();
+
   const [assumptions, setAssumptions] = useState<Assumptions>({
-    revenueGrowth: 8,
+    revenueGrowth: +seededGrowth.toFixed(1),
     terminalGrowth: 2.5,
     operatingMargin: +(latestMargin * 100).toFixed(1),
     taxRate: 21,
@@ -113,7 +130,13 @@ export default function DCFModel({ data }: Props) {
     let currentRevenue = latestRevenue;
 
     for (let year = 1; year <= projectionYears; year++) {
-      currentRevenue *= 1 + growthRate;
+      // Fade growth linearly from the starting rate toward terminal growth.
+      // No company sustains peak growth forever, so a flat high rate would
+      // wildly overvalue and a flat low rate would undervalue. The slider sets
+      // the Year-1 rate; later years glide toward the terminal rate.
+      const t = projectionYears > 1 ? (year - 1) / (projectionYears - 1) : 0;
+      const yearGrowth = growthRate + (termGrowth - growthRate) * t;
+      currentRevenue *= 1 + yearGrowth;
       const operatingIncome = currentRevenue * margin;
       const nopat = operatingIncome * (1 - tax);
       const fcf = nopat * 0.85;
@@ -202,7 +225,7 @@ export default function DCFModel({ data }: Props) {
             Assumptions
           </p>
           <SliderInput
-            label="Revenue Growth Rate"
+            label="Initial Revenue Growth (Yr 1)"
             value={assumptions.revenueGrowth}
             min={-10}
             max={40}
@@ -210,6 +233,10 @@ export default function DCFModel({ data }: Props) {
             suffix="%"
             onChange={(v) => update("revenueGrowth", v)}
           />
+          <p className="-mt-3 text-[10px] text-[var(--color-text-muted)]">
+            Seeded from {profile.companyName.split(" ")[0]}&rsquo;s historical
+            growth; fades toward the terminal rate over {assumptions.projectionYears} years.
+          </p>
           <SliderInput
             label="Operating Margin"
             value={assumptions.operatingMargin}

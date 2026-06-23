@@ -80,6 +80,55 @@ async function fetchIncome(symbol: string, crumb: string, cookie: string, shares
   }
 }
 
+// Real dividend payment history from Yahoo's chart events. Returns the actual
+// per-payment amounts so we never synthesize a fake dividend track record.
+async function fetchDividends(
+  symbol: string
+): Promise<{ history: { year: string; amount: number }[]; trailingAnnual: number }> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
+        symbol
+      )}?interval=1mo&range=10y&events=div`,
+      { headers: { "User-Agent": YAHOO_UA }, next: { revalidate: 86400 } }
+    );
+    if (!res.ok) return { history: [], trailingAnnual: 0 };
+    const data = await res.json();
+    const divs = data?.chart?.result?.[0]?.events?.dividends as
+      | Record<string, { amount?: number; date?: number }>
+      | undefined;
+    if (!divs) return { history: [], trailingAnnual: 0 };
+
+    // Group real payments by calendar year
+    const byYear: Record<string, number> = {};
+    const payments: { ts: number; amount: number }[] = [];
+    for (const k of Object.keys(divs)) {
+      const d = divs[k];
+      if (typeof d?.amount !== "number" || typeof d?.date !== "number") continue;
+      const year = new Date(d.date * 1000).getUTCFullYear().toString();
+      byYear[year] = (byYear[year] || 0) + d.amount;
+      payments.push({ ts: d.date, amount: d.amount });
+    }
+
+    const history = Object.keys(byYear)
+      .sort()
+      .reverse()
+      .slice(0, 6)
+      .map((year) => ({ year, amount: +byYear[year].toFixed(4) }));
+
+    // Trailing 12-month dividend = sum of payments in the last 365 days
+    const cutoff = Date.now() / 1000 - 365 * 24 * 3600;
+    const trailingAnnual = +payments
+      .filter((p) => p.ts >= cutoff)
+      .reduce((s, p) => s + p.amount, 0)
+      .toFixed(4);
+
+    return { history, trailingAnnual };
+  } catch {
+    return { history: [], trailingAnnual: 0 };
+  }
+}
+
 async function fetchHistory(symbol: string): Promise<unknown[]> {
   try {
     const res = await fetch(
@@ -219,12 +268,19 @@ export async function GET(req: NextRequest) {
       revenueGrowthTTM: num(fd.revenueGrowth),
     };
 
-    const [income, history] = await Promise.all([
+    const [income, history, dividends] = await Promise.all([
       fetchIncome(symbol, auth.crumb, auth.cookie, shares),
       fetchHistory(symbol),
+      fetchDividends(symbol),
     ]);
 
-    return NextResponse.json({ profile, quote, metrics, income, history });
+    // Prefer the real trailing-12-month dividend (summed from actual payments)
+    // over Yahoo's sometimes-stale dividendRate field.
+    if (dividends.trailingAnnual > 0) {
+      profile.lastDiv = dividends.trailingAnnual;
+    }
+
+    return NextResponse.json({ profile, quote, metrics, income, history, dividends: dividends.history });
   } catch {
     return NextResponse.json({ error: "demo" }, { status: 200 });
   }

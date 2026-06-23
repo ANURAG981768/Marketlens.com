@@ -83,6 +83,7 @@ export interface StockData {
   metrics: KeyMetrics;
   income: IncomeStatement[];
   history: HistoricalPrice[];
+  dividends?: { year: string; amount: number }[];
   quote: {
     price: number;
     changesPercentage: number;

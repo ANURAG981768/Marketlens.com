@@ -23,13 +23,15 @@ export default function CompanyOverview({ profile }: Props) {
             {profile.ceo}
           </span>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[var(--color-text-muted)]">IPO Date</span>
-          <span className="text-[var(--color-text-secondary)] flex items-center gap-1">
-            <Calendar size={11} />
-            {profile.ipoDate}
-          </span>
-        </div>
+        {profile.ipoDate && (
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--color-text-muted)]">IPO Date</span>
+            <span className="text-[var(--color-text-secondary)] flex items-center gap-1">
+              <Calendar size={11} />
+              {profile.ipoDate}
+            </span>
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-[var(--color-text-muted)]">Beta</span>
           <span className="text-[var(--color-text-secondary)]">

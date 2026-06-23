@@ -39,40 +39,37 @@ export default function DividendHistory({ data }: Props) {
   const annualDiv = divPerShare;
   const quarterlyDiv = annualDiv / 4;
   const monthlyIncome100 = (annualDiv * 100) / 12;
+  // Derive the displayed yield from the real trailing dividend so the card is
+  // internally consistent (annual $ ÷ price), rather than mixing in a separate
+  // Yahoo yield field that can disagree with the actual payments.
+  const displayYield =
+    annualDiv > 0 && quote.price > 0 ? annualDiv / quote.price : divYield;
 
-  const demoHistory: DividendEntry[] = [
-    { year: "2024", amount: annualDiv, yield: divYield * 100 },
-    {
-      year: "2023",
-      amount: annualDiv * 0.94,
-      yield: divYield * 100 * 0.96,
-    },
-    {
-      year: "2022",
-      amount: annualDiv * 0.88,
-      yield: divYield * 100 * 0.92,
-    },
-    {
-      year: "2021",
-      amount: annualDiv * 0.82,
-      yield: divYield * 100 * 0.88,
-    },
-    {
-      year: "2020",
-      amount: annualDiv * 0.77,
-      yield: divYield * 100 * 0.84,
-    },
-  ];
+  // Real dividend payment history (summed per calendar year) from Yahoo.
+  // We only render a history/growth section when we actually have it — no
+  // synthesized trend lines.
+  const realHistory: DividendEntry[] = (data.dividends ?? [])
+    .filter((d) => d.amount > 0)
+    .map((d) => ({
+      year: d.year,
+      amount: d.amount,
+      yield: quote.price > 0 ? (d.amount / quote.price) * 100 : 0,
+    }));
 
-  const growthRate =
-    demoHistory.length >= 2
-      ? ((demoHistory[0].amount / demoHistory[demoHistory.length - 1].amount) **
-          (1 / (demoHistory.length - 1)) -
-          1) *
-        100
-      : 0;
+  const hasHistory = realHistory.length >= 2;
 
-  const maxAmount = Math.max(...demoHistory.map((d) => d.amount));
+  // CAGR computed only from real, fully-reported years (skip the current
+  // partial year, which may not have all payments in yet).
+  const growthRate = (() => {
+    if (realHistory.length < 3) return null;
+    const series = realHistory.slice(1); // drop newest (possibly partial) year
+    const newest = series[0]?.amount ?? 0;
+    const oldest = series[series.length - 1]?.amount ?? 0;
+    if (newest <= 0 || oldest <= 0 || series.length < 2) return null;
+    return ((newest / oldest) ** (1 / (series.length - 1)) - 1) * 100;
+  })();
+
+  const maxAmount = hasHistory ? Math.max(...realHistory.map((d) => d.amount)) : 0;
 
   return (
     <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl overflow-hidden">
@@ -95,7 +92,7 @@ export default function DividendHistory({ data }: Props) {
           },
           {
             label: "Dividend Yield",
-            value: `${(divYield * 100).toFixed(2)}%`,
+            value: `${(displayYield * 100).toFixed(2)}%`,
             sub: `Price: $${quote.price.toFixed(2)}`,
           },
           {
@@ -104,9 +101,9 @@ export default function DividendHistory({ data }: Props) {
             sub: payoutRatio > 0.75 ? "High" : payoutRatio > 0.5 ? "Moderate" : "Low",
           },
           {
-            label: "5Y Growth Rate",
-            value: `${growthRate.toFixed(1)}%`,
-            sub: "CAGR",
+            label: "Div. Growth",
+            value: growthRate != null ? `${growthRate.toFixed(1)}%` : "—",
+            sub: growthRate != null ? "annualized" : "history n/a",
           },
         ].map((card) => (
           <div key={card.label} className="bg-[var(--color-surface-elevated)] p-3">
@@ -142,13 +139,14 @@ export default function DividendHistory({ data }: Props) {
         </div>
       </div>
 
-      {/* History Chart (bar style) */}
+      {/* History Chart (bar style) — only when we have real payment data */}
+      {hasHistory && (
       <div className="px-4 py-3 border-t border-[var(--color-border)]">
         <p className="text-[10px] font-medium text-[var(--color-text-muted)] mb-2">
-          Dividend History
+          Dividend History <span className="text-[var(--color-text-muted)]/70">· actual payments per year</span>
         </p>
         <div className="space-y-1.5">
-          {demoHistory.map((d) => (
+          {realHistory.map((d) => (
             <div key={d.year} className="flex items-center gap-2">
               <span className="text-[10px] tabular-nums text-[var(--color-text-muted)] w-8">
                 {d.year}
@@ -165,13 +163,11 @@ export default function DividendHistory({ data }: Props) {
                   </span>
                 </div>
               </div>
-              <span className="text-[10px] tabular-nums text-[var(--color-text-muted)] w-12 text-right">
-                {d.yield.toFixed(2)}%
-              </span>
             </div>
           ))}
         </div>
       </div>
+      )}
     </div>
   );
 }
