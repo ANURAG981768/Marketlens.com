@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Star, X, TrendingUp, TrendingDown } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
+import EmptyState from "./EmptyState";
 import {
   getWatchlist,
   removeFromWatchlist,
@@ -26,7 +27,17 @@ export default function WatchlistPanel({ onSelect, refreshKey }: Props) {
     setItems(updated);
   }
 
-  if (!items.length) return null;
+  if (!items.length) {
+    return (
+      <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl">
+        <EmptyState
+          icon={<Star size={22} />}
+          title="Your watchlist is empty"
+          description="Search any stock, open it, and tap the star to track its price here."
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl overflow-hidden">
