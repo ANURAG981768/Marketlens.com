@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Award, Download, CheckCircle, Lock, BookOpen, Trophy, User, Sparkles, ShieldCheck, Clock, Target, AlertTriangle, Copy, Check } from "lucide-react";
 import { LESSONS } from "@/lib/lessons-data";
 import { encodeCertificate } from "@/lib/certificate";
+import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "marketlens_lessons_progress";
 const CERT_KEY = "marketlens_certificates";
@@ -181,11 +182,37 @@ export default function CertificateGenerator() {
     if (pendingClaimId) { finalizeClaim(pendingClaimId, name); setPendingClaimId(null); }
   }
 
+  // Record the issued certificate in the public registry (if signed in) so it
+  // can be verified by ID by anyone, forever. Fire-and-forget; degrades quietly.
+  async function registerCertificate(trackId: string, rec: CertRecord) {
+    if (!supabase) return;
+    const track = CERTIFICATE_TRACKS.find((t) => t.id === trackId);
+    if (!track) return;
+    try {
+      const { data } = await supabase.auth.getUser();
+      const uid = data.user?.id;
+      if (!uid) return;
+      await supabase.from("certificates").upsert({
+        cert_id: rec.certId,
+        user_id: uid,
+        name: rec.name,
+        track_id: trackId,
+        track_title: track.title,
+        quiz_avg: rec.quizAvg,
+        lessons: track.lessonsRequired.length,
+        issued_at: rec.date,
+      });
+    } catch {
+      /* registry is best-effort; the encoded link still verifies offline */
+    }
+  }
+
   function finalizeClaim(trackId: string, name: string) {
     const certs = loadCertificates();
     if (!certs[trackId]) {
       certs[trackId] = { date: new Date().toISOString(), name, certId: generateCertId(trackId), quizAvg: getQuizAvg(trackId) };
       localStorage.setItem(CERT_KEY, JSON.stringify(certs));
+      registerCertificate(trackId, certs[trackId]);
     }
     setCertificates(certs);
     setSelectedCert(trackId);

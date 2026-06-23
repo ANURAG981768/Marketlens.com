@@ -2,14 +2,36 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { ShieldCheck, ShieldAlert, BookOpen, Target, Calendar, ArrowRight } from "lucide-react";
 import { decodeCertificate } from "@/lib/certificate";
+import { supabase } from "@/lib/supabase";
 
 export default function VerifyCertificatePage() {
   const params = useParams();
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
   const cert = useMemo(() => (token ? decodeCertificate(token) : null), [token]);
+  const [registry, setRegistry] = useState<"checking" | "confirmed" | "not_found" | "unavailable">("checking");
+
+  useEffect(() => {
+    if (!cert || !supabase) {
+      setRegistry("unavailable");
+      return;
+    }
+    let active = true;
+    supabase
+      .from("certificates")
+      .select("cert_id,name")
+      .eq("cert_id", cert.id)
+      .maybeSingle()
+      .then(({ data, error }: { data: { name?: string } | null; error: unknown }) => {
+        if (!active) return;
+        if (error) setRegistry("unavailable");
+        else if (data && data.name === cert.n) setRegistry("confirmed");
+        else setRegistry("not_found");
+      });
+    return () => { active = false; };
+  }, [cert]);
 
   return (
     <main className="min-h-screen bg-[var(--color-surface)] flex flex-col items-center px-5 py-12">
@@ -31,7 +53,13 @@ export default function VerifyCertificatePage() {
               </div>
               <div>
                 <p className="text-white font-semibold">Certificate verified</p>
-                <p className="text-xs text-gray-400">Issued by MarketLens · authenticity confirmed</p>
+                <p className="text-xs text-gray-400">
+                  {registry === "confirmed"
+                    ? "Issued by MarketLens · confirmed in credential registry"
+                    : registry === "checking"
+                    ? "Issued by MarketLens · checking registry…"
+                    : "Issued by MarketLens · authenticated via secure link"}
+                </p>
               </div>
             </div>
 

@@ -47,6 +47,7 @@ import Footer from "@/components/Footer";
 import CookieConsent from "@/components/CookieConsent";
 import CompanyLogo from "@/components/CompanyLogo";
 import { LogoMark, LogoHero, FeatureIcon } from "@/components/Logo";
+import AccountMenu from "@/components/AccountMenu";
 import {
   BarChart3,
   AlertCircle,
@@ -334,6 +335,9 @@ export default function Home() {
           </div>
           <div className="flex-1 max-w-md">
             <SearchBar onSearch={fetchStock} loading={loading} />
+          </div>
+          <div className="shrink-0">
+            <AccountMenu />
           </div>
         </div>
 
