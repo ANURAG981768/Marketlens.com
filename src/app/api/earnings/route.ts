@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
 
 const TICKERS: { symbol: string; company: string }[] = [
   { symbol: "AAPL", company: "Apple Inc." },
@@ -23,33 +22,6 @@ const TICKERS: { symbol: string; company: string }[] = [
   { symbol: "KO", company: "Coca-Cola" },
 ];
 
-let cachedCrumb: string | null = null;
-let cachedCookie: string | null = null;
-let crumbAt = 0;
-const CRUMB_TTL = 1000 * 60 * 30;
-
-async function getAuth(): Promise<{ crumb: string; cookie: string } | null> {
-  if (cachedCrumb && cachedCookie && Date.now() - crumbAt < CRUMB_TTL) {
-    return { crumb: cachedCrumb, cookie: cachedCookie };
-  }
-  try {
-    const c = await fetch("https://fc.yahoo.com", { headers: { "User-Agent": UA }, cache: "no-store" });
-    const cookie = (c.headers.get("set-cookie") || "").split(";")[0] || "";
-    const cr = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
-      headers: { "User-Agent": UA, Cookie: cookie },
-      cache: "no-store",
-    });
-    const crumb = (await cr.text()).trim();
-    if (!crumb || crumb.includes("<")) return null;
-    cachedCrumb = crumb;
-    cachedCookie = cookie;
-    crumbAt = Date.now();
-    return { crumb, cookie };
-  } catch {
-    return null;
-  }
-}
-
 function fmtRevenue(v: number | null): string | null {
   if (v == null) return null;
   if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
@@ -57,16 +29,22 @@ function fmtRevenue(v: number | null): string | null {
   return `$${v.toFixed(0)}`;
 }
 
-export async function GET() {
-  const auth = await getAuth();
-  if (!auth) return NextResponse.json({ error: "auth_failed" }, { status: 200 });
+type EarningsEvent = {
+  symbol: string;
+  company: string;
+  date: string;
+  time: "AMC";
+  epsEstimate: number | null;
+  revenueEstimate: string | null;
+};
 
-  const events = await Promise.all(
+async function runBatch(crumb: string, cookie: string): Promise<(EarningsEvent | null)[]> {
+  return Promise.all(
     TICKERS.map(async (t) => {
       try {
-        const u = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${t.symbol}?modules=calendarEvents&crumb=${encodeURIComponent(auth.crumb)}`;
+        const u = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${t.symbol}?modules=calendarEvents&crumb=${encodeURIComponent(crumb)}`;
         const res = await fetch(u, {
-          headers: { "User-Agent": UA, Cookie: auth.cookie },
+          headers: { "User-Agent": YAHOO_UA, Cookie: cookie },
           next: { revalidate: 3600 }, // earnings dates change slowly — cache 1h
         });
         if (!res.ok) return null;
@@ -78,7 +56,7 @@ export async function GET() {
           symbol: t.symbol,
           company: t.company,
           date: dateFmt,
-          time: "AMC" as const, // Yahoo doesn't reliably expose BMO/AMC; default to AMC
+          time: "AMC",
           epsEstimate: typeof e?.earningsAverage?.raw === "number" ? Number(e.earningsAverage.raw.toFixed(2)) : null,
           revenueEstimate: fmtRevenue(typeof e?.revenueAverage?.raw === "number" ? e.revenueAverage.raw : null),
         };
@@ -87,9 +65,26 @@ export async function GET() {
       }
     })
   );
+}
+
+export async function GET() {
+  let auth = await getYahooAuth();
+  if (!auth) return NextResponse.json({ error: "auth_failed" }, { status: 200 });
+
+  let events = await runBatch(auth.crumb, auth.cookie);
+
+  // If everything came back empty, the crumb likely rotated — refresh once and retry
+  if (events.every((e) => e === null)) {
+    invalidateYahooAuth();
+    const fresh = await getYahooAuth(true);
+    if (fresh) {
+      auth = fresh;
+      events = await runBatch(fresh.crumb, fresh.cookie);
+    }
+  }
 
   const list = events
-    .filter((e): e is NonNullable<typeof e> => e !== null)
+    .filter((e): e is EarningsEvent => e !== null)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   if (list.length === 0) return NextResponse.json({ error: "unavailable" }, { status: 200 });

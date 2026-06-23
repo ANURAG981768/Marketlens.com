@@ -1,40 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-
-const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
-
-// Cache the Yahoo crumb + cookie in module scope (survives across requests on a warm server)
-let cachedCrumb: string | null = null;
-let cachedCookie: string | null = null;
-let crumbFetchedAt = 0;
-const CRUMB_TTL = 1000 * 60 * 30; // 30 min
-
-async function getCrumb(): Promise<{ crumb: string; cookie: string } | null> {
-  if (cachedCrumb && cachedCookie && Date.now() - crumbFetchedAt < CRUMB_TTL) {
-    return { crumb: cachedCrumb, cookie: cachedCookie };
-  }
-  try {
-    const cookieRes = await fetch("https://fc.yahoo.com", {
-      headers: { "User-Agent": UA },
-      cache: "no-store",
-    });
-    const setCookie = cookieRes.headers.get("set-cookie") || "";
-    const cookie = setCookie.split(";")[0] || "";
-
-    const crumbRes = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
-      headers: { "User-Agent": UA, Cookie: cookie },
-      cache: "no-store",
-    });
-    const crumb = (await crumbRes.text()).trim();
-    if (!crumb || crumb.includes("<")) return null;
-
-    cachedCrumb = crumb;
-    cachedCookie = cookie;
-    crumbFetchedAt = Date.now();
-    return { crumb, cookie };
-  } catch {
-    return null;
-  }
-}
+import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
 
 function raw(obj: any): number | null {
   if (obj == null) return null;
@@ -49,26 +14,31 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid symbol" }, { status: 400 });
   }
 
-  const auth = await getCrumb();
+  let auth = await getYahooAuth();
   if (!auth) {
     return NextResponse.json({ error: "auth_failed" }, { status: 200 });
   }
 
   const modules = "price,summaryDetail,defaultKeyStatistics,financialData";
-  const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(
-    symbol
-  )}?modules=${modules}&crumb=${encodeURIComponent(auth.crumb)}`;
+  const buildUrl = (crumb: string) =>
+    `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${modules}&crumb=${encodeURIComponent(crumb)}`;
 
   try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": UA, Cookie: auth.cookie },
+    let res = await fetch(buildUrl(auth.crumb), {
+      headers: { "User-Agent": YAHOO_UA, Cookie: auth.cookie },
       next: { revalidate: 30 },
     });
 
+    // Crumb expired — refresh once and retry rather than failing
     if (res.status === 401) {
-      // crumb expired — force refresh next call
-      cachedCrumb = null;
-      return NextResponse.json({ error: "auth_expired" }, { status: 200 });
+      invalidateYahooAuth();
+      const fresh = await getYahooAuth(true);
+      if (!fresh) return NextResponse.json({ error: "auth_failed" }, { status: 200 });
+      auth = fresh;
+      res = await fetch(buildUrl(fresh.crumb), {
+        headers: { "User-Agent": YAHOO_UA, Cookie: fresh.cookie },
+        next: { revalidate: 30 },
+      });
     }
     if (!res.ok) return NextResponse.json({ error: "not_found" }, { status: 200 });
 
