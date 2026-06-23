@@ -80,6 +80,8 @@ import {
   LayoutGrid,
   FileText,
   Award,
+  Menu,
+  X,
 } from "lucide-react";
 
 const POPULAR = ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META", "JPM"];
@@ -130,6 +132,7 @@ export default function Home() {
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<Tab>("screener");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [cryptoPrices, setCryptoPrices] = useState(CRYPTO_DEFAULTS);
   const [globalIndices, setGlobalIndices] = useState(GLOBAL_INDICES_DEFAULT);
 
@@ -383,46 +386,76 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Mobile Nav — two rows */}
+        {/* Mobile Nav — current tab + menu trigger */}
         <div className="md:hidden border-t border-[var(--color-border)] bg-white/60 glass">
-          <div className="overflow-x-auto">
-            <div className="flex items-center gap-1 px-3 py-1.5 min-w-max">
-              {NAV_ROW1.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all ${
-                    activeTab === tab.key
-                      ? "bg-[var(--color-brand)] text-white shadow-sm"
-                      : "text-[var(--color-text-muted)]"
-                  }`}
-                >
-                  <tab.icon size={11} />
-                  {tab.label}
-                </button>
-              ))}
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="w-full flex items-center justify-between px-4 py-2.5"
+            aria-label="Open navigation menu"
+          >
+            <span className="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
+              {(() => {
+                const cur = ALL_TABS.find((t) => t.key === activeTab);
+                if (!cur) return "Menu";
+                const Icon = cur.icon;
+                return <><Icon size={15} className="text-[var(--color-brand)]" /> {cur.label}</>;
+              })()}
+            </span>
+            <span className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-muted)]">
+              <Menu size={18} /> Menu
+            </span>
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Nav Drawer */}
+      {mobileNavOpen && (
+        <div className="md:hidden fixed inset-0 z-[95] bg-black/50 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)}>
+          <div
+            className="absolute right-0 top-0 h-full w-[82%] max-w-xs bg-[var(--color-surface-elevated)] shadow-2xl flex flex-col animate-slide-in-right"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
+              <span className="font-display text-lg font-semibold">Menu</span>
+              <button onClick={() => setMobileNavOpen(false)} className="p-1.5 rounded-lg hover:bg-[var(--color-surface-hover)] text-[var(--color-text-muted)]">
+                <X size={18} />
+              </button>
             </div>
-          </div>
-          <div className="overflow-x-auto border-t border-[var(--color-border)]/50">
-            <div className="flex items-center gap-1 px-3 py-1.5 min-w-max">
-              {NAV_ROW2.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all ${
-                    activeTab === tab.key
-                      ? "bg-[var(--color-brand)] text-white shadow-sm"
-                      : "text-[var(--color-text-muted)]"
-                  }`}
-                >
-                  <tab.icon size={11} />
-                  {tab.label}
-                </button>
+            <div className="flex-1 overflow-y-auto px-3 py-4">
+              {([
+                { title: "Research & Analysis", tabs: NAV_ROW1 },
+                { title: "Learn & Track", tabs: NAV_ROW2 },
+              ] as const).map((group) => (
+                <div key={group.title} className="mb-5">
+                  <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text-muted)]/70">
+                    {group.title}
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {group.tabs.map((tab) => {
+                      const Icon = tab.icon;
+                      const active = activeTab === tab.key;
+                      return (
+                        <button
+                          key={tab.key}
+                          onClick={() => { setActiveTab(tab.key); setMobileNavOpen(false); }}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-medium transition-all ${
+                            active
+                              ? "bg-[var(--color-brand)] text-white shadow-sm"
+                              : "text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]"
+                          }`}
+                        >
+                          <Icon size={15} className={active ? "text-white" : "text-[var(--color-text-muted)]"} />
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </div>
-      </header>
+      )}
 
       <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Demo Banner */}
