@@ -259,7 +259,7 @@ export default function Home() {
     { key: "transcripts", label: "Transcripts", icon: FileText },
     { key: "economy", label: "Economy", icon: Globe },
     { key: "compare", label: "Compare", icon: Scale },
-    { key: "calculator", label: "Calc", icon: Calculator },
+    { key: "calculator", label: "Calculator", icon: Calculator },
     { key: "ratios", label: "Ratios", icon: BookOpen },
   ];
 
@@ -270,7 +270,7 @@ export default function Home() {
     { key: "analytics", label: "Analytics", icon: Shield },
     { key: "lessons", label: "Lessons", icon: BookMarked },
     { key: "quiz", label: "Quiz", icon: GraduationCap },
-    { key: "certificates", label: "Certs", icon: Award },
+    { key: "certificates", label: "Certificates", icon: Award },
     { key: "journal", label: "Journal", icon: BookText },
     { key: "glossary", label: "Glossary", icon: BookText },
     { key: "achievements", label: "Awards", icon: Medal },
@@ -559,16 +559,17 @@ export default function Home() {
                 <div className="flex flex-wrap items-center gap-3 mb-10">
                   <button
                     onClick={() => setActiveTab("lessons")}
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[var(--color-brand)] text-white text-sm font-semibold hover:bg-[var(--color-brand-light)] transition-colors shadow-lg shadow-[var(--color-brand)]/20"
+                    className="group inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-[var(--color-brand)] text-white text-[15px] font-semibold hover:bg-[var(--color-brand-light)] transition-all shadow-lg shadow-[var(--color-brand)]/25 hover:shadow-[var(--color-brand)]/40"
                   >
-                    Start learning free
-                    <ArrowRight size={16} />
+                    Start learning — free
+                    <ArrowRight size={17} className="group-hover:translate-x-0.5 transition-transform" />
                   </button>
                   <button
                     onClick={() => setActiveTab("paper")}
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-white/15 text-white text-sm font-medium hover:bg-white/5 transition-colors"
+                    className="inline-flex items-center gap-2 px-6 py-3.5 rounded-full bg-white/10 border border-white/20 text-white text-[15px] font-semibold hover:bg-white/15 transition-colors backdrop-blur-sm"
                   >
-                    Try paper trading
+                    <TrendingUp size={17} />
+                    Start paper trading
                   </button>
                 </div>
 
