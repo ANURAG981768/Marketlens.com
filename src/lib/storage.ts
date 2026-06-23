@@ -128,7 +128,13 @@ function savePaper(p: PaperPortfolio) {
   localStorage.setItem(PAPER_KEY, JSON.stringify(p));
 }
 
+function validOrder(shares: number, price: number) {
+  if (!Number.isFinite(shares) || shares <= 0) throw new Error("Enter a valid number of shares");
+  if (!Number.isFinite(price) || price <= 0) throw new Error("Enter a valid price");
+}
+
 export function paperBuy(symbol: string, name: string, shares: number, price: number): PaperPortfolio {
+  validOrder(shares, price);
   const p = getPaperPortfolio();
   const total = shares * price;
   if (total > p.cash) throw new Error("Insufficient funds");
@@ -155,6 +161,7 @@ export function paperBuy(symbol: string, name: string, shares: number, price: nu
 }
 
 export function paperSell(symbol: string, name: string, shares: number, price: number): PaperPortfolio {
+  validOrder(shares, price);
   const p = getPaperPortfolio();
   const h = p.holdings[symbol];
   if (!h || h.shares < shares) throw new Error("Not enough shares");
@@ -162,7 +169,7 @@ export function paperSell(symbol: string, name: string, shares: number, price: n
   const total = shares * price;
   p.cash += total;
   h.shares -= shares;
-  if (h.shares === 0) delete p.holdings[symbol];
+  if (h.shares <= 0.0000001) delete p.holdings[symbol];
 
   p.trades.unshift({
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
