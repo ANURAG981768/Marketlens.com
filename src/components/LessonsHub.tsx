@@ -48,6 +48,16 @@ const DIFFICULTY_COLORS = {
   Advanced: "bg-red-100 text-red-700",
 };
 
+// Cohesive tint palette for the numbered lesson tiles (a colorful curriculum)
+const LESSON_TINTS = [
+  { color: "#185fa5", bg: "rgba(24,95,165,0.10)" },
+  { color: "#0a7c3f", bg: "rgba(10,124,63,0.10)" },
+  { color: "#6d28d9", bg: "rgba(109,40,217,0.10)" },
+  { color: "#a8851a", bg: "rgba(184,147,47,0.12)" },
+  { color: "#0e7490", bg: "rgba(14,116,144,0.10)" },
+  { color: "#be185d", bg: "rgba(190,24,93,0.10)" },
+];
+
 export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLessonId, onLessonOpened }: { onNavigateToQuiz?: () => void; onNavigateToCerts?: () => void; openLessonId?: string | null; onLessonOpened?: () => void }) {
   const [progress, setProgress] = useState<Record<string, string[]>>({});
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -354,34 +364,42 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
 
       {/* Lesson Cards */}
       <div className="space-y-3">
-        {LESSONS.map((lesson) => {
+        {LESSONS.map((lesson, i) => {
           const completed = progress[lesson.id] || [];
           const pct = lesson.sections.length > 0 ? Math.round((completed.length / lesson.sections.length) * 100) : 0;
           const isComplete = pct === 100;
+          const started = completed.length > 0 && !isComplete;
+          const tint = LESSON_TINTS[i % LESSON_TINTS.length];
+          const cta = isComplete ? "Review" : started ? `Continue · ${pct}%` : "Start lesson";
 
           return (
             <button
               key={lesson.id}
-              onClick={() => { setActiveLesson(lesson); setActiveSection(0); }}
-              className={`w-full bg-white border rounded-xl p-5 text-left transition-all group hover:shadow-md ${
-                isComplete ? "border-[var(--color-brand)]/20" : "border-[var(--color-border)]"
+              onClick={() => { setActiveLesson(lesson); setActiveSection(started ? completed.length : 0); }}
+              className={`w-full bg-white border rounded-2xl p-4 sm:p-5 text-left transition-all group hover:shadow-md hover:-translate-y-0.5 ${
+                isComplete ? "border-[var(--color-brand)]/30" : "border-[var(--color-border)]"
               }`}
             >
-              <div className="flex items-start gap-4">
-                <div className="text-2xl shrink-0 mt-0.5">{lesson.icon}</div>
+              <div className="flex items-center gap-4">
+                {/* Numbered curriculum tile */}
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 font-display"
+                  style={{ background: isComplete ? "var(--color-brand)" : tint.bg }}
+                >
+                  {isComplete ? (
+                    <CheckCircle size={22} className="text-white" />
+                  ) : (
+                    <span className="text-lg font-bold" style={{ color: tint.color }}>{i + 1}</span>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-sm font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-brand)] transition-colors">
-                      {lesson.title}
-                    </h3>
-                    {isComplete && (
-                      <CheckCircle size={14} className="text-[var(--color-brand)] shrink-0" />
-                    )}
-                  </div>
-                  <p className="text-xs text-[var(--color-text-muted)] mb-2.5">
+                  <h3 className="text-sm font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-brand)] transition-colors truncate">
+                    {lesson.title}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-muted)] mt-0.5 mb-2 truncate">
                     {lesson.subtitle}
                   </p>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 flex-wrap">
                     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${DIFFICULTY_COLORS[lesson.difficulty]}`}>
                       {lesson.difficulty}
                     </span>
@@ -394,22 +412,26 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
                     </span>
                     {lesson.relatedQuiz && (
                       <span className="text-[10px] text-violet-500 flex items-center gap-1">
-                        <Target size={10} />
-                        Quiz available
+                        <Target size={10} /> Quiz
                       </span>
                     )}
                   </div>
-                  {/* Mini progress bar */}
-                  {completed.length > 0 && !isComplete && (
+                  {started && (
                     <div className="mt-2.5 w-full h-1.5 bg-[var(--color-surface-card)] rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-[var(--color-brand)] rounded-full transition-all"
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className="h-full bg-[var(--color-brand)] rounded-full transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   )}
                 </div>
-                <ChevronRight size={16} className="text-[var(--color-text-muted)] shrink-0 mt-2 group-hover:text-[var(--color-brand)] transition-colors" />
+                {/* State-based CTA */}
+                <span
+                  className={`shrink-0 hidden sm:inline-flex items-center gap-1 px-3.5 py-2 rounded-full text-xs font-semibold transition-colors ${
+                    isComplete || started
+                      ? "bg-[var(--color-brand)]/10 text-[var(--color-brand-dim)]"
+                      : "bg-[var(--color-ink)] text-white group-hover:bg-[var(--color-brand)]"
+                  }`}
+                >
+                  {cta} <ChevronRight size={13} />
+                </span>
               </div>
             </button>
           );
