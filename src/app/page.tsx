@@ -615,22 +615,22 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Quick Access Cards — cohesive, disciplined */}
+            {/* Quick Access Cards — distinct accent per feature, disciplined */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8 animate-fade-in-up animate-delay-100">
               {[
-                { tab: "paper" as Tab, icon: DollarSign, label: "Paper Trade", desc: "Practice risk-free" },
-                { tab: "lessons" as Tab, icon: BookMarked, label: "Learn", desc: "12 guided courses" },
-                { tab: "heatmap" as Tab, icon: LayoutGrid, label: "Heatmap", desc: "Sector performance" },
-                { tab: "quiz" as Tab, icon: GraduationCap, label: "Quiz", desc: "210+ questions" },
+                { tab: "paper" as Tab, icon: DollarSign, label: "Paper Trade", desc: "Practice risk-free", color: "#0a7c3f", bg: "rgba(10,124,63,0.10)" },
+                { tab: "lessons" as Tab, icon: BookMarked, label: "Learn", desc: "12 guided courses", color: "#185fa5", bg: "rgba(24,95,165,0.10)" },
+                { tab: "heatmap" as Tab, icon: LayoutGrid, label: "Heatmap", desc: "Sector performance", color: "#6d28d9", bg: "rgba(109,40,217,0.10)" },
+                { tab: "quiz" as Tab, icon: GraduationCap, label: "Quiz", desc: "210+ questions", color: "#a8851a", bg: "rgba(184,147,47,0.12)" },
               ].map((card) => (
                 <button
                   key={card.label}
                   onClick={() => setActiveTab(card.tab)}
                   className="card-glow bg-[var(--color-surface-elevated)] rounded-xl p-5 text-left border border-[var(--color-border)] group relative overflow-hidden"
                 >
-                  <span className="absolute top-0 left-0 h-0.5 w-0 bg-[var(--color-brand)] group-hover:w-full transition-all duration-300" />
-                  <div className="w-10 h-10 rounded-lg bg-[var(--color-ink)] flex items-center justify-center mb-4 group-hover:bg-[var(--color-brand)] transition-colors">
-                    <card.icon size={18} className="text-white" />
+                  <span className="absolute top-0 left-0 h-0.5 w-0 group-hover:w-full transition-all duration-300" style={{ background: card.color }} />
+                  <div className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-105" style={{ background: card.bg }}>
+                    <card.icon size={20} style={{ color: card.color }} />
                   </div>
                   <h4 className="text-sm font-bold text-[var(--color-text-primary)]">{card.label}</h4>
                   <p className="text-[11px] text-[var(--color-text-muted)] mt-1">{card.desc}</p>
