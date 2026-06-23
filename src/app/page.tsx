@@ -326,13 +326,13 @@ export default function Home() {
               setActiveTab("screener");
             }}
           >
-            <LogoMark size={32} className="shadow-lg shadow-[var(--color-brand)]/20 group-hover:shadow-[var(--color-brand)]/30 transition-shadow rounded-[10px]" />
-            <div>
-              <h1 className="text-sm font-bold tracking-tight leading-none text-[var(--color-text-primary)]">
+            <LogoMark size={42} className="shadow-lg shadow-[var(--color-brand)]/20 group-hover:shadow-[var(--color-brand)]/30 transition-shadow rounded-xl" />
+            <div className="leading-none">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight leading-none text-[var(--color-text-primary)]">
                 Market<span className="text-gradient-brand">Lens</span>
               </h1>
-              <p className="text-[8px] text-[var(--color-text-muted)] leading-none mt-0.5 tracking-wider uppercase">
-                Research Platform
+              <p className="text-[10px] sm:text-[11px] text-[var(--color-text-secondary)] leading-none mt-1 tracking-[0.12em] uppercase font-medium">
+                Equity Research &amp; Education
               </p>
             </div>
           </div>
