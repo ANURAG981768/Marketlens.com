@@ -56,7 +56,14 @@ export default function CompanyLogo({ symbol, size = 24, className = "" }: Compa
   const tile = (
     <div
       className={`rounded-lg flex items-center justify-center font-bold text-white shrink-0 select-none ${className}`}
-      style={{ width: size, height: size, backgroundColor: bgColor, fontSize }}
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: bgColor,
+        backgroundImage: "linear-gradient(145deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%)",
+        boxShadow: "inset 0 1px 1px rgba(255,255,255,0.28), inset 0 -2px 3px rgba(0,0,0,0.18)",
+        fontSize,
+      }}
     >
       {icon || cleanSymbol.slice(0, 2)}
     </div>
