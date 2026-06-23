@@ -1218,6 +1218,10 @@ export default function Home() {
                 {/* Income Statement */}
                 <FinancialTable income={data.income} />
 
+                {/* Data attribution — credibility */}
+                <p className="text-[11px] text-[var(--color-text-muted)] text-center pt-2 pb-1 leading-relaxed">
+                  Market data via Yahoo Finance · prices may be delayed and are for educational use only · not investment advice
+                </p>
               </div>
             ) : loading ? (
               <StockDetailSkeleton />
