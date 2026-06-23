@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Filter, Search, ChevronDown, Loader2 } from "lucide-react";
+import { Filter, Search, ChevronDown, Loader2, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import CompanyLogo from "./CompanyLogo";
 import { SCREENER_DATABASE, type ScreenResult } from "@/lib/screener-data";
@@ -44,6 +44,7 @@ export default function StockScreener({ onSelect }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>("marketCap");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatches, setSearchMatches] = useState<ScreenResult[]>([]);
 
   // Overlay live price / market cap / volume / change% from the batch quote
   // endpoint onto a set of screener rows (one Yahoo call for the whole list).
@@ -138,20 +139,39 @@ export default function StockScreener({ onSelect }: Props) {
     }
   }
 
-  const filtered = searchQuery
-    ? results.filter(
-        (r) =>
-          r.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          r.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          (r.industry && r.industry.toLowerCase().includes(searchQuery.toLowerCase()))
-      )
-    : results;
+  // When searching, scan the WHOLE universe (every sector) — not just the
+  // currently selected sector — and overlay live prices on the matches.
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) { setSearchMatches([]); return; }
+    const matches = SCREENER_DATABASE.filter(
+      (r) =>
+        r.symbol.toLowerCase().includes(q) ||
+        r.companyName.toLowerCase().includes(q) ||
+        (r.industry && r.industry.toLowerCase().includes(q))
+    ).slice(0, 40);
+    setSearchMatches(matches);
+    if (matches.length === 0) return;
+    const t = setTimeout(async () => {
+      const live = await overlayLiveQuotes(matches);
+      setSearchMatches((cur) => (cur.length === matches.length ? live : cur));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchQuery, overlayLiveQuotes]);
 
-  const sorted = [...filtered].sort((a, b) => {
+  const isSearching = searchQuery.trim().length > 0;
+  const baseList = isSearching ? searchMatches : results;
+
+  const sorted = [...baseList].sort((a, b) => {
     const av = a[sortKey] ?? 0;
     const bv = b[sortKey] ?? 0;
     return sortDir === "desc" ? bv - av : av - bv;
   });
+
+  // A ticker-like query that matches nothing in our list — offer to open it directly
+  const directTicker = isSearching && sorted.length === 0 && /^[A-Za-z.\-]{1,12}$/.test(searchQuery.trim())
+    ? searchQuery.trim().toUpperCase()
+    : null;
 
   return (
     <div className="space-y-6">
@@ -222,20 +242,17 @@ export default function StockScreener({ onSelect }: Props) {
             ) : (
               <span className="text-xs font-medium text-[var(--color-text-muted)]">
                 <span className="text-[var(--color-brand)] font-bold">{sorted.length}</span>{" "}
-                {sorted.length !== results.length && (
-                  <>of {results.length} </>
-                )}
-                stocks{sector ? ` in ${sector}` : ""}
+                {isSearching ? `result${sorted.length === 1 ? "" : "s"} for "${searchQuery.trim()}"` : `stocks${sector ? ` in ${sector}` : ""}`}
               </span>
             )}
           </div>
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full sm:w-72">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter by ticker, name, or industry..."
+              placeholder="Search any stock — searches every sector"
               className="w-full bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg pl-8 pr-3 py-2 text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-brand)]"
             />
           </div>
@@ -342,10 +359,22 @@ export default function StockScreener({ onSelect }: Props) {
               </tbody>
             </table>
           </div>
+        ) : directTicker ? (
+          <div className="p-8 text-center">
+            <p className="text-sm text-[var(--color-text-secondary)] mb-3">
+              No match in our screener list — but you can pull live data for any ticker.
+            </p>
+            <button
+              onClick={() => onSelect(directTicker)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[var(--color-brand)] text-white text-sm font-semibold hover:bg-[var(--color-brand-dim)] transition-colors"
+            >
+              Open {directTicker} <ChevronRight size={15} />
+            </button>
+          </div>
         ) : (
           <div className="p-8 text-center text-xs text-[var(--color-text-muted)]">
-            {searchQuery
-              ? `No stocks matching "${searchQuery}" in ${sector || "any sector"}.`
+            {isSearching
+              ? `No stocks matching "${searchQuery.trim()}".`
               : "No stocks match your criteria. Try adjusting the filters."}
           </div>
         )}
