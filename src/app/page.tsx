@@ -454,63 +454,84 @@ export default function Home() {
         {/* Screener Tab — Default Landing */}
         {activeTab === "screener" && (
           <div className="animate-fade-in-up">
-            {/* Hero Welcome Banner */}
-            <div className="relative overflow-hidden rounded-2xl mb-8 bg-gradient-to-br from-[#0f1419] via-[#1a2332] to-[#0f1419]">
-              <div className="absolute inset-0 opacity-20 pointer-events-none">
-                <div className="absolute -top-20 -right-20 w-72 h-72 bg-[var(--color-brand)] rounded-full blur-[120px]" />
-                <div className="absolute -bottom-20 -left-20 w-52 h-52 bg-blue-500 rounded-full blur-[100px]" />
+            {/* Hero — editorial terminal thesis */}
+            <div className="relative overflow-hidden rounded-2xl mb-8 bg-[var(--color-ink)] border-t-2 border-t-[var(--color-gold)]">
+              {/* terminal grid texture */}
+              <div className="absolute inset-0 hero-grid pointer-events-none" />
+              <div className="absolute inset-0 opacity-25 pointer-events-none">
+                <div className="absolute -top-24 -right-16 w-80 h-80 bg-[var(--color-brand)] rounded-full blur-[130px]" />
+                <div className="absolute -bottom-24 left-1/3 w-56 h-56 bg-[var(--color-gold)] rounded-full blur-[120px]" />
               </div>
-              <div className="relative px-6 sm:px-8 py-8 sm:py-10">
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-                  <div className="min-w-0">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 text-[var(--color-brand)] text-xs font-medium mb-4">
-                      <Sparkles size={12} />
-                      Free for Students Worldwide
+
+              <div className="relative px-6 sm:px-10 py-12 sm:py-16 max-w-3xl">
+                <div className="inline-flex items-center gap-2 mb-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--color-gold-light)]">
+                  <Sparkles size={13} />
+                  Free — for every student who dreams to learn
+                </div>
+
+                <h1 className="font-display text-white text-4xl sm:text-5xl lg:text-[3.4rem] leading-[1.05] font-semibold mb-5">
+                  Learn the markets
+                  <br className="hidden sm:block" />{" "}
+                  like a professional.
+                </h1>
+
+                <p className="text-[15px] sm:text-base text-gray-400 max-w-xl leading-relaxed mb-8">
+                  Institutional-grade research, live market data, hands-on paper trading, and a
+                  verifiable certificate — at zero cost, anywhere in the world.
+                </p>
+
+                <div className="flex flex-wrap items-center gap-3 mb-10">
+                  <button
+                    onClick={() => setActiveTab("lessons")}
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[var(--color-brand)] text-white text-sm font-semibold hover:bg-[var(--color-brand-light)] transition-colors shadow-lg shadow-[var(--color-brand)]/20"
+                  >
+                    Start learning free
+                    <ArrowRight size={16} />
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("paper")}
+                    className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-white/15 text-white text-sm font-medium hover:bg-white/5 transition-colors"
+                  >
+                    Try paper trading
+                  </button>
+                </div>
+
+                {/* Stat strip — quiet, monospace, terminal-style */}
+                <div className="flex flex-wrap items-center gap-x-7 gap-y-3 pt-6 border-t border-white/10">
+                  {[
+                    { value: "5,000+", label: "stocks covered" },
+                    { value: "12", label: "guided courses" },
+                    { value: "$1M", label: "paper capital" },
+                    { value: "210+", label: "quiz questions" },
+                  ].map((s) => (
+                    <div key={s.label} className="flex items-baseline gap-2">
+                      <span className="font-mono text-lg font-bold text-white tabular-nums">{s.value}</span>
+                      <span className="text-[11px] text-gray-500 uppercase tracking-wide">{s.label}</span>
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">
-                      Research. Learn. <span className="text-gradient-brand">Invest Smarter.</span>
-                    </h2>
-                    <p className="text-sm text-gray-400 max-w-md leading-relaxed">
-                      Professional-grade equity research, paper trading, and financial education — built for the next generation of investors.
-                    </p>
-                  </div>
-                  <div className="flex flex-row lg:flex-col gap-2 lg:gap-2.5 shrink-0">
-                    {[
-                      { icon: BarChart2, label: "5,000+ Stocks", sub: "Global coverage" },
-                      { icon: BookOpen, label: "12 Courses", sub: "Learn investing" },
-                      { icon: Target, label: "$1M Paper $", sub: "Risk-free trading" },
-                    ].map((stat) => (
-                      <div key={stat.label} className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10">
-                        <stat.icon size={16} className="text-[var(--color-brand)] shrink-0" />
-                        <div>
-                          <p className="text-xs font-bold text-white leading-none">{stat.label}</p>
-                          <p className="text-[10px] text-gray-500 leading-none mt-0.5">{stat.sub}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
 
-            {/* Quick Access Cards */}
+            {/* Quick Access Cards — cohesive, disciplined */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8 animate-fade-in-up animate-delay-100">
               {[
-                { tab: "paper" as Tab, icon: DollarSign, label: "Paper Trade", desc: "Practice risk-free", gradient: "from-emerald-500 to-green-600" },
-                { tab: "lessons" as Tab, icon: BookMarked, label: "Learn", desc: "12 guided courses", gradient: "from-blue-500 to-indigo-600" },
-                { tab: "heatmap" as Tab, icon: LayoutGrid, label: "Heatmap", desc: "Sector performance", gradient: "from-violet-500 to-purple-600" },
-                { tab: "quiz" as Tab, icon: GraduationCap, label: "Quiz", desc: "210+ questions", gradient: "from-amber-500 to-orange-600" },
+                { tab: "paper" as Tab, icon: DollarSign, label: "Paper Trade", desc: "Practice risk-free" },
+                { tab: "lessons" as Tab, icon: BookMarked, label: "Learn", desc: "12 guided courses" },
+                { tab: "heatmap" as Tab, icon: LayoutGrid, label: "Heatmap", desc: "Sector performance" },
+                { tab: "quiz" as Tab, icon: GraduationCap, label: "Quiz", desc: "210+ questions" },
               ].map((card) => (
                 <button
                   key={card.label}
                   onClick={() => setActiveTab(card.tab)}
-                  className="card-glow bg-white rounded-xl p-4 text-left border border-[var(--color-border)] group"
+                  className="card-glow bg-[var(--color-surface-elevated)] rounded-xl p-5 text-left border border-[var(--color-border)] group relative overflow-hidden"
                 >
-                  <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center mb-3 shadow-sm`}>
+                  <span className="absolute top-0 left-0 h-0.5 w-0 bg-[var(--color-brand)] group-hover:w-full transition-all duration-300" />
+                  <div className="w-10 h-10 rounded-lg bg-[var(--color-ink)] flex items-center justify-center mb-4 group-hover:bg-[var(--color-brand)] transition-colors">
                     <card.icon size={18} className="text-white" />
                   </div>
-                  <h4 className="text-sm font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-brand)] transition-colors">{card.label}</h4>
-                  <p className="text-[11px] text-[var(--color-text-muted)] mt-0.5">{card.desc}</p>
+                  <h4 className="text-sm font-bold text-[var(--color-text-primary)]">{card.label}</h4>
+                  <p className="text-[11px] text-[var(--color-text-muted)] mt-1">{card.desc}</p>
                 </button>
               ))}
             </div>

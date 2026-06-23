@@ -3,24 +3,31 @@
 @theme inline {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-brand: #00c805;
+  --font-display: var(--font-display);
+  --color-brand: #00b84a;
   --color-brand-light: #30e036;
-  --color-brand-dim: #00a004;
-  --color-gold: #ff7b00;
-  --color-gold-light: #ff9633;
-  --color-gold-dim: #e66e00;
-  --color-surface: #f5f6f8;
+  --color-brand-dim: #008f3a;
+  /* Gold — the "credential / achievement" accent for premium moments */
+  --color-gold: #c9a227;
+  --color-gold-light: #e0c25a;
+  --color-gold-dim: #a8851a;
+  /* Ink — the terminal foundation */
+  --color-ink: #0a0f1e;
+  --color-ink-2: #111a2e;
+  --color-ink-3: #1b263f;
+  /* Warm paper surfaces — scholarship, not cold dashboard gray */
+  --color-surface: #faf9f6;
   --color-surface-elevated: #ffffff;
-  --color-surface-hover: #eef0f2;
-  --color-surface-card: #f0f1f2;
-  --color-border: #e2e4e8;
-  --color-border-light: #d0d0d0;
-  --color-text-primary: #0f1419;
-  --color-text-secondary: #536471;
-  --color-text-muted: #8899a6;
-  --color-positive: #00c805;
-  --color-negative: #ff5000;
-  --color-warning: #ff9500;
+  --color-surface-hover: #f1efe9;
+  --color-surface-card: #f4f2ec;
+  --color-border: #e8e5dd;
+  --color-border-light: #d7d3c8;
+  --color-text-primary: #0d1320;
+  --color-text-secondary: #4a5568;
+  --color-text-muted: #8a94a6;
+  --color-positive: #00b84a;
+  --color-negative: #e5484d;
+  --color-warning: #d99412;
 }
 
 * {
@@ -39,8 +46,29 @@ input::placeholder {
 }
 
 ::selection {
-  background: rgba(0, 200, 5, 0.15);
-  color: #0f1419;
+  background: rgba(201, 162, 39, 0.22);
+  color: #0d1320;
+}
+
+/* Editorial display serif — headlines only, used with restraint */
+.font-display {
+  font-family: var(--font-display), Georgia, "Times New Roman", serif;
+  letter-spacing: -0.02em;
+}
+
+/* Terminal grid texture for dark hero surfaces */
+.hero-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 40%, transparent 100%);
+}
+
+/* Gold credential accent text */
+.text-gold {
+  color: var(--color-gold);
 }
 
 select option {
@@ -54,8 +82,9 @@ select option {
   transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
 }
 .card-glow:hover {
-  box-shadow: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 16px 44px rgba(13, 19, 32, 0.10), 0 4px 12px rgba(13, 19, 32, 0.05);
   transform: translateY(-3px);
+  border-color: var(--color-border-light);
 }
 
 /* Scrolling ticker animation */
