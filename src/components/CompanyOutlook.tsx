@@ -21,11 +21,17 @@ function n(v: number | null | undefined): number | null {
 function analyze(f: Fundamentals) {
   const factors: Factor[] = [];
 
-  // Valuation — lower multiples are more favorable
+  // Valuation — lower multiples are more favorable. Prefer P/E, but fall back
+  // to P/S for companies with no positive earnings (otherwise an unprofitable
+  // name would dodge valuation scrutiny entirely and score deceptively well).
   const pe = n(f.pe);
+  const ps = n(f.ps);
   if (pe !== null && pe > 0) {
     const s = pe < 15 ? 85 : pe < 22 ? 68 : pe < 35 ? 50 : pe < 55 ? 32 : 18;
-    factors.push({ key: "val", label: "Valuation", icon: Scale, score: s, detail: `P/E ${pe.toFixed(1)}x${f.ps ? ` · P/S ${f.ps.toFixed(1)}x` : ""}` });
+    factors.push({ key: "val", label: "Valuation", icon: Scale, score: s, detail: `P/E ${pe.toFixed(1)}x${ps !== null ? ` · P/S ${ps.toFixed(1)}x` : ""}` });
+  } else if (ps !== null && ps > 0) {
+    const s = ps < 2 ? 80 : ps < 5 ? 60 : ps < 10 ? 44 : ps < 20 ? 30 : 18;
+    factors.push({ key: "val", label: "Valuation", icon: Scale, score: s, detail: `P/S ${ps.toFixed(1)}x · not yet profitable (no P/E)` });
   }
   // Growth
   const g = n(f.revenueGrowth);
@@ -73,20 +79,39 @@ function analyze(f: Fundamentals) {
 
 function narrative(f: Fundamentals, a: ReturnType<typeof analyze>): string {
   const name = f.name || f.symbol;
-  const parts: string[] = [];
   const pe = n(f.pe);
+  const ps = n(f.ps);
   const g = n(f.revenueGrowth);
   const roe = n(f.roe);
+  const margin = n(f.profitMargin);
 
+  // Lead sentence: valuation + profitability status, built so it stays
+  // grammatical whether or not the company is profitable.
+  let lead: string;
   if (pe !== null && pe > 0) {
     const v = pe < 18 ? "trades at a modest valuation" : pe < 32 ? "carries a moderate valuation" : "commands a premium valuation";
-    parts.push(`${name} ${v} (P/E ${pe.toFixed(1)}x)`);
+    lead = `${name} ${v} (P/E ${pe.toFixed(1)}x)`;
+    if (roe !== null && roe > 15) lead += `, supported by strong returns on equity (${roe.toFixed(0)}%)`;
+    else if (roe !== null && roe > 0) lead += `, with moderate capital efficiency (ROE ${roe.toFixed(0)}%)`;
   } else {
-    parts.push(`${name}`);
+    // No positive earnings — describe it honestly and value on sales instead.
+    lead = `${name} is not yet consistently profitable`;
+    if (margin !== null && margin < 0) lead += ` (net margin ${margin.toFixed(0)}%)`;
+    if (ps !== null) lead += `, and is valued at ${ps.toFixed(1)}x sales`;
   }
-  if (roe !== null && roe > 15) parts.push(`backed by strong returns on equity (${roe.toFixed(0)}%)`);
-  else if (roe !== null && roe > 0) parts.push(`with moderate capital efficiency (ROE ${roe.toFixed(0)}%)`);
-  if (g !== null) parts.push(g > 10 ? `and double-digit revenue growth (${g.toFixed(0)}%)` : g > 0 ? `and steady revenue growth (${g.toFixed(0)}%)` : `though revenue has contracted (${g.toFixed(0)}%)`);
+  lead += ".";
+
+  // Growth as its own sentence so connectors never dangle.
+  let growthSentence = "";
+  if (g !== null) {
+    growthSentence =
+      g > 10
+        ? ` Revenue is growing at a double-digit pace (${g.toFixed(0)}% YoY).`
+        : g > 0
+        ? ` Revenue is growing modestly (${g.toFixed(0)}% YoY).`
+        : ` Revenue has contracted over the past year (${g.toFixed(0)}% YoY).`;
+  }
+  const parts: string[] = [lead + growthSentence];
 
   let timing = "";
   if (a.pos52 !== null) {
@@ -109,7 +134,7 @@ function narrative(f: Fundamentals, a: ReturnType<typeof analyze>): string {
       ? ` Overall it's a balanced picture — reasonable, but without a single compelling signal.`
       : ` Several indicators warrant caution; deeper diligence is advisable before acting.`;
 
-  return parts.join(" ") + "." + timing + target + closer;
+  return parts.join(" ") + timing + target + closer;
 }
 
 export default function CompanyOutlook() {
