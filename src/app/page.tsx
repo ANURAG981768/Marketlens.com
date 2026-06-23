@@ -266,7 +266,7 @@ export default function Home() {
     { key: "screener", label: "Screener", icon: Filter },
     { key: "heatmap", label: "Heatmap", icon: LayoutGrid },
     { key: "earnings", label: "Earnings", icon: Calendar },
-    { key: "transcripts", label: "Transcripts", icon: FileText },
+    { key: "transcripts", label: "Track Record", icon: FileText },
     { key: "economy", label: "Economy", icon: Globe },
     { key: "compare", label: "Compare", icon: Scale },
     { key: "calculator", label: "Calculator", icon: Calculator },
