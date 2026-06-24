@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { LogoMark } from "./Logo";
-import { X, ExternalLink, Mail, MessageCircle } from "lucide-react";
+import { X, Mail, MessageCircle } from "lucide-react";
 
 type LegalPage = "privacy" | "terms" | "disclaimer" | null;
 
@@ -211,12 +211,6 @@ export default function Footer({ onNavigate }: { onNavigate?: (tab: string) => v
                   <a href="https://wa.me/15403979223" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-brand)] transition-colors">
                     <MessageCircle size={12} />
                     WhatsApp Support
-                  </a>
-                </li>
-                <li>
-                  <a href="https://github.com/ANURAG981768/Marketlens.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-brand)] transition-colors">
-                    <ExternalLink size={12} />
-                    GitHub Repository
                   </a>
                 </li>
               </ul>
