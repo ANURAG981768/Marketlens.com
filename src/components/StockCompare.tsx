@@ -76,14 +76,19 @@ interface MetricRow {
   category: string;
   icon: typeof DollarSign;
   hint?: string;
+  // Absolute price-level values (share price, market cap, single-day move,
+  // 52w high, analyst target) are informational only — a lower share price
+  // or bigger market cap doesn't make a stock a "better" investment, so they
+  // are never crowned or counted toward the overall winner.
+  comparable?: boolean;
 }
 
 const METRICS: MetricRow[] = [
-  { label: "Price", key: "price", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: false, category: "Price", icon: DollarSign },
-  { label: "Market Cap", key: "marketCap", format: (v) => (v >= 1e12 ? `$${(v / 1e12).toFixed(2)}T` : v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : `$${(v / 1e6).toFixed(0)}M`), higherIsBetter: true, category: "Price", icon: BarChart3, hint: "Total company value" },
-  { label: "Day Change", key: "changePercent", format: (v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`, higherIsBetter: true, category: "Price", icon: TrendingUp },
-  { label: "52W High", key: "fiftyTwoWeekHigh", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: true, category: "Price", icon: TrendingUp },
-  { label: "Analyst Target", key: "targetPrice", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: true, category: "Price", icon: TrendingUp, hint: "Mean analyst price target" },
+  { label: "Price", key: "price", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: false, category: "Price", icon: DollarSign, comparable: false },
+  { label: "Market Cap", key: "marketCap", format: (v) => (v >= 1e12 ? `$${(v / 1e12).toFixed(2)}T` : v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : `$${(v / 1e6).toFixed(0)}M`), higherIsBetter: true, category: "Price", icon: BarChart3, hint: "Total company value", comparable: false },
+  { label: "Day Change", key: "changePercent", format: (v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`, higherIsBetter: true, category: "Price", icon: TrendingUp, comparable: false },
+  { label: "52W High", key: "fiftyTwoWeekHigh", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: true, category: "Price", icon: TrendingUp, comparable: false },
+  { label: "Analyst Target", key: "targetPrice", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: true, category: "Price", icon: TrendingUp, hint: "Mean analyst price target", comparable: false },
 
   { label: "P/E Ratio", key: "pe", format: (v) => `${v.toFixed(1)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Price / Earnings — lower is cheaper" },
   { label: "Forward P/E", key: "forwardPe", format: (v) => `${v.toFixed(1)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Based on next-year earnings" },
@@ -108,6 +113,7 @@ const METRICS: MetricRow[] = [
 ];
 
 const CATEGORIES = ["Price", "Valuation", "Profitability", "Growth", "Health", "Income", "Risk"];
+const COMPARABLE_METRIC_COUNT = METRICS.filter((m) => m.comparable !== false).length;
 
 export default function StockCompare() {
   const [stocks, setStocks] = useState<CompareStock[]>([]);
@@ -191,6 +197,7 @@ export default function StockCompare() {
     for (const s of loaded) w[s.symbol] = 0;
 
     for (const metric of METRICS) {
+      if (metric.comparable === false) continue; // skip informational price-level rows
       const vals = loaded
         .map((s) => ({ symbol: s.symbol, value: s.data![metric.key] as number | null }))
         .filter((v) => v.value !== null && v.value !== undefined && !isNaN(v.value as number));
@@ -402,7 +409,7 @@ export default function StockCompare() {
               {overallWinner} leads overall
             </p>
             <p className="text-xs text-amber-700">
-              Best on {winners[overallWinner]} of {METRICS.length} metrics · based on live fundamentals
+              Best on {winners[overallWinner]} of {COMPARABLE_METRIC_COUNT} comparable metrics · based on live fundamentals
             </p>
           </div>
         </div>
@@ -460,7 +467,7 @@ export default function StockCompare() {
               }));
               const valid = vals.filter((v) => v.value !== null && v.value !== undefined && !isNaN(v.value as number));
               let best: string | null = null;
-              if (valid.length > 1) {
+              if (valid.length > 1 && metric.comparable !== false) {
                 const sorted = [...valid].sort((a, b) =>
                   metric.higherIsBetter ? (b.value as number) - (a.value as number) : (a.value as number) - (b.value as number)
                 );
