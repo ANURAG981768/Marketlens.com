@@ -166,12 +166,15 @@ export default function PaperTrading({ onSelect }: Props) {
 
   useEffect(() => {
     if (!tradeSymbol) return;
+    // Poll the selected stock's live price frequently so the quote visibly
+    // updates while you're deciding (only meaningful while the market is open;
+    // when it's closed the price is genuinely frozen at the last close).
     const interval = setInterval(() => {
       fetch(`/api/quote?symbol=${encodeURIComponent(tradeSymbol)}`)
         .then((r) => r.json())
         .then((json) => { if (json.price) setTradePrice(json.price.toFixed(2)); })
         .catch(() => {});
-    }, 15000);
+    }, 6000);
     return () => clearInterval(interval);
   }, [tradeSymbol]);
 
@@ -388,12 +391,30 @@ export default function PaperTrading({ onSelect }: Props) {
     setShowConfirm(true);
   }
 
-  function executeTrade() {
+  async function executeTrade() {
     setError("");
     setSuccess("");
     setShowConfirm(false);
     const shares = getResolvedShares();
-    const price = getResolvedPrice();
+    let price = getResolvedPrice();
+
+    // Market orders fill at the freshest live price at the instant of submit —
+    // exactly like a real brokerage. This is what makes the buy and the later
+    // sell capture real price movement instead of a stale cached quote.
+    if (orderType === "market") {
+      try {
+        const res = await fetch(`/api/quote?symbol=${encodeURIComponent(tradeSymbol)}`);
+        const json = await res.json();
+        if (typeof json.price === "number" && isFinite(json.price) && json.price > 0) {
+          price = json.price;
+          setTradePrice(json.price.toFixed(2));
+        }
+      } catch {}
+      if (tradeType === "buy" && portfolio && shares * price > portfolio.cash) {
+        setError("The price moved before your order filled — not enough buying power at the new live price. Adjust and try again.");
+        return;
+      }
+    }
 
     try {
       let updated: PaperPortfolio;
