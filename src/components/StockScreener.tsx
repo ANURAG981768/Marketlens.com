@@ -28,7 +28,7 @@ const MARKET_CAP_PRESETS = [
   { label: "Micro Cap (<300M)", min: 0, max: 300000000 },
 ];
 
-type SortKey = "marketCap" | "price" | "beta" | "volume" | "lastAnnualDividend";
+type SortKey = "marketCap" | "price" | "beta" | "volume" | "lastAnnualDividend" | "changePercent" | "pe";
 type SortDir = "asc" | "desc";
 
 interface Props {
@@ -68,6 +68,7 @@ export default function StockScreener({ onSelect }: Props) {
           marketCap: q.marketCap || r.marketCap,
           volume: q.volume || r.volume,
           changePercent: q.changePercent,
+          pe: q.pe ?? null,
         };
       });
       // Re-filter against the LIVE market cap so results always match the
@@ -185,6 +186,16 @@ export default function StockScreener({ onSelect }: Props) {
   const baseList = isSearching ? searchMatches : results;
 
   const sorted = [...baseList].sort((a, b) => {
+    // P/E only makes sense when positive — a 0/none P/E means no earnings, not
+    // "cheap", so push those to the bottom regardless of sort direction.
+    if (sortKey === "pe") {
+      const ap = typeof a.pe === "number" && a.pe > 0 ? a.pe : null;
+      const bp = typeof b.pe === "number" && b.pe > 0 ? b.pe : null;
+      if (ap === null && bp === null) return 0;
+      if (ap === null) return 1;
+      if (bp === null) return -1;
+      return sortDir === "desc" ? bp - ap : ap - bp;
+    }
     const av = a[sortKey] ?? 0;
     const bv = b[sortKey] ?? 0;
     return sortDir === "desc" ? bv - av : av - bv;
@@ -297,9 +308,8 @@ export default function StockScreener({ onSelect }: Props) {
                     Industry
                   </th>
                   <SortHeader label="Price" sortKey="price" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
-                  <th className="text-right py-3 px-4 text-[10px] font-semibold text-[var(--color-text-muted)] uppercase tracking-wider">
-                    Chg %
-                  </th>
+                  <SortHeader label="Chg %" sortKey="changePercent" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
+                  <SortHeader label="P/E" sortKey="pe" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
                   <SortHeader label="Market Cap" sortKey="marketCap" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
                   <SortHeader label="Beta" sortKey="beta" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
                   <SortHeader label="Dividend" sortKey="lastAnnualDividend" currentKey={sortKey} dir={sortDir} onClick={handleSort} />
@@ -331,7 +341,7 @@ export default function StockScreener({ onSelect }: Props) {
                     <td className="py-2.5 px-4 text-xs tabular-nums font-medium text-[var(--color-text-primary)]">
                       ${(r.price ?? 0).toFixed(2)}
                     </td>
-                    <td className="py-2.5 px-4 text-xs tabular-nums text-right font-medium">
+                    <td className="py-2.5 px-4 text-xs tabular-nums font-medium">
                       {typeof r.changePercent === "number" ? (
                         <span className={r.changePercent >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}>
                           {r.changePercent >= 0 ? "+" : ""}{r.changePercent.toFixed(2)}%
@@ -339,6 +349,9 @@ export default function StockScreener({ onSelect }: Props) {
                       ) : (
                         <span className="text-[var(--color-text-muted)]">—</span>
                       )}
+                    </td>
+                    <td className="py-2.5 px-4 text-xs tabular-nums text-[var(--color-text-secondary)]">
+                      {typeof r.pe === "number" && r.pe > 0 ? `${r.pe.toFixed(1)}x` : <span className="text-[var(--color-text-muted)]">—</span>}
                     </td>
                     <td className="py-2.5 px-4 text-xs tabular-nums text-[var(--color-text-secondary)]">
                       {formatCurrency(r.marketCap)}

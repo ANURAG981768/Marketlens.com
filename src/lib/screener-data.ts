@@ -10,6 +10,7 @@ export interface ScreenResult {
   volume: number;
   exchange: string;
   changePercent?: number;
+  pe?: number | null;
 }
 
 export const SCREENER_DATABASE: ScreenResult[] = [
