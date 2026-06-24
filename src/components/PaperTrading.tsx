@@ -22,6 +22,7 @@ import {
   Layers,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import { getUSMarketStatus, type MarketStatus } from "@/lib/market-hours";
 import {
   getPaperPortfolio,
   paperBuy,
@@ -90,6 +91,15 @@ export default function PaperTrading({ onSelect }: Props) {
   const [sectorLoading, setSectorLoading] = useState(false);
   const [sectorSearch, setSectorSearch] = useState("");
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+  const [market, setMarket] = useState<MarketStatus>(() => getUSMarketStatus());
+
+  // Keep the live market clock fresh (re-checks open/closed each minute).
+  useEffect(() => {
+    const tick = () => setMarket(getUSMarketStatus());
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const p = getPaperPortfolio();
@@ -347,6 +357,13 @@ export default function PaperTrading({ onSelect }: Props) {
   function handlePreConfirm() {
     setError("");
     setSuccess("");
+    // Real exchanges only fill orders during the regular session — mirror that.
+    const status = getUSMarketStatus();
+    if (!status.isOpen) {
+      setMarket(status);
+      setError(`Market closed — orders fill during U.S. trading hours (9:30 AM–4:00 PM ET, Mon–Fri). ${status.detail}`);
+      return;
+    }
     if (!tradeSymbol) { setError("Select a stock"); return; }
     const shares = getResolvedShares();
     const price = getResolvedPrice();
@@ -1008,6 +1025,15 @@ export default function PaperTrading({ onSelect }: Props) {
                 </div>
               )}
 
+              {/* Market status — orders fill only during the regular session */}
+              <div className={`flex items-start gap-2 px-3.5 py-2.5 rounded-lg text-xs ${market.isOpen ? "bg-[var(--color-positive)]/8 text-[var(--color-positive)]" : "bg-[var(--color-surface-card)] text-[var(--color-text-secondary)]"}`}>
+                <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${market.isOpen ? "bg-[var(--color-positive)] animate-pulse" : "bg-[var(--color-text-muted)]"}`} />
+                <span>
+                  <span className="font-semibold">{market.isOpen ? "Market open" : "Market closed"}</span>
+                  <span className="text-[var(--color-text-muted)]"> · {market.detail}</span>
+                </span>
+              </div>
+
               {/* Error in trade */}
               {error && (
                 <div className="flex items-center gap-2 px-4 py-3 rounded-lg bg-[var(--color-negative)]/10 text-sm text-[var(--color-negative)]">
@@ -1018,13 +1044,16 @@ export default function PaperTrading({ onSelect }: Props) {
               {/* Submit */}
               <button
                 onClick={handlePreConfirm}
-                className={`w-full py-4 rounded-full text-sm font-bold transition-colors ${
-                  tradeType === "buy"
+                disabled={!market.isOpen}
+                className={`w-full py-4 rounded-full text-sm font-bold transition-colors disabled:cursor-not-allowed ${
+                  !market.isOpen
+                    ? "bg-[var(--color-surface-card)] text-[var(--color-text-muted)]"
+                    : tradeType === "buy"
                     ? "bg-[var(--color-positive)] text-black hover:bg-[var(--color-brand-light)]"
                     : "bg-[var(--color-negative)] text-white hover:brightness-110"
                 }`}
               >
-                Review {tradeType === "buy" ? "Buy" : "Sell"} Order
+                {!market.isOpen ? "Market Closed" : `Review ${tradeType === "buy" ? "Buy" : "Sell"} Order`}
               </button>
             </>
           )}
