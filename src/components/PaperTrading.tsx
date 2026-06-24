@@ -18,12 +18,14 @@ import {
   X,
   ChevronRight,
   Clock,
+  Share2,
   Award,
   Layers,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { getUSMarketStatus, type MarketStatus } from "@/lib/market-hours";
 import { useAuth } from "@/lib/auth-context";
+import { shareText } from "@/lib/share";
 import {
   getPaperPortfolio,
   paperBuy,
@@ -99,6 +101,7 @@ export default function PaperTrading({ onSelect }: Props) {
   const [market, setMarket] = useState<MarketStatus>(() => getUSMarketStatus());
   const [pendingNotice, setPendingNotice] = useState("");
   const [benchmarkPct, setBenchmarkPct] = useState<number | null>(null);
+  const [shareNote, setShareNote] = useState("");
 
   // S&P 500 return since this portfolio started — the "are you beating the
   // market?" yardstick that real brokerages show.
@@ -1223,9 +1226,24 @@ export default function PaperTrading({ onSelect }: Props) {
                       </p>
                     </div>
                   </div>
-                  <p className="px-4 py-2.5 text-[11px] text-[var(--color-text-muted)] bg-[var(--color-surface-card)] border-t border-[var(--color-border)]">
-                    Most professional fund managers fail to beat the S&amp;P 500 over time — matching it is already a win.
-                  </p>
+                  <div className="px-4 py-2.5 bg-[var(--color-surface-card)] border-t border-[var(--color-border)] flex items-center justify-between gap-3">
+                    <p className="text-[11px] text-[var(--color-text-muted)]">
+                      {shareNote || "Most pro fund managers fail to beat the S&P 500 — matching it is already a win."}
+                    </p>
+                    <button
+                      onClick={async () => {
+                        const res = await shareText(
+                          `My MarketLens paper portfolio returned ${totalReturnPct >= 0 ? "+" : ""}${totalReturnPct.toFixed(2)}% — ${winning ? "beating" : "trailing"} the S&P 500 by ${Math.abs(alpha).toFixed(2)}%. Practice investing free —`
+                        );
+                        if (res === "copied") setShareNote("Copied — paste it anywhere!");
+                        else if (res === "shared") setShareNote("Shared!");
+                        if (res !== "failed") setTimeout(() => setShareNote(""), 2500);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[var(--color-border)] text-[11px] font-semibold text-[var(--color-text-secondary)] hover:border-[var(--color-brand)]/40 hover:text-[var(--color-text-primary)] transition-colors shrink-0"
+                    >
+                      <Share2 size={12} /> Share result
+                    </button>
+                  </div>
                 </div>
               );
             })()}

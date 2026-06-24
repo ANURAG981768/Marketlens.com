@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Trophy, TrendingUp, TrendingDown, Loader2, Medal, Lock } from "lucide-react";
+import { Trophy, TrendingUp, TrendingDown, Loader2, Medal, Lock, Share2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { getPaperPortfolio } from "@/lib/storage";
 import { publishRank, fetchLeaderboard, type LeaderEntry } from "@/lib/leaderboard";
+import { shareText } from "@/lib/share";
 
 // Compute the signed-in user's current return from their paper portfolio,
 // using live prices for held symbols.
@@ -39,6 +40,20 @@ export default function Leaderboard() {
   const [entries, setEntries] = useState<LeaderEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [shareMsg, setShareMsg] = useState("");
+
+  const myIndex = user ? entries.findIndex((e) => e.user_id === user.id) : -1;
+
+  async function shareRank() {
+    if (myIndex < 0) return;
+    const me = entries[myIndex];
+    const res = await shareText(
+      `I'm ranked #${myIndex + 1} on MarketLens's global trading leaderboard with a ${me.return_pct >= 0 ? "+" : ""}${me.return_pct.toFixed(2)}% return. Think you can beat me? Practice investing free —`
+    );
+    if (res === "copied") setShareMsg("Link copied — paste it anywhere!");
+    else if (res === "shared") setShareMsg("Shared!");
+    if (res !== "failed") setTimeout(() => setShareMsg(""), 2500);
+  }
 
   const load = useCallback(async () => {
     if (!cloudEnabled) return;
@@ -91,6 +106,22 @@ export default function Leaderboard() {
           <p className="text-xs text-[var(--color-text-muted)] max-w-sm">
             Create a free account (Sign in, top-right), start paper trading, and your return appears on the global board.
           </p>
+        </div>
+      )}
+
+      {/* Share my rank — virality: each share brings new learners in */}
+      {cloudEnabled && user && myIndex >= 0 && (
+        <div className="flex items-center justify-between gap-3 mb-3 rounded-xl border border-[var(--color-brand)]/25 bg-[var(--color-brand)]/8 px-4 py-2.5">
+          <span className="text-xs text-[var(--color-text-secondary)]">
+            You&apos;re <span className="font-bold text-[var(--color-text-primary)]">#{myIndex + 1}</span> in the world
+            {shareMsg && <span className="ml-2 text-[var(--color-positive)] font-medium">{shareMsg}</span>}
+          </span>
+          <button
+            onClick={shareRank}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[var(--color-brand)] text-white text-xs font-semibold hover:bg-[var(--color-brand-dim)] transition-colors shrink-0"
+          >
+            <Share2 size={13} /> Share my rank
+          </button>
         </div>
       )}
 
