@@ -1,6 +1,7 @@
 "use client";
 
 import type { StockData } from "@/lib/types";
+import { sectorPeNorm } from "@/lib/sector-norms";
 import {
   Brain,
   TrendingUp,
@@ -25,23 +26,6 @@ interface Signal {
   weight: number;
 }
 
-// Typical long-run P/E by sector — lets the valuation signal judge a stock
-// against its OWN sector (a 30x P/E is cheap for tech, rich for utilities)
-// rather than one absolute threshold for everything.
-const SECTOR_PE_NORM: Record<string, number> = {
-  Technology: 28,
-  Healthcare: 21,
-  "Financial Services": 13,
-  "Consumer Cyclical": 22,
-  "Communication Services": 19,
-  Industrials: 20,
-  "Consumer Defensive": 22,
-  Energy: 12,
-  "Real Estate": 30,
-  Utilities: 18,
-  "Basic Materials": 15,
-};
-
 function analyzeStock(data: Props["data"]): {
   overallScore: number;
   verdict: string;
@@ -61,7 +45,7 @@ function analyzeStock(data: Props["data"]): {
   // P/E Analysis — judged against the company's own sector, not an absolute line.
   const pe = metrics.peRatioTTM || quote.pe;
   if (pe && pe > 0) {
-    const sectorNorm = SECTOR_PE_NORM[profile.sector] ?? 20;
+    const sectorNorm = sectorPeNorm(profile.sector);
     const rel = pe / sectorNorm; // <1 = cheaper than the sector norm
     const peSentiment = rel < 0.8 ? "bullish" : rel < 1.25 ? "neutral" : "bearish";
     const peScore = rel < 0.7 ? 85 : rel < 0.95 ? 70 : rel < 1.25 ? 52 : rel < 1.8 ? 35 : 22;

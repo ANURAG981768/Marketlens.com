@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "auth_failed" }, { status: 200 });
   }
 
-  const modules = "price,summaryDetail,defaultKeyStatistics,financialData";
+  const modules = "price,summaryDetail,defaultKeyStatistics,financialData,assetProfile";
   const buildUrl = (crumb: string) =>
     `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${modules}&crumb=${encodeURIComponent(crumb)}`;
 
@@ -50,12 +50,14 @@ export async function GET(req: NextRequest) {
     const sd = r.summaryDetail || {};
     const ks = r.defaultKeyStatistics || {};
     const fd = r.financialData || {};
+    const ap = r.assetProfile || {};
 
     const de = raw(fd.debtToEquity);
 
     return NextResponse.json({
       symbol,
       name: price.longName || price.shortName || symbol,
+      sector: ap.sector || null,
       price: raw(price.regularMarketPrice),
       changePercent: raw(price.regularMarketChangePercent) != null ? (raw(price.regularMarketChangePercent) as number) * 100 : null,
       marketCap: raw(price.marketCap),

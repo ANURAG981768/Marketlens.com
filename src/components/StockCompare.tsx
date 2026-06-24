@@ -25,6 +25,7 @@ const COLORS = ["#10b981", "#6366f1", "#f59e0b", "#ef4444"];
 export interface Fundamentals {
   symbol: string;
   name: string;
+  sector?: string | null;
   price: number | null;
   changePercent: number | null;
   marketCap: number | null;

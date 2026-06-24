@@ -5,6 +5,7 @@ import { Search, TrendingUp, TrendingDown, Minus, ShieldCheck, AlertTriangle, Sc
 import { searchStocks, type SearchItem } from "@/lib/search-data";
 import CompanyLogo from "./CompanyLogo";
 import type { Fundamentals } from "./StockCompare";
+import { sectorPeNorm } from "@/lib/sector-norms";
 
 interface Factor {
   key: string;
@@ -21,14 +22,16 @@ function n(v: number | null | undefined): number | null {
 function analyze(f: Fundamentals) {
   const factors: Factor[] = [];
 
-  // Valuation — lower multiples are more favorable. Prefer P/E, but fall back
-  // to P/S for companies with no positive earnings (otherwise an unprofitable
-  // name would dodge valuation scrutiny entirely and score deceptively well).
+  // Valuation — judged against the company's OWN sector. Prefer P/E, but fall
+  // back to P/S for companies with no positive earnings (otherwise an
+  // unprofitable name would dodge valuation scrutiny and score deceptively well).
   const pe = n(f.pe);
   const ps = n(f.ps);
   if (pe !== null && pe > 0) {
-    const s = pe < 15 ? 85 : pe < 22 ? 68 : pe < 35 ? 50 : pe < 55 ? 32 : 18;
-    factors.push({ key: "val", label: "Valuation", icon: Scale, score: s, detail: `P/E ${pe.toFixed(1)}x${ps !== null ? ` · P/S ${ps.toFixed(1)}x` : ""}` });
+    const norm = sectorPeNorm(f.sector);
+    const rel = pe / norm; // <1 = cheaper than the sector norm
+    const s = rel < 0.7 ? 85 : rel < 0.95 ? 68 : rel < 1.25 ? 50 : rel < 1.8 ? 32 : 18;
+    factors.push({ key: "val", label: "Valuation", icon: Scale, score: s, detail: `P/E ${pe.toFixed(1)}x vs ~${norm}x for ${f.sector || "the market"}` });
   } else if (ps !== null && ps > 0) {
     const s = ps < 2 ? 80 : ps < 5 ? 60 : ps < 10 ? 44 : ps < 20 ? 30 : 18;
     factors.push({ key: "val", label: "Valuation", icon: Scale, score: s, detail: `P/S ${ps.toFixed(1)}x · not yet profitable (no P/E)` });
