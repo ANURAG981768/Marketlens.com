@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -118,6 +118,10 @@ export default function PaperTrading({ onSelect }: Props) {
   const [success, setSuccess] = useState("");
   const [showReset, setShowReset] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  // Synchronous guard against a fast double-tap firing two fills (state updates
+  // are async, so a ref is the reliable lock).
+  const submittingRef = useRef(false);
   const [priceLoading, setPriceLoading] = useState(false);
   const [buyMode, setBuyMode] = useState<BuyMode>("shares");
   const [dollarAmount, setDollarAmount] = useState("");
@@ -513,6 +517,10 @@ export default function PaperTrading({ onSelect }: Props) {
   }
 
   async function executeTrade() {
+    if (submittingRef.current) return; // a fill is already in flight
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
     setError("");
     setSuccess("");
     setShowConfirm(false);
@@ -574,6 +582,10 @@ export default function PaperTrading({ onSelect }: Props) {
       setTimeout(() => setActiveTab("portfolio"), 1500);
     } catch (e: any) {
       setError(e.message || "Trade failed");
+    }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   }
 
@@ -1618,13 +1630,14 @@ export default function PaperTrading({ onSelect }: Props) {
               </button>
               <button
                 onClick={executeTrade}
-                className={`flex-1 py-3 rounded-full text-sm font-bold transition-colors ${
+                disabled={submitting}
+                className={`flex-1 py-3 rounded-full text-sm font-bold transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                   tradeType === "buy"
                     ? "bg-[var(--color-positive)] text-black hover:bg-[var(--color-brand-light)]"
                     : "bg-[var(--color-negative)] text-white hover:brightness-110"
                 }`}
               >
-                {tradeType === "buy" ? "Buy" : "Sell"}
+                {submitting ? "Processing…" : tradeType === "buy" ? "Buy" : "Sell"}
               </button>
             </div>
           </div>
