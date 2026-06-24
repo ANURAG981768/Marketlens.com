@@ -22,7 +22,7 @@ export default function MetricCard({ label, value, sub, icon, positive }: Props)
         )}
       </div>
       <p
-        className={`text-xl font-bold tabular-nums ${
+        className={`text-xl font-bold tabular-nums tracking-tight leading-none ${
           positive === true
             ? "text-[var(--color-positive)]"
             : positive === false
