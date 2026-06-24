@@ -135,11 +135,16 @@ export default function ScoreCard({ data }: Props) {
 
   return (
     <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-6">
-      <div className="flex items-center gap-2 mb-5">
-        <Zap size={16} className="text-[var(--color-brand)]" />
-        <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
-          Quick Score
-        </h3>
+      <div className="mb-5">
+        <div className="flex items-center gap-2">
+          <Zap size={16} className="text-[var(--color-brand)]" />
+          <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">
+            Fundamentals Grade
+          </h3>
+        </div>
+        <p className="mt-1 text-[11px] text-[var(--color-text-muted)] pl-6">
+          Balance-sheet view — valuation, profitability &amp; financial health only
+        </p>
       </div>
 
       {/* Overall score */}

@@ -193,7 +193,7 @@ function analyzeStock(data: Props["data"]): {
 
   let summary: string;
   if (overallScore >= 70) {
-    summary = `${companyName} demonstrates strong fundamentals with ${bullCount} bullish signals. The company shows solid financial health in ${sector}, with metrics indicating above-average performance relative to peers. Current valuation and growth trajectory suggest potential upside for long-term investors.`;
+    summary = `${companyName} demonstrates strong fundamentals with ${bullCount} of ${signals.length} indicators bullish. Operating in ${sector}, its valuation, profitability, and balance-sheet metrics screen well against common benchmarks. On balance the fundamentals look constructive, though no single metric guarantees future returns.`;
   } else if (overallScore >= 55) {
     summary = `${companyName} presents a mixed picture with both strengths and areas of concern. The company operates in ${sector} with ${bullCount} positive and ${bearCount} cautionary indicators. Investors should monitor upcoming earnings and industry trends before making significant position changes.`;
   } else {
