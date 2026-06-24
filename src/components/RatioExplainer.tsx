@@ -10,6 +10,7 @@ const CAT_ICON: Record<string, { Icon: LucideIcon; color: string; bg: string }> 
   Liquidity: { Icon: Droplets, color: "#0e7490", bg: "rgba(14,116,144,0.10)" },
   Leverage: { Icon: Scale, color: "#a8851a", bg: "rgba(184,147,47,0.12)" },
   Efficiency: { Icon: Gauge, color: "#6d28d9", bg: "rgba(109,40,217,0.10)" },
+  Income: { Icon: Percent, color: "#db2777", bg: "rgba(219,39,119,0.10)" },
   Growth: { Icon: Sprout, color: "#15803d", bg: "rgba(21,128,61,0.10)" },
 };
 
@@ -27,7 +28,7 @@ interface RatioDefinition {
   icon: string;
 }
 
-const RATIO_CATEGORIES = ["All", "Valuation", "Profitability", "Liquidity", "Leverage", "Efficiency", "Growth"];
+const RATIO_CATEGORIES = ["All", "Valuation", "Profitability", "Liquidity", "Leverage", "Efficiency", "Income", "Growth"];
 
 const RATIOS: RatioDefinition[] = [
   {
@@ -187,9 +188,35 @@ const RATIOS: RatioDefinition[] = [
     icon: "🛡️",
   },
   {
+    name: "Asset Turnover",
+    abbreviation: "Asset Turnover",
+    category: "Efficiency",
+    formula: "Revenue ÷ Total Assets",
+    value: "Apple: ~1.1x",
+    interpretation: "Apple generates about $1.10 of revenue for every $1 of assets it owns. Higher is better — it means the company squeezes more sales out of its asset base. A low turnover means lots of assets are tied up producing relatively little revenue.",
+    whyItMatters: "Asset turnover reveals how efficiently management deploys the company's resources. It's the bridge between the balance sheet and the income statement — and a key driver of ROA (ROA = Net Margin × Asset Turnover, the DuPont identity).",
+    goodRange: "Retail/distribution: 2-4x (lean assets, high volume). Tech/consumer: ~1x. Utilities/telecom: 0.3-0.5x (asset-heavy).",
+    example: "Walmart turns its assets over ~2.5x because its model is high-volume, low-margin retail. A utility might be 0.3x because it owns enormous power plants and grids relative to its revenue.",
+    relatedRatios: ["Return on Assets", "Inventory Turnover", "Net Margin"],
+    icon: "🔄",
+  },
+  {
+    name: "Inventory Turnover",
+    abbreviation: "Inv Turnover",
+    category: "Efficiency",
+    formula: "Cost of Goods Sold ÷ Average Inventory",
+    value: "Apple: ~28x",
+    interpretation: "Apple sells and replaces its entire inventory roughly 28 times a year — a sign of an exceptionally lean supply chain. Dividing 365 by the ratio gives 'days inventory': 365 ÷ 28 ≈ 13 days of stock on hand.",
+    whyItMatters: "High inventory turnover means products aren't sitting on shelves tying up cash or risking obsolescence. A sharply falling turnover can be an early warning that demand is weakening and write-downs may be coming.",
+    goodRange: "Grocery/perishables: 10-15x. Electronics/apparel: 4-8x. Heavy machinery: 2-4x. Context vs. industry peers matters most.",
+    example: "Tim Cook built Apple's reputation partly on supply-chain mastery — minimal inventory and fast turnover. By contrast, a struggling retailer with piling unsold stock might see turnover drop below 3x, foreshadowing markdowns.",
+    relatedRatios: ["Asset Turnover", "Current Ratio", "Gross Margin"],
+    icon: "📦",
+  },
+  {
     name: "Dividend Yield",
     abbreviation: "Div Yield",
-    category: "Efficiency",
+    category: "Income",
     formula: "Annual Dividends Per Share ÷ Stock Price × 100",
     value: "Apple: 0.47%",
     interpretation: "For every $100 invested in Apple, you'd receive $0.47 in annual dividends. Apple's yield is low because it prioritizes buybacks over dividends, and its stock price has risen so much.",
@@ -202,7 +229,7 @@ const RATIOS: RatioDefinition[] = [
   {
     name: "Free Cash Flow Yield",
     abbreviation: "FCF Yield",
-    category: "Efficiency",
+    category: "Income",
     formula: "Free Cash Flow Per Share ÷ Stock Price × 100",
     value: "Apple: 3.24%",
     interpretation: "Apple generates free cash equal to 3.24% of its market value each year. This cash can be returned to shareholders via dividends and buybacks, or reinvested in the business.",
