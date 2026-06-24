@@ -98,6 +98,23 @@ export default function PaperTrading({ onSelect }: Props) {
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
   const [market, setMarket] = useState<MarketStatus>(() => getUSMarketStatus());
   const [pendingNotice, setPendingNotice] = useState("");
+  const [benchmarkPct, setBenchmarkPct] = useState<number | null>(null);
+
+  // S&P 500 return since this portfolio started — the "are you beating the
+  // market?" yardstick that real brokerages show.
+  useEffect(() => {
+    if (!portfolio?.startDate) return;
+    let active = true;
+    fetch(`/api/benchmark?since=${encodeURIComponent(portfolio.startDate)}`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (active && typeof j.returnPct === "number") setBenchmarkPct(j.returnPct);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [portfolio?.startDate]);
 
   // Keep the live market clock fresh (re-checks open/closed each minute).
   useEffect(() => {
@@ -1179,6 +1196,39 @@ export default function PaperTrading({ onSelect }: Props) {
                 </p>
               </div>
             </div>
+
+            {/* You vs the Market — the core "are you beating the index?" yardstick */}
+            {benchmarkPct !== null && (() => {
+              const alpha = totalReturnPct - benchmarkPct;
+              const winning = alpha >= 0;
+              return (
+                <div className="mt-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden">
+                  <div className="px-4 py-3 border-b border-[var(--color-border)] flex items-center justify-between">
+                    <span className="text-sm font-semibold">You vs. the Market</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${winning ? "bg-[var(--color-positive)]/10 text-[var(--color-positive)]" : "bg-[var(--color-negative)]/10 text-[var(--color-negative)]"}`}>
+                      {winning ? "Beating the market" : "Trailing the market"} by {Math.abs(alpha).toFixed(2)}%
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 divide-x divide-[var(--color-border)]">
+                    <div className="px-4 py-3">
+                      <p className="text-[11px] text-[var(--color-text-muted)] mb-0.5">Your portfolio</p>
+                      <p className={`text-lg font-bold tabular-nums ${totalReturnPct >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}>
+                        {totalReturnPct >= 0 ? "+" : ""}{totalReturnPct.toFixed(2)}%
+                      </p>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="text-[11px] text-[var(--color-text-muted)] mb-0.5">S&amp;P 500 (same period)</p>
+                      <p className={`text-lg font-bold tabular-nums ${benchmarkPct >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}>
+                        {benchmarkPct >= 0 ? "+" : ""}{benchmarkPct.toFixed(2)}%
+                      </p>
+                    </div>
+                  </div>
+                  <p className="px-4 py-2.5 text-[11px] text-[var(--color-text-muted)] bg-[var(--color-surface-card)] border-t border-[var(--color-border)]">
+                    Most professional fund managers fail to beat the S&amp;P 500 over time — matching it is already a win.
+                  </p>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
