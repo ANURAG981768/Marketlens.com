@@ -65,6 +65,16 @@ function fmtQty(q: number): string {
   if (!Number.isFinite(q)) return "0";
   return Number.isInteger(q) ? q.toLocaleString() : q.toLocaleString("en-US", { maximumFractionDigits: 6 });
 }
+
+// Adaptive price precision — a sub-cent token must NOT round to "0.00" (which
+// would set the fill price to zero). Scales decimals to the price's magnitude.
+function priceStr(p: number): string {
+  if (!Number.isFinite(p) || p <= 0) return "";
+  if (p >= 1) return p.toFixed(2);
+  if (p >= 0.01) return p.toFixed(4);
+  if (p >= 0.0001) return p.toFixed(6);
+  return p.toFixed(8);
+}
 type BuyMode = "shares" | "dollars" | "recurring";
 
 const SECTORS = [
@@ -229,7 +239,7 @@ export default function PaperTrading({ onSelect }: Props) {
       const res = await fetch(`/api/quote?symbol=${encodeURIComponent(symbol)}`);
       const json = await res.json();
       if (json.price) {
-        setTradePrice(json.price.toFixed(2));
+        setTradePrice(priceStr(json.price));
       }
     } catch {} finally {
       setPriceLoading(false);
@@ -269,7 +279,7 @@ export default function PaperTrading({ onSelect }: Props) {
         .then((r) => r.json())
         .then((json) => {
           if (cancelled || !json.price) return;
-          setTradePrice(json.price.toFixed(2));
+          setTradePrice(priceStr(json.price));
           setQuoteStats({
             symbol: tradeSymbol,
             change: json.change ?? 0,
@@ -383,7 +393,7 @@ export default function PaperTrading({ onSelect }: Props) {
     setTradeName(stock.companyName);
     setSearchQuery(stock.symbol);
     setActiveSector(null);
-    if (stock.price && stock.price > 0) setTradePrice(stock.price.toFixed(2));
+    if (stock.price && stock.price > 0) setTradePrice(priceStr(stock.price));
     fetchPrice(stock.symbol);
   }
 
@@ -519,7 +529,7 @@ export default function PaperTrading({ onSelect }: Props) {
       const json = await res.json();
       if (typeof json.price === "number" && isFinite(json.price) && json.price > 0) {
         price = json.price;
-        setTradePrice(json.price.toFixed(2));
+        setTradePrice(priceStr(json.price));
       }
     } catch {}
     if (!price || price <= 0) { setError("Couldn't fetch a live price just now — please try again."); return; }
@@ -557,7 +567,7 @@ export default function PaperTrading({ onSelect }: Props) {
       const orderLabel = orderType === "market" ? "" : ` (${ORDER_TYPES.find(o => o.key === orderType)?.label})`;
       const recurLabel = buyMode === "recurring" ? ` — ${recurringFreq} recurring` : "";
       setSuccess(
-        `${tradeType === "buy" ? "Bought" : "Sold"} ${fmtQty(shares)} ${tradeSymbol} at $${price.toFixed(2)}${orderLabel}${recurLabel}${marketClosed ? " · filled at last close (market closed)" : ""}`
+        `${tradeType === "buy" ? "Bought" : "Sold"} ${fmtQty(shares)} ${tradeSymbol} at $${priceStr(price)}${orderLabel}${recurLabel}${marketClosed ? " · filled at last close (market closed)" : ""}`
       );
       setTradeShares("");
       setDollarAmount("");
@@ -1002,9 +1012,9 @@ export default function PaperTrading({ onSelect }: Props) {
               {quoteStats && quoteStats.symbol === tradeSymbol && (
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { label: "Prev Close", value: quoteStats.previousClose > 0 ? `$${quoteStats.previousClose.toFixed(2)}` : "—" },
-                    { label: "Day Range", value: (quoteStats.dayLow != null && quoteStats.dayHigh != null) ? `$${quoteStats.dayLow.toFixed(2)} – $${quoteStats.dayHigh.toFixed(2)}` : "—" },
-                    { label: "52-Wk Range", value: (quoteStats.fiftyTwoWeekLow != null && quoteStats.fiftyTwoWeekHigh != null) ? `$${quoteStats.fiftyTwoWeekLow.toFixed(2)} – $${quoteStats.fiftyTwoWeekHigh.toFixed(2)}` : "—" },
+                    { label: "Prev Close", value: quoteStats.previousClose > 0 ? `$${priceStr(quoteStats.previousClose)}` : "—" },
+                    { label: "Day Range", value: (quoteStats.dayLow != null && quoteStats.dayHigh != null) ? `$${priceStr(quoteStats.dayLow)} – $${priceStr(quoteStats.dayHigh)}` : "—" },
+                    { label: "52-Wk Range", value: (quoteStats.fiftyTwoWeekLow != null && quoteStats.fiftyTwoWeekHigh != null) ? `$${priceStr(quoteStats.fiftyTwoWeekLow)} – $${priceStr(quoteStats.fiftyTwoWeekHigh)}` : "—" },
                     { label: "Volume", value: quoteStats.volume != null ? (quoteStats.volume >= 1e9 ? (quoteStats.volume / 1e9).toFixed(2) + "B" : quoteStats.volume >= 1e6 ? (quoteStats.volume / 1e6).toFixed(1) + "M" : quoteStats.volume >= 1e3 ? Math.round(quoteStats.volume / 1e3) + "K" : String(quoteStats.volume)) : "—" },
                   ].map((s) => (
                     <div key={s.label} className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]">

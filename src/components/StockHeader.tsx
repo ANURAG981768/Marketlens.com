@@ -1,7 +1,7 @@
 "use client";
 
 import type { StockData } from "@/lib/types";
-import { formatCurrency, formatPercentRaw } from "@/lib/format";
+import { formatCurrency, formatPercentRaw, formatPrice } from "@/lib/format";
 import { TrendingUp, TrendingDown, Building2, Globe, Users } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
 
@@ -57,7 +57,7 @@ export default function StockHeader({ data }: Props) {
         {/* Price block */}
         <div className="md:text-right shrink-0">
           <p className="font-display text-4xl sm:text-5xl font-semibold tabular-nums tracking-tight leading-none">
-            ${quote.price.toFixed(2)}
+            {formatPrice(quote.price)}
           </p>
           <div className="mt-3 md:flex md:justify-end">
             <span

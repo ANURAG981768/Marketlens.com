@@ -15,6 +15,7 @@ import {
   type PaperPortfolio,
 } from "@/lib/storage";
 import { getMarketStatus, classifyInstrument } from "@/lib/market-hours";
+import { formatPrice } from "@/lib/format";
 
 // Whole numbers for stocks, trimmed fractions for crypto/forex.
 function fmtQty(q: number): string {
@@ -154,7 +155,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
             {/* Price */}
             <div className="flex items-center justify-between text-xs mb-3 px-1">
               <span className="text-[var(--color-text-muted)]">Market Price</span>
-              <span className="font-bold tabular-nums">${price.toFixed(2)}</span>
+              <span className="font-bold tabular-nums">{formatPrice(price)}</span>
             </div>
 
             {/* Shares Input */}
@@ -193,7 +194,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
             {qty > 0 && (
               <div className="flex items-center justify-between text-xs px-3 py-2.5 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] mb-4">
                 <span className="text-[var(--color-text-muted)]">
-                  {fmtQty(qty)} × ${price.toFixed(2)}
+                  {fmtQty(qty)} × {formatPrice(price)}
                 </span>
                 <span className="font-bold tabular-nums">
                   ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

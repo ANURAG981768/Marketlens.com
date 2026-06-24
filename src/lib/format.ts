@@ -31,3 +31,13 @@ export function formatRatio(value: number): string {
   if (!value || !isFinite(value)) return "N/A";
   return value.toFixed(2);
 }
+
+// Price with adaptive precision + thousands separators. Normal prices show 2
+// decimals ($62,000.00); sub-$1 / crypto prices scale up so a token like
+// $0.00002 isn't rounded away to "$0.00".
+export function formatPrice(value: number): string {
+  if (!Number.isFinite(value)) return MISSING;
+  const abs = Math.abs(value);
+  const decimals = abs >= 1 || abs === 0 ? 2 : abs >= 0.01 ? 4 : abs >= 0.0001 ? 6 : 8;
+  return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: decimals })}`;
+}
