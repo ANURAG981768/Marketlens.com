@@ -31,7 +31,6 @@ import {
   paperBuy,
   paperSell,
   resetPaperPortfolio,
-  queuePaperOrder,
   cancelPendingOrder,
   fillPendingOrders,
   type PaperPortfolio,
@@ -417,7 +416,7 @@ export default function PaperTrading({ onSelect }: Props) {
   function handlePreConfirm() {
     setError("");
     setSuccess("");
-    setMarket(getUSMarketStatus()); // refresh open/closed; closed orders are queued
+    setMarket(getUSMarketStatus()); // refresh open/closed for the fill-price label
     if (!tradeSymbol) { setError("Select a stock"); return; }
     const shares = getResolvedShares();
     const price = getResolvedPrice();
@@ -449,26 +448,16 @@ export default function PaperTrading({ onSelect }: Props) {
     const shares = getResolvedShares();
     let price = getResolvedPrice();
 
-    // Market closed → queue the order to fill at the next open (like Robinhood).
-    if (!market.isOpen) {
-      try {
-        const updated = queuePaperOrder(tradeSymbol, tradeName || tradeSymbol, tradeType, shares);
-        setPortfolio(updated);
-        setSuccess(
-          `Order queued — ${tradeType} ${shares.toLocaleString()} ${tradeSymbol} will fill at the next market open (${market.localOpen} your time).`
-        );
-        setTradeShares("");
-        setDollarAmount("");
-        setTimeout(() => setActiveTab("history"), 1500);
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Couldn't queue the order");
-      }
-      return;
-    }
+    // Trades always fill immediately at the freshest available price — the live
+    // quote during the session, or the last close when the market is shut. A
+    // learning simulator used by students worldwide must never silently swallow
+    // an order, so there is no "closed = queued" barrier; we just label the fill
+    // honestly when the market happened to be closed.
+    const marketClosed = !market.isOpen;
 
-    // Market orders fill at the freshest live price at the instant of submit —
-    // exactly like a real brokerage. This is what makes the buy and the later
-    // sell capture real price movement instead of a stale cached quote.
+    // Market orders fill at the freshest price at the instant of submit — exactly
+    // like a real brokerage. This is what makes the buy and the later sell
+    // capture real price movement instead of a stale cached quote.
     if (orderType === "market") {
       try {
         const res = await fetch(`/api/quote?symbol=${encodeURIComponent(tradeSymbol)}`);
@@ -497,7 +486,7 @@ export default function PaperTrading({ onSelect }: Props) {
       const orderLabel = orderType === "market" ? "" : ` (${ORDER_TYPES.find(o => o.key === orderType)?.label})`;
       const recurLabel = buyMode === "recurring" ? ` — ${recurringFreq} recurring` : "";
       setSuccess(
-        `${tradeType === "buy" ? "Bought" : "Sold"} ${shares.toLocaleString()} shares of ${tradeSymbol} at $${price.toFixed(2)}${orderLabel}${recurLabel}`
+        `${tradeType === "buy" ? "Bought" : "Sold"} ${shares.toLocaleString()} shares of ${tradeSymbol} at $${price.toFixed(2)}${orderLabel}${recurLabel}${marketClosed ? " · filled at last close (market closed)" : ""}`
       );
       setTradeShares("");
       setDollarAmount("");
@@ -1158,20 +1147,16 @@ export default function PaperTrading({ onSelect }: Props) {
                 </div>
               )}
 
-              {/* Submit — fills live when open, queues for the open when closed */}
+              {/* Submit — always fills immediately at the freshest available price */}
               <button
                 onClick={handlePreConfirm}
                 className={`w-full py-4 rounded-full text-sm font-bold transition-colors ${
-                  !market.isOpen
-                    ? "bg-[var(--color-ink)] text-white hover:opacity-90"
-                    : tradeType === "buy"
+                  tradeType === "buy"
                     ? "bg-[var(--color-positive)] text-black hover:bg-[var(--color-brand-light)]"
                     : "bg-[var(--color-negative)] text-white hover:brightness-110"
                 }`}
               >
-                {!market.isOpen
-                  ? `Queue ${tradeType === "buy" ? "Buy" : "Sell"} for next open`
-                  : `Review ${tradeType === "buy" ? "Buy" : "Sell"} Order`}
+                {`Review ${tradeType === "buy" ? "Buy" : "Sell"} Order`}
               </button>
             </>
           )}
@@ -1494,7 +1479,7 @@ export default function PaperTrading({ onSelect }: Props) {
             {!market.isOpen && (
               <p className="-mt-2 mb-5 flex items-start gap-2 text-xs text-[var(--color-text-muted)] leading-relaxed">
                 <Clock size={13} className="mt-0.5 shrink-0 text-[var(--color-brand)]" />
-                Market&apos;s closed, so this order is queued and fills at the next open ({market.localOpen} your time) at that day&apos;s price — the total above is just an estimate from the last close.
+                The U.S. market is closed right now, so this fills immediately at the last close price. During market hours ({market.localOpen}–{market.localClose} your time) it fills at the live price.
               </p>
             )}
 
@@ -1508,16 +1493,12 @@ export default function PaperTrading({ onSelect }: Props) {
               <button
                 onClick={executeTrade}
                 className={`flex-1 py-3 rounded-full text-sm font-bold transition-colors ${
-                  !market.isOpen
-                    ? "bg-[var(--color-ink)] text-white hover:opacity-90"
-                    : tradeType === "buy"
+                  tradeType === "buy"
                     ? "bg-[var(--color-positive)] text-black hover:bg-[var(--color-brand-light)]"
                     : "bg-[var(--color-negative)] text-white hover:brightness-110"
                 }`}
               >
-                {!market.isOpen
-                  ? `Queue ${tradeType === "buy" ? "Buy" : "Sell"}`
-                  : tradeType === "buy" ? "Buy" : "Sell"}
+                {tradeType === "buy" ? "Buy" : "Sell"}
               </button>
             </div>
           </div>

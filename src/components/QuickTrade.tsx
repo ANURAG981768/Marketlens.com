@@ -12,7 +12,6 @@ import {
   getPaperPortfolio,
   paperBuy,
   paperSell,
-  queuePaperOrder,
   type PaperPortfolio,
 } from "@/lib/storage";
 import { getUSMarketStatus } from "@/lib/market-hours";
@@ -55,15 +54,9 @@ export default function QuickTrade({ symbol, name, price }: Props) {
     }
     const market = getUSMarketStatus();
     try {
-      // Mirror the Trade tab: orders only fill during the regular session;
-      // when the market is closed they queue for the next open.
-      if (!market.isOpen) {
-        queuePaperOrder(symbol, name, mode, qty);
-        setSuccess(`Order queued — ${mode} ${qty.toLocaleString()} ${symbol} fills at the next open (${market.localOpen} your time).`);
-        setShares("");
-        setTimeout(() => setOpen(false), 2200);
-        return;
-      }
+      // Mirror the Trade tab: orders always fill immediately at the freshest
+      // available price (live during the session, last close when shut) so a
+      // trade is never silently lost — we just note when the market was closed.
       if (mode === "buy") {
         paperBuy(symbol, name, qty, price);
       } else {
@@ -71,7 +64,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
       }
       const total = qty * price;
       setSuccess(
-        `${mode === "buy" ? "Bought" : "Sold"} ${qty.toLocaleString()} shares @ $${price.toFixed(2)} = $${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}`
+        `${mode === "buy" ? "Bought" : "Sold"} ${qty.toLocaleString()} shares @ $${price.toFixed(2)} = $${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}${market.isOpen ? "" : " · last close (market closed)"}`
       );
       setShares("");
       setTimeout(() => setOpen(false), 2000);
@@ -230,14 +223,12 @@ export default function QuickTrade({ symbol, name, price }: Props) {
             <button
               onClick={execute}
               className={`w-full py-3 rounded-xl text-white text-sm font-semibold transition-colors ${
-                market && !market.isOpen
-                  ? "bg-[var(--color-ink)] hover:opacity-90"
-                  : mode === "buy"
+                mode === "buy"
                   ? "bg-[var(--color-positive)] hover:bg-emerald-400"
                   : "bg-[var(--color-negative)] hover:bg-red-400"
               }`}
             >
-              {market && !market.isOpen ? `Queue ${mode === "buy" ? "Buy" : "Sell"}` : `${mode === "buy" ? "Buy" : "Sell"} ${symbol}`}
+              {`${mode === "buy" ? "Buy" : "Sell"} ${symbol}`}
             </button>
           </div>
         </div>
