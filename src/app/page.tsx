@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import type { StockData } from "@/lib/types";
+import { getUSMarketStatus } from "@/lib/market-hours";
 import { DEMO_DATA } from "@/lib/demo-data";
 import { DEMO_PEERS } from "@/lib/demo-peers";
 import SearchBar from "@/components/SearchBar";
@@ -140,6 +141,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<Tab>("screener");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [openLessonId, setOpenLessonId] = useState<string | null>(null);
+  const [marketOpen, setMarketOpen] = useState(false);
   const [analyticsView, setAnalyticsView] = useState<"outlook" | "portfolio">("outlook");
 
   useEffect(() => { recordActivity(); }, []);
@@ -170,6 +172,14 @@ export default function Home() {
     loadIndices();
     const interval = setInterval(loadIndices, 60000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Global U.S. market open/closed status for the ticker bar.
+  useEffect(() => {
+    const tick = () => setMarketOpen(getUSMarketStatus().isOpen);
+    tick();
+    const id = setInterval(tick, 30000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -320,6 +330,13 @@ export default function Home() {
                 </span>
               ))}
             </div>
+          </div>
+          {/* Global U.S. market status — always visible, like a real terminal */}
+          <div className="shrink-0 flex items-center gap-1.5 px-3 sm:px-4 py-1.5 border-l border-white/10 bg-[#0f1419]">
+            <span className={`w-1.5 h-1.5 rounded-full ${marketOpen ? "bg-[#00e676] animate-pulse" : "bg-gray-500"}`} />
+            <span className={`text-[10px] font-semibold uppercase tracking-wider ${marketOpen ? "text-[#00e676]" : "text-gray-400"}`}>
+              <span className="hidden sm:inline">US Markets </span>{marketOpen ? "Open" : "Closed"}
+            </span>
           </div>
         </div>
       </div>
