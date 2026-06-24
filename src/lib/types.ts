@@ -84,6 +84,14 @@ export interface StockData {
   income: IncomeStatement[];
   history: HistoricalPrice[];
   dividends?: { year: string; amount: number }[];
+  analyst?: {
+    low: number | null;
+    mean: number | null;
+    high: number | null;
+    count: number | null;
+    recommendationKey: string | null;
+    recommendationMean: number | null;
+  };
   quote: {
     price: number;
     changesPercentage: number;

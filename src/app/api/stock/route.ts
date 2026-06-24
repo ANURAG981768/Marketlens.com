@@ -268,6 +268,16 @@ export async function GET(req: NextRequest) {
       revenueGrowthTTM: num(fd.revenueGrowth),
     };
 
+    // Real Wall Street analyst price targets + consensus (when covered).
+    const analyst = {
+      low: num(fd.targetLowPrice) || null,
+      mean: num(fd.targetMeanPrice) || null,
+      high: num(fd.targetHighPrice) || null,
+      count: num(fd.numberOfAnalystOpinions) || null,
+      recommendationKey: typeof fd.recommendationKey === "string" ? fd.recommendationKey : null,
+      recommendationMean: num(fd.recommendationMean) || null,
+    };
+
     const [income, history, dividends] = await Promise.all([
       fetchIncome(symbol, auth.crumb, auth.cookie, shares),
       fetchHistory(symbol),
@@ -280,7 +290,7 @@ export async function GET(req: NextRequest) {
       profile.lastDiv = dividends.trailingAnnual;
     }
 
-    return NextResponse.json({ profile, quote, metrics, income, history, dividends: dividends.history });
+    return NextResponse.json({ profile, quote, metrics, income, history, dividends: dividends.history, analyst });
   } catch {
     return NextResponse.json({ error: "demo" }, { status: 200 });
   }

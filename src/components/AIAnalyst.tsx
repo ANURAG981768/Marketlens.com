@@ -34,6 +34,7 @@ function analyzeStock(data: Props["data"]): {
   risks: string[];
   priceTarget: { low: number; mid: number; high: number };
   indicatorsUsed: number;
+  targetSource: string;
 } {
   const { profile, metrics, quote, income } = data;
   const signals: Signal[] = [];
@@ -228,14 +229,35 @@ function analyzeStock(data: Props["data"]): {
   if (strengths.length === 0) strengths.push("Limited bullish signals at current levels");
   if (risks.length === 0) risks.push("No major red flags identified");
 
-  // Price targets based on current price
-  const priceTarget = {
-    low: Math.round(price * (overallScore >= 60 ? 0.85 : 0.7) * 100) / 100,
-    mid: Math.round(price * (overallScore >= 60 ? 1.1 : 0.95) * 100) / 100,
-    high: Math.round(price * (overallScore >= 60 ? 1.3 : 1.15) * 100) / 100,
-  };
+  // Price targets — prefer REAL Wall Street analyst targets (low/mean/high)
+  // when the stock is covered; only fall back to a model estimate otherwise.
+  const a = data.analyst;
+  const hasAnalyst = !!(a && a.mean && a.count && a.count > 0);
+  const priceTarget = hasAnalyst
+    ? {
+        low: Math.round((a!.low ?? a!.mean! * 0.85) * 100) / 100,
+        mid: Math.round(a!.mean! * 100) / 100,
+        high: Math.round((a!.high ?? a!.mean! * 1.15) * 100) / 100,
+      }
+    : {
+        low: Math.round(price * (overallScore >= 60 ? 0.85 : 0.7) * 100) / 100,
+        mid: Math.round(price * (overallScore >= 60 ? 1.1 : 0.95) * 100) / 100,
+        high: Math.round(price * (overallScore >= 60 ? 1.3 : 1.15) * 100) / 100,
+      };
 
-  return { overallScore, verdict, summary, signals, strengths, risks, priceTarget, indicatorsUsed: signals.length };
+  return {
+    overallScore,
+    verdict,
+    summary,
+    signals,
+    strengths,
+    risks,
+    priceTarget,
+    indicatorsUsed: signals.length,
+    targetSource: hasAnalyst
+      ? `${a!.count} Wall Street analysts`
+      : "model estimate · no analyst coverage",
+  };
 }
 
 export default function AIAnalyst({ data }: Props) {
@@ -355,9 +377,14 @@ export default function AIAnalyst({ data }: Props) {
 
         {/* Price Targets */}
         <div>
-          <p className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
-            12-Month Price Estimates
-          </p>
+          <div className="flex items-baseline justify-between mb-2 gap-2">
+            <p className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider">
+              12-Month Price Estimates
+            </p>
+            <p className="text-[9px] text-[var(--color-text-muted)] normal-case tracking-normal truncate">
+              {analysis.targetSource}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 bg-[var(--color-surface)] rounded-lg p-2.5 text-center border border-[var(--color-border)]">
               <p className="text-[10px] text-[var(--color-negative)] font-medium">Bear</p>
