@@ -25,6 +25,23 @@ interface Signal {
   weight: number;
 }
 
+// Typical long-run P/E by sector — lets the valuation signal judge a stock
+// against its OWN sector (a 30x P/E is cheap for tech, rich for utilities)
+// rather than one absolute threshold for everything.
+const SECTOR_PE_NORM: Record<string, number> = {
+  Technology: 28,
+  Healthcare: 21,
+  "Financial Services": 13,
+  "Consumer Cyclical": 22,
+  "Communication Services": 19,
+  Industrials: 20,
+  "Consumer Defensive": 22,
+  Energy: 12,
+  "Real Estate": 30,
+  Utilities: 18,
+  "Basic Materials": 15,
+};
+
 function analyzeStock(data: Props["data"]): {
   overallScore: number;
   verdict: string;
@@ -41,11 +58,13 @@ function analyzeStock(data: Props["data"]): {
   let totalScore = 0;
   let totalWeight = 0;
 
-  // P/E Analysis
+  // P/E Analysis — judged against the company's own sector, not an absolute line.
   const pe = metrics.peRatioTTM || quote.pe;
   if (pe && pe > 0) {
-    const peSentiment = pe < 15 ? "bullish" : pe < 30 ? "neutral" : "bearish";
-    const peScore = pe < 15 ? 85 : pe < 20 ? 70 : pe < 30 ? 55 : pe < 50 ? 35 : 20;
+    const sectorNorm = SECTOR_PE_NORM[profile.sector] ?? 20;
+    const rel = pe / sectorNorm; // <1 = cheaper than the sector norm
+    const peSentiment = rel < 0.8 ? "bullish" : rel < 1.25 ? "neutral" : "bearish";
+    const peScore = rel < 0.7 ? 85 : rel < 0.95 ? 70 : rel < 1.25 ? 52 : rel < 1.8 ? 35 : 22;
     signals.push({
       label: "P/E Ratio",
       value: `${pe.toFixed(1)}x`,
@@ -206,7 +225,7 @@ function analyzeStock(data: Props["data"]): {
 
   for (const s of signals) {
     if (s.sentiment === "bullish") {
-      if (s.label === "P/E Ratio") strengths.push("Attractively valued relative to earnings");
+      if (s.label === "P/E Ratio") strengths.push(`Inexpensive versus the ${profile.sector || "sector"} average P/E`);
       else if (s.label === "Revenue Growth") strengths.push("Strong revenue growth trajectory");
       else if (s.label === "Net Margin") strengths.push("Healthy profit margins above industry average");
       else if (s.label === "Return on Equity") strengths.push("Efficient use of shareholder capital");
@@ -216,7 +235,7 @@ function analyzeStock(data: Props["data"]): {
       else if (s.label === "52-Week Position") strengths.push("Positive price momentum near 52-week highs");
     }
     if (s.sentiment === "bearish") {
-      if (s.label === "P/E Ratio") risks.push("Elevated valuation may limit upside potential");
+      if (s.label === "P/E Ratio") risks.push(`Trades at a premium to the ${profile.sector || "sector"} average P/E`);
       else if (s.label === "Revenue Growth") risks.push("Declining or stagnant revenue trajectory");
       else if (s.label === "Net Margin") risks.push("Thin or negative profit margins raise concerns");
       else if (s.label === "Return on Equity") risks.push("Below-average returns on shareholder capital");
