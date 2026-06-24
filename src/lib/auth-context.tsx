@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase, isCloudEnabled } from "./supabase";
-import { SYNCED_KEYS, schedulePush, syncOnLogin } from "./cloud-sync";
+import { SYNCED_KEYS, schedulePush, syncOnLogin, flushPush } from "./cloud-sync";
 
 interface AuthState {
   user: User | null;
@@ -46,6 +46,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const uninstall = installWriteHook(() => userIdRef.current);
 
+    // When the user backgrounds or closes the tab, flush any debounced push so
+    // the most recent trade reaches the cloud (mobile users switch apps a lot).
+    const flushIfSignedIn = () => {
+      if (userIdRef.current) flushPush();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flushIfSignedIn();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", flushIfSignedIn);
+
     supabase.auth.getSession().then(({ data }: { data: { session: Session | null } }) => {
       setUser(data.session?.user ?? null);
       setLoading(false);
@@ -69,6 +80,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       sub.subscription.unsubscribe();
       uninstall();
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", flushIfSignedIn);
     };
   }, []);
 

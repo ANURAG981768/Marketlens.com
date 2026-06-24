@@ -123,19 +123,76 @@ export interface PaperPortfolio {
 const PAPER_KEY = "marketlens_paper_trading";
 const DEFAULT_BALANCE = 1_000_000;
 
-export function getPaperPortfolio(): PaperPortfolio {
-  if (typeof window === "undefined") {
-    return { cash: DEFAULT_BALANCE, holdings: {}, trades: [], startDate: new Date().toISOString(), startingBalance: DEFAULT_BALANCE };
-  }
-  try {
-    const raw = localStorage.getItem(PAPER_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
+function freshPortfolio(): PaperPortfolio {
   return { cash: DEFAULT_BALANCE, holdings: {}, trades: [], startDate: new Date().toISOString(), startingBalance: DEFAULT_BALANCE };
 }
 
+// A stored portfolio is only trusted if its core shape is intact: a finite cash
+// number, a holdings object, and a trades array. Anything else is treated as
+// corrupt so we never hand downstream code a malformed object.
+function isValidPortfolio(p: unknown): p is PaperPortfolio {
+  if (typeof p !== "object" || p === null) return false;
+  const o = p as Record<string, unknown>;
+  return (
+    typeof o.cash === "number" && Number.isFinite(o.cash) &&
+    typeof o.holdings === "object" && o.holdings !== null && !Array.isArray(o.holdings) &&
+    Array.isArray(o.trades)
+  );
+}
+
+export function getPaperPortfolio(): PaperPortfolio {
+  if (typeof window === "undefined") return freshPortfolio();
+
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(PAPER_KEY);
+  } catch {
+    // Storage unreadable (private mode / disabled) — run on a fresh in-memory
+    // portfolio rather than crash.
+    return freshPortfolio();
+  }
+  if (!raw) return freshPortfolio();
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (isValidPortfolio(parsed)) {
+      // Normalize optional fields so the rest of the app is never surprised by
+      // an older/partial record.
+      return {
+        cash: parsed.cash,
+        holdings: parsed.holdings,
+        trades: parsed.trades,
+        startDate: typeof parsed.startDate === "string" ? parsed.startDate : new Date().toISOString(),
+        startingBalance:
+          typeof parsed.startingBalance === "number" && Number.isFinite(parsed.startingBalance)
+            ? parsed.startingBalance
+            : DEFAULT_BALANCE,
+        pendingOrders: Array.isArray(parsed.pendingOrders) ? parsed.pendingOrders : undefined,
+      };
+    }
+  } catch {
+    // fall through to recovery
+  }
+
+  // Parse failed or the shape is invalid. Preserve the raw bytes under a backup
+  // key so the data is never truly lost (recoverable / inspectable) instead of
+  // silently wiping the user's trade history.
+  try {
+    localStorage.setItem(`${PAPER_KEY}_corrupt_backup`, raw);
+  } catch {}
+  return freshPortfolio();
+}
+
 function savePaper(p: PaperPortfolio) {
-  localStorage.setItem(PAPER_KEY, JSON.stringify(p));
+  try {
+    localStorage.setItem(PAPER_KEY, JSON.stringify(p));
+  } catch {
+    // Quota exceeded, private mode, or storage disabled — surface a clear error
+    // so the UI can warn the user instead of the trade silently disappearing.
+    throw new Error(
+      "Couldn't save your trade — browser storage is full or blocked. Free up space or turn off private/incognito mode and try again."
+    );
+  }
 }
 
 function validOrder(shares: number, price: number) {

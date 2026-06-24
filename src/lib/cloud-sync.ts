@@ -14,8 +14,10 @@ export const SYNCED_KEYS = [
   "marketlens_certificates",
   "marketlens_user_name",
   "marketlens_achievements",
-  "marketlens_watchlist",
-  "marketlens_portfolio",
+  // NOTE: the watchlist + "add to portfolio" features store under the legacy
+  // equityiq_* keys (see storage.ts), so those are the keys that must sync.
+  "equityiq_watchlist",
+  "equityiq_portfolio",
   "marketlens_paper_trading",
   "marketlens_paper_trades",
   "marketlens_trade_journal",
@@ -83,10 +85,11 @@ export function mergeBags(local: Bag, cloud: Bag): Bag {
     cloud["marketlens_achievements"]
   );
 
-  // Watchlist: array of symbols — union
-  out["marketlens_watchlist"] = unionArray(
-    local["marketlens_watchlist"],
-    cloud["marketlens_watchlist"]
+  // Watchlist: array of { symbol, ... } objects — union by symbol so an item
+  // added on either device is never dropped.
+  out["equityiq_watchlist"] = unionBySymbol(
+    local["equityiq_watchlist"],
+    cloud["equityiq_watchlist"]
   );
 
   // Name: prefer whichever is set (local wins if both)
@@ -124,6 +127,22 @@ function unionArray(a: unknown, b: unknown): unknown[] {
   ];
   // de-dupe primitives
   return [...new Set(arr)];
+}
+
+// Union two arrays of { symbol, ... } objects, keyed by symbol (local wins on a
+// clash so the freshest entry survives). Used for the watchlist.
+function unionBySymbol(a: unknown, b: unknown): unknown[] {
+  const bySymbol = new Map<string, unknown>();
+  const add = (arr: unknown) => {
+    if (!Array.isArray(arr)) return;
+    for (const item of arr) {
+      const sym = isObj(item) && typeof item.symbol === "string" ? item.symbol : null;
+      if (sym && !bySymbol.has(sym)) bySymbol.set(sym, item);
+    }
+  };
+  add(a); // local first — its entries win
+  add(b);
+  return [...bySymbol.values()];
 }
 
 function mergeQuiz(a: unknown, b: unknown): unknown[] {
@@ -179,9 +198,30 @@ export async function syncOnLogin(userId: string): Promise<boolean> {
 }
 
 let pushTimer: ReturnType<typeof setTimeout> | null = null;
+let lastUserId: string | null = null;
+
+// Push the full local state, retrying a couple of times on transient failure so
+// a flaky network never quietly drops a trade.
+async function doPush(userId: string, attempt = 0): Promise<void> {
+  const ok = await pushCloud(userId, readLocal());
+  if (!ok && attempt < 2) {
+    setTimeout(() => { void doPush(userId, attempt + 1); }, 2000 * (attempt + 1));
+  }
+}
+
 export function schedulePush(userId: string) {
+  lastUserId = userId;
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
-    pushCloud(userId, readLocal());
+    pushTimer = null;
+    void doPush(userId);
   }, 1500);
+}
+
+// Flush any pending push immediately — call this when the tab is backgrounded or
+// closed so the last trade isn't lost to the 1.5s debounce. (Because pushCloud
+// sends the entire local state, a later successful push self-heals any miss.)
+export function flushPush() {
+  if (pushTimer) { clearTimeout(pushTimer); pushTimer = null; }
+  if (lastUserId) void doPush(lastUserId);
 }
