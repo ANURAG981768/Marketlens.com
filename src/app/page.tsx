@@ -217,6 +217,37 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  // Live price on the open stock — competitors tick the quote while you watch,
+  // so poll the freshest price every 20s and update the header/stats/technicals
+  // in place (the daily chart + fundamentals are unaffected).
+  useEffect(() => {
+    if (!activeSymbol) return;
+    let cancelled = false;
+    const poll = () => {
+      fetch(`/api/quote?symbol=${encodeURIComponent(activeSymbol)}`)
+        .then((r) => r.json())
+        .then((json) => {
+          if (cancelled || typeof json.price !== "number" || !(json.price > 0)) return;
+          setData((prev) => {
+            if (!prev || prev.profile.symbol !== activeSymbol) return prev;
+            return {
+              ...prev,
+              quote: {
+                ...prev.quote,
+                price: json.price,
+                change: typeof json.change === "number" ? json.change : prev.quote.change,
+                changesPercentage:
+                  typeof json.changePercent === "number" ? json.changePercent : prev.quote.changesPercentage,
+              },
+            };
+          });
+        })
+        .catch(() => {});
+    };
+    const id = setInterval(poll, 20000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [activeSymbol]);
+
   const refresh = () => setRefreshKey((k) => k + 1);
 
   const fetchPeers = useCallback(async (symbol: string) => {
