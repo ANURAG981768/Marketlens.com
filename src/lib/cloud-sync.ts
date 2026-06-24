@@ -19,6 +19,7 @@ export const SYNCED_KEYS = [
   "marketlens_paper_trading",
   "marketlens_paper_trades",
   "marketlens_trade_journal",
+  "marketlens_price_alerts",
 ] as const;
 
 type Bag = Record<string, unknown>;

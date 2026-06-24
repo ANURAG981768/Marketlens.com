@@ -21,6 +21,7 @@ import NewsFeed from "@/components/NewsFeed";
 import WatchlistButton from "@/components/WatchlistButton";
 import AddToPortfolio from "@/components/AddToPortfolio";
 import WatchlistPanel from "@/components/WatchlistPanel";
+import PriceAlerts from "@/components/PriceAlerts";
 import PortfolioPanel from "@/components/PortfolioPanel";
 import StockScreener from "@/components/StockScreener";
 import MarketOverview from "@/components/MarketOverview";
@@ -795,6 +796,7 @@ export default function Home() {
               </p>
             </div>
             <WatchlistPanel onSelect={fetchStock} refreshKey={refreshKey} />
+            <PriceAlerts />
             <NewsFeed isDemo />
           </div>
         )}
