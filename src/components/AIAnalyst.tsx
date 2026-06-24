@@ -491,7 +491,7 @@ export default function AIAnalyst({ data }: Props) {
 
         {/* Disclaimer */}
         <p className="text-[9px] text-[var(--color-text-muted)] text-center pt-2 border-t border-[var(--color-border)]">
-          AI-generated analysis for educational purposes only. Not financial advice.
+          A transparent, rules-based score computed from live fundamentals — for education only, not financial advice.
         </p>
       </div>
     </div>
