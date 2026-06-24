@@ -43,7 +43,12 @@ function rsi(prices: number[], period: number = 14): number | null {
 
 export default function TechnicalIndicators({ history, currentPrice }: Props) {
   const indicators = useMemo(() => {
-    const closes = history.map((h) => h.close);
+    // `history` arrives oldest-first (chronological, as the price chart needs).
+    // Every indicator helper below expects newest-first (slice(0, period) =
+    // most recent N), so reverse once here. Without this, SMA/RSI/EMA/52w were
+    // all computed on data from ~a year ago instead of the latest days.
+    const ordered = [...history].reverse();
+    const closes = ordered.map((h) => h.close);
 
     const sma20 = sma(closes, 20);
     const sma50 = sma(closes, 50);
@@ -60,7 +65,7 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
 
     const avgVol20 =
       history.length >= 20
-        ? history.slice(0, 20).reduce((s, h) => s + h.volume, 0) / 20
+        ? ordered.slice(0, 20).reduce((s, h) => s + h.volume, 0) / 20
         : null;
 
     let signals = 0;
