@@ -88,6 +88,60 @@ function easternParts(now: Date) {
   };
 }
 
+export type AssetClass = "equity" | "crypto" | "forex" | "futures";
+
+// Classify by the symbol convention: crypto is "BTC-USD", forex is "EURUSD=X",
+// futures/commodities are "CL=F". Everything else is a stock/ETF/index.
+export function classifyInstrument(symbol: string): AssetClass {
+  const s = (symbol || "").toUpperCase();
+  if (/-USDT?$/.test(s)) return "crypto";
+  if (/=X$/.test(s)) return "forex";
+  if (/=F$/.test(s)) return "futures";
+  return "equity";
+}
+
+// Market status that respects the instrument: crypto never closes, forex and
+// futures trade ~24/5, equities follow NYSE hours. This is what makes a Bitcoin
+// order at 2 a.m. correctly show "open · live" instead of "closed · last close".
+export function getMarketStatus(symbol: string, now: Date = new Date()): MarketStatus {
+  const cls = classifyInstrument(symbol);
+  if (cls === "equity") return getUSMarketStatus(now);
+
+  const localZone = localZoneLabel(now);
+  const base = { localOpen: "—", localClose: "—", localZone };
+
+  if (cls === "crypto") {
+    return {
+      ...base,
+      isOpen: true,
+      state: "open",
+      label: "Open 24/7",
+      detail: "Crypto trades around the clock — prices are live every minute, all week.",
+    };
+  }
+
+  // Forex & futures: open nearly 24 hours on weekdays; the cash market closes
+  // over the weekend (Fri 5 PM ET → Sun 5 PM ET). Simplified but far more
+  // correct than applying NYSE hours.
+  const { weekday, minutes } = easternParts(now);
+  const FX_CLOSE = 17 * 60; // 5:00 PM ET
+  let open = true;
+  if (weekday === "Sat") open = false;
+  else if (weekday === "Fri" && minutes >= FX_CLOSE) open = false;
+  else if (weekday === "Sun" && minutes < FX_CLOSE) open = false;
+
+  const noun = cls === "forex" ? "Forex" : "Futures";
+  return {
+    ...base,
+    isOpen: open,
+    state: open ? "open" : "weekend",
+    label: open ? `${noun} · 24/5` : "Closed",
+    detail: open
+      ? `${noun} trade nearly around the clock on weekdays — prices are live.`
+      : `${noun} are closed for the weekend — trading reopens Sunday evening (5:00 PM ET).`,
+  };
+}
+
 export function getUSMarketStatus(now: Date = new Date()): MarketStatus {
   const { dateStr, weekday, minutes } = easternParts(now);
   const isWeekend = weekday === "Sat" || weekday === "Sun";

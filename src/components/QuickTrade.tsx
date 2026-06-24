@@ -14,7 +14,7 @@ import {
   paperSell,
   type PaperPortfolio,
 } from "@/lib/storage";
-import { getUSMarketStatus } from "@/lib/market-hours";
+import { getMarketStatus } from "@/lib/market-hours";
 
 interface Props {
   symbol: string;
@@ -52,7 +52,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
       setError("Enter a valid number of shares");
       return;
     }
-    const market = getUSMarketStatus();
+    const market = getMarketStatus(symbol);
     try {
       // Mirror the Trade tab: orders always fill immediately at the freshest
       // available price (live during the session, last close when shut) so a
@@ -77,7 +77,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
   const holding = portfolio?.holdings[symbol];
   const qty = parseInt(shares) || 0;
   const total = qty * price;
-  const market = open ? getUSMarketStatus() : null;
+  const market = open ? getMarketStatus(symbol) : null;
 
   return (
     <>

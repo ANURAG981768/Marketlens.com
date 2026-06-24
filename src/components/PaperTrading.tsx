@@ -24,7 +24,7 @@ import {
   Coins,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
-import { getUSMarketStatus, type MarketStatus } from "@/lib/market-hours";
+import { getMarketStatus, type MarketStatus } from "@/lib/market-hours";
 import { useAuth } from "@/lib/auth-context";
 import { shareText } from "@/lib/share";
 import {
@@ -126,7 +126,7 @@ export default function PaperTrading({ onSelect }: Props) {
     fiftyTwoWeekLow: number | null;
     volume: number | null;
   } | null>(null);
-  const [market, setMarket] = useState<MarketStatus>(() => getUSMarketStatus());
+  const [market, setMarket] = useState<MarketStatus>(() => getMarketStatus(""));
   const [pendingNotice, setPendingNotice] = useState("");
   const [benchmarkPct, setBenchmarkPct] = useState<number | null>(null);
   const [shareNote, setShareNote] = useState("");
@@ -147,13 +147,14 @@ export default function PaperTrading({ onSelect }: Props) {
     };
   }, [portfolio?.startDate]);
 
-  // Keep the live market clock fresh (re-checks open/closed each minute).
+  // Keep the live market clock fresh for the SELECTED instrument (crypto is
+  // 24/7, forex/futures 24/5, equities NYSE hours), re-checking every 30s.
   useEffect(() => {
-    const tick = () => setMarket(getUSMarketStatus());
+    const tick = () => setMarket(getMarketStatus(tradeSymbol));
     tick();
     const id = setInterval(tick, 30000);
     return () => clearInterval(id);
-  }, []);
+  }, [tradeSymbol]);
 
   // When the market is open, fill any orders queued while it was closed —
   // at the live opening price, just like a real brokerage clears its queue.
@@ -463,7 +464,7 @@ export default function PaperTrading({ onSelect }: Props) {
   function handlePreConfirm() {
     setError("");
     setSuccess("");
-    setMarket(getUSMarketStatus()); // refresh open/closed for the fill-price label
+    setMarket(getMarketStatus(tradeSymbol)); // refresh open/closed for the fill-price label
     if (!tradeSymbol) { setError("Select a stock"); return; }
     const shares = getResolvedShares();
     const price = getResolvedPrice();
@@ -1233,7 +1234,7 @@ export default function PaperTrading({ onSelect }: Props) {
                 </div>
               )}
 
-              {/* Market status — orders fill only during the regular session */}
+              {/* Market status — informational; orders fill instantly at the live (or last-close) price */}
               <div className={`flex items-start gap-2 px-3.5 py-2.5 rounded-lg text-xs ${market.isOpen ? "bg-[var(--color-positive)]/8 text-[var(--color-positive)]" : "bg-[var(--color-surface-card)] text-[var(--color-text-secondary)]"}`}>
                 <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${market.isOpen ? "bg-[var(--color-positive)] animate-pulse" : "bg-[var(--color-text-muted)]"}`} />
                 <span>
@@ -1581,7 +1582,7 @@ export default function PaperTrading({ onSelect }: Props) {
             {!market.isOpen && (
               <p className="-mt-2 mb-5 flex items-start gap-2 text-xs text-[var(--color-text-muted)] leading-relaxed">
                 <Clock size={13} className="mt-0.5 shrink-0 text-[var(--color-brand)]" />
-                The U.S. market is closed right now, so this fills immediately at the last close price. During market hours ({market.localOpen}–{market.localClose} your time) it fills at the live price.
+                {market.detail} This order fills now at the last close price.
               </p>
             )}
 
