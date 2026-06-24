@@ -20,19 +20,47 @@ const fraunces = Fraunces({
   axes: ["opsz", "SOFT"],
 });
 
+const SITE_URL = "https://marketlens-com.vercel.app";
+const TITLE = "MarketLens — Learn the Markets Like a Professional";
+const DESCRIPTION =
+  "Free equity research, live market data, hands-on paper trading, and a complete investing course — built for students worldwide, at zero cost.";
+
 export const metadata: Metadata = {
-  title: "MarketLens — Professional Equity Research",
-  description:
-    "Professional equity research, real-time market intelligence, and hands-on practice tools for informed investing decisions.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: TITLE,
+    template: "%s · MarketLens",
+  },
+  description: DESCRIPTION,
+  applicationName: "MarketLens",
+  keywords: [
+    "stock research", "paper trading", "learn investing", "stock market for beginners",
+    "free finance education", "equity research", "live stock prices", "investing course",
+  ],
+  authors: [{ name: "MarketLens" }],
   icons: {
     icon: "/favicon.svg",
     apple: "/icon-maskable.svg",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "MarketLens",
+    title: TITLE,
+    description: DESCRIPTION,
+    url: SITE_URL,
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: TITLE,
+    description: DESCRIPTION,
   },
   appleWebApp: {
     capable: true,
     title: "MarketLens",
     statusBarStyle: "black-translucent",
   },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
