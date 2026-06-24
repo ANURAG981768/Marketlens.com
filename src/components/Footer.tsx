@@ -137,7 +137,15 @@ function LegalModal({ page, onClose }: { page: LegalPage; onClose: () => void })
   );
 }
 
-export default function Footer() {
+const PLATFORM_LINKS: { label: string; tab: string }[] = [
+  { label: "Stock Screener", tab: "screener" },
+  { label: "Paper Trading", tab: "paper" },
+  { label: "Lessons", tab: "lessons" },
+  { label: "Sector Heatmap", tab: "heatmap" },
+  { label: "Economic Calendar", tab: "economy" },
+];
+
+export default function Footer({ onNavigate }: { onNavigate?: (tab: string) => void }) {
   const [legalPage, setLegalPage] = useState<LegalPage>(null);
 
   return (
@@ -166,9 +174,14 @@ export default function Footer() {
             <div>
               <h4 className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider mb-3">Platform</h4>
               <ul className="space-y-2">
-                {["Stock Screener", "Paper Trading", "Lessons", "Sector Heatmap", "Economic Calendar"].map((item) => (
-                  <li key={item}>
-                    <span className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-brand)] cursor-pointer transition-colors">{item}</span>
+                {PLATFORM_LINKS.map((item) => (
+                  <li key={item.label}>
+                    <button
+                      onClick={() => onNavigate?.(item.tab)}
+                      className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-brand)] transition-colors text-left"
+                    >
+                      {item.label}
+                    </button>
                   </li>
                 ))}
               </ul>

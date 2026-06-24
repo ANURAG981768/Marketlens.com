@@ -1304,7 +1304,12 @@ export default function Home() {
         )}
       </main>
 
-      <Footer />
+      <Footer
+        onNavigate={(t) => {
+          setActiveTab(t as Tab);
+          if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
       <CookieConsent />
     </div>
   );
