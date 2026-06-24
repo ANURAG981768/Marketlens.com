@@ -28,6 +28,9 @@ import {
   paperBuy,
   paperSell,
   resetPaperPortfolio,
+  queuePaperOrder,
+  cancelPendingOrder,
+  fillPendingOrders,
   type PaperPortfolio,
 } from "@/lib/storage";
 import { searchStocks, STOCK_DATABASE, type SearchItem } from "@/lib/search-data";
@@ -92,6 +95,7 @@ export default function PaperTrading({ onSelect }: Props) {
   const [sectorSearch, setSectorSearch] = useState("");
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
   const [market, setMarket] = useState<MarketStatus>(() => getUSMarketStatus());
+  const [pendingNotice, setPendingNotice] = useState("");
 
   // Keep the live market clock fresh (re-checks open/closed each minute).
   useEffect(() => {
@@ -100,6 +104,37 @@ export default function PaperTrading({ onSelect }: Props) {
     const id = setInterval(tick, 30000);
     return () => clearInterval(id);
   }, []);
+
+  // When the market is open, fill any orders queued while it was closed —
+  // at the live opening price, just like a real brokerage clears its queue.
+  useEffect(() => {
+    if (!market.isOpen) return;
+    const queued = getPaperPortfolio().pendingOrders || [];
+    if (queued.length === 0) return;
+    const symbols = [...new Set(queued.map((o) => o.symbol))];
+    let cancelled = false;
+    (async () => {
+      const prices: Record<string, number> = {};
+      await Promise.all(
+        symbols.map(async (sym) => {
+          try {
+            const res = await fetch(`/api/quote?symbol=${encodeURIComponent(sym)}`);
+            const j = await res.json();
+            if (typeof j.price === "number" && j.price > 0) prices[sym] = j.price;
+          } catch {}
+        })
+      );
+      if (cancelled) return;
+      const result = fillPendingOrders(prices);
+      setPortfolio(result.portfolio);
+      setLivePrices((prev) => ({ ...prev, ...prices }));
+      const msgs = [...result.filled, ...result.cancelled];
+      if (msgs.length) setPendingNotice(`Queued orders processed at the open — ${msgs.join(" · ")}`);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [market.isOpen]);
 
   useEffect(() => {
     const p = getPaperPortfolio();
@@ -360,13 +395,7 @@ export default function PaperTrading({ onSelect }: Props) {
   function handlePreConfirm() {
     setError("");
     setSuccess("");
-    // Real exchanges only fill orders during the regular session — mirror that.
-    const status = getUSMarketStatus();
-    if (!status.isOpen) {
-      setMarket(status);
-      setError(`Market closed — orders fill during U.S. trading hours (9:30 AM–4:00 PM ET, Mon–Fri). ${status.detail}`);
-      return;
-    }
+    setMarket(getUSMarketStatus()); // refresh open/closed; closed orders are queued
     if (!tradeSymbol) { setError("Select a stock"); return; }
     const shares = getResolvedShares();
     const price = getResolvedPrice();
@@ -397,6 +426,23 @@ export default function PaperTrading({ onSelect }: Props) {
     setShowConfirm(false);
     const shares = getResolvedShares();
     let price = getResolvedPrice();
+
+    // Market closed → queue the order to fill at the next open (like Robinhood).
+    if (!market.isOpen) {
+      try {
+        const updated = queuePaperOrder(tradeSymbol, tradeName || tradeSymbol, tradeType, shares);
+        setPortfolio(updated);
+        setSuccess(
+          `Order queued — ${tradeType} ${shares.toLocaleString()} ${tradeSymbol} will fill at the next market open (${market.localOpen} your time).`
+        );
+        setTradeShares("");
+        setDollarAmount("");
+        setTimeout(() => setActiveTab("history"), 1500);
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Couldn't queue the order");
+      }
+      return;
+    }
 
     // Market orders fill at the freshest live price at the instant of submit —
     // exactly like a real brokerage. This is what makes the buy and the later
@@ -489,6 +535,17 @@ export default function PaperTrading({ onSelect }: Props) {
 
   return (
     <div className="space-y-5">
+      {/* Queued-order fill notice (shown when the open clears the queue) */}
+      {pendingNotice && (
+        <div className="flex items-start gap-2 rounded-xl border border-[var(--color-brand)]/25 bg-[var(--color-brand)]/8 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
+          <CheckCircle2 size={15} className="mt-0.5 shrink-0 text-[var(--color-brand)]" />
+          <span className="flex-1">{pendingNotice}</span>
+          <button onClick={() => setPendingNotice("")} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Account Value — Robinhood-style hero */}
       <div className="pt-4 pb-1">
         <p className="text-[11px] uppercase tracking-[0.14em] text-[var(--color-text-muted)] font-semibold mb-1.5">Portfolio value</p>
@@ -1062,19 +1119,20 @@ export default function PaperTrading({ onSelect }: Props) {
                 </div>
               )}
 
-              {/* Submit */}
+              {/* Submit — fills live when open, queues for the open when closed */}
               <button
                 onClick={handlePreConfirm}
-                disabled={!market.isOpen}
-                className={`w-full py-4 rounded-full text-sm font-bold transition-colors disabled:cursor-not-allowed ${
+                className={`w-full py-4 rounded-full text-sm font-bold transition-colors ${
                   !market.isOpen
-                    ? "bg-[var(--color-surface-card)] text-[var(--color-text-muted)]"
+                    ? "bg-[var(--color-ink)] text-white hover:opacity-90"
                     : tradeType === "buy"
                     ? "bg-[var(--color-positive)] text-black hover:bg-[var(--color-brand-light)]"
                     : "bg-[var(--color-negative)] text-white hover:brightness-110"
                 }`}
               >
-                {!market.isOpen ? "Market Closed" : `Review ${tradeType === "buy" ? "Buy" : "Sell"} Order`}
+                {!market.isOpen
+                  ? `Queue ${tradeType === "buy" ? "Buy" : "Sell"} for next open`
+                  : `Review ${tradeType === "buy" ? "Buy" : "Sell"} Order`}
               </button>
             </>
           )}
@@ -1209,6 +1267,50 @@ export default function PaperTrading({ onSelect }: Props) {
       {/* ═══ ACTIVITY TAB ═══ */}
       {activeTab === "history" && (
         <div>
+          {/* Queued orders — placed while the market was closed */}
+          {(portfolio.pendingOrders?.length ?? 0) > 0 && (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-3">
+                <Clock size={15} className="text-[var(--color-brand)]" />
+                <h3 className="text-base font-semibold">Queued Orders</h3>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--color-brand)]/10 text-[var(--color-brand)] font-medium">
+                  fills at next open
+                </span>
+              </div>
+              <div className="space-y-2">
+                {portfolio.pendingOrders!.map((o) => (
+                  <div
+                    key={o.id}
+                    className="flex items-center justify-between rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface-card)] px-4 py-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`text-[10px] font-bold uppercase ${
+                          o.type === "buy" ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"
+                        }`}
+                      >
+                        {o.type}
+                      </span>
+                      <div>
+                        <p className="text-sm font-bold">{o.symbol}</p>
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          {o.shares.toLocaleString()} shares · queued{" "}
+                          {new Date(o.placedAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setPortfolio(cancelPendingOrder(o.id))}
+                      className="text-xs font-medium text-[var(--color-negative)] hover:underline"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {portfolio.trades.length > 0 ? (
             <>
               <div className="flex items-center justify-between mb-3">
@@ -1295,12 +1397,19 @@ export default function PaperTrading({ onSelect }: Props) {
                 <span className="tabular-nums">${execPrice.toFixed(2)}</span>
               </div>
               <div className="border-t border-[var(--color-border)] pt-3 flex justify-between text-base">
-                <span className="font-semibold">Total</span>
+                <span className="font-semibold">{market.isOpen ? "Total" : "Est. total"}</span>
                 <span className="font-bold tabular-nums">
                   ${orderTotal.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
             </div>
+
+            {!market.isOpen && (
+              <p className="-mt-2 mb-5 flex items-start gap-2 text-xs text-[var(--color-text-muted)] leading-relaxed">
+                <Clock size={13} className="mt-0.5 shrink-0 text-[var(--color-brand)]" />
+                Market&apos;s closed, so this order is queued and fills at the next open ({market.localOpen} your time) at that day&apos;s price — the total above is just an estimate from the last close.
+              </p>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -1312,12 +1421,16 @@ export default function PaperTrading({ onSelect }: Props) {
               <button
                 onClick={executeTrade}
                 className={`flex-1 py-3 rounded-full text-sm font-bold transition-colors ${
-                  tradeType === "buy"
+                  !market.isOpen
+                    ? "bg-[var(--color-ink)] text-white hover:opacity-90"
+                    : tradeType === "buy"
                     ? "bg-[var(--color-positive)] text-black hover:bg-[var(--color-brand-light)]"
                     : "bg-[var(--color-negative)] text-white hover:brightness-110"
                 }`}
               >
-                {tradeType === "buy" ? "Buy" : "Sell"}
+                {!market.isOpen
+                  ? `Queue ${tradeType === "buy" ? "Buy" : "Sell"}`
+                  : tradeType === "buy" ? "Buy" : "Sell"}
               </button>
             </div>
           </div>

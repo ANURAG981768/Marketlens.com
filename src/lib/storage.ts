@@ -102,12 +102,22 @@ export interface PaperTrade {
   timestamp: string;
 }
 
+export interface PendingOrder {
+  id: string;
+  symbol: string;
+  name: string;
+  type: "buy" | "sell";
+  shares: number;
+  placedAt: string;
+}
+
 export interface PaperPortfolio {
   cash: number;
   holdings: Record<string, { shares: number; avgCost: number; name: string }>;
   trades: PaperTrade[];
   startDate: string;
   startingBalance: number;
+  pendingOrders?: PendingOrder[];
 }
 
 const PAPER_KEY = "marketlens_paper_trading";
@@ -181,6 +191,94 @@ export function paperSell(symbol: string, name: string, shares: number, price: n
   return p;
 }
 
+function orderId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+// Queue an order to fill at the next market open (used when the market is closed).
+export function queuePaperOrder(
+  symbol: string,
+  name: string,
+  type: "buy" | "sell",
+  shares: number
+): PaperPortfolio {
+  if (!Number.isFinite(shares) || shares <= 0) throw new Error("Enter a valid number of shares");
+  const p = getPaperPortfolio();
+  if (!p.pendingOrders) p.pendingOrders = [];
+  p.pendingOrders.unshift({
+    id: orderId(),
+    symbol,
+    name,
+    type,
+    shares,
+    placedAt: new Date().toISOString(),
+  });
+  savePaper(p);
+  return p;
+}
+
+export function cancelPendingOrder(id: string): PaperPortfolio {
+  const p = getPaperPortfolio();
+  p.pendingOrders = (p.pendingOrders || []).filter((o) => o.id !== id);
+  savePaper(p);
+  return p;
+}
+
+// Fill queued orders at the supplied live prices (called once the market opens).
+// Orders with no available price stay queued; buys without funds / sells without
+// shares are cancelled with a reason. Returns the messages for a user toast.
+export function fillPendingOrders(
+  prices: Record<string, number>
+): { portfolio: PaperPortfolio; filled: string[]; cancelled: string[] } {
+  const p = getPaperPortfolio();
+  const pending = p.pendingOrders || [];
+  const filled: string[] = [];
+  const cancelled: string[] = [];
+  if (pending.length === 0) return { portfolio: p, filled, cancelled };
+
+  const remaining: PendingOrder[] = [];
+  for (const o of pending) {
+    const price = prices[o.symbol];
+    if (!Number.isFinite(price) || price <= 0) {
+      remaining.push(o); // no quote yet — keep it queued
+      continue;
+    }
+    const total = o.shares * price;
+    if (o.type === "buy") {
+      if (total > p.cash) {
+        cancelled.push(`${o.symbol}: buy cancelled — not enough cash at the open price`);
+        continue;
+      }
+      p.cash -= total;
+      const h = p.holdings[o.symbol];
+      if (h) {
+        const ns = h.shares + o.shares;
+        h.avgCost = (h.shares * h.avgCost + total) / ns;
+        h.shares = ns;
+        h.name = o.name;
+      } else {
+        p.holdings[o.symbol] = { shares: o.shares, avgCost: price, name: o.name };
+      }
+      p.trades.unshift({ id: orderId(), symbol: o.symbol, name: o.name, type: "buy", shares: o.shares, price, total, timestamp: new Date().toISOString() });
+      filled.push(`Bought ${o.shares} ${o.symbol} at $${price.toFixed(2)}`);
+    } else {
+      const h = p.holdings[o.symbol];
+      if (!h || h.shares < o.shares) {
+        cancelled.push(`${o.symbol}: sell cancelled — you no longer hold enough shares`);
+        continue;
+      }
+      p.cash += total;
+      h.shares -= o.shares;
+      if (h.shares <= 0.0000001) delete p.holdings[o.symbol];
+      p.trades.unshift({ id: orderId(), symbol: o.symbol, name: o.name, type: "sell", shares: o.shares, price, total, timestamp: new Date().toISOString() });
+      filled.push(`Sold ${o.shares} ${o.symbol} at $${price.toFixed(2)}`);
+    }
+  }
+  p.pendingOrders = remaining;
+  savePaper(p);
+  return { portfolio: p, filled, cancelled };
+}
+
 export function resetPaperPortfolio(): PaperPortfolio {
   const p: PaperPortfolio = {
     cash: DEFAULT_BALANCE,
@@ -188,6 +286,7 @@ export function resetPaperPortfolio(): PaperPortfolio {
     trades: [],
     startDate: new Date().toISOString(),
     startingBalance: DEFAULT_BALANCE,
+    pendingOrders: [],
   };
   savePaper(p);
   return p;
