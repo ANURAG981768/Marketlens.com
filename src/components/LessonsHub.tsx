@@ -22,8 +22,8 @@ const STORAGE_KEY = "marketlens_lessons_progress";
 function loadProgress(): Record<string, string[]> {
   if (typeof window === "undefined") return {};
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
   } catch {
     return {};
   }
@@ -36,8 +36,8 @@ function saveProgress(progress: Record<string, string[]>) {
 function getQuizResults(): Record<string, { bestScore: number; total: number }> {
   if (typeof window === "undefined") return {};
   try {
-    const raw = localStorage.getItem("marketlens_quiz_results");
-    return raw ? JSON.parse(raw) : {};
+    const v = JSON.parse(localStorage.getItem("marketlens_quiz_results") || "null");
+    return v && typeof v === "object" && !Array.isArray(v) ? v : {};
   } catch {
     return {};
   }

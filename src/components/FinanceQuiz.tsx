@@ -28,7 +28,8 @@ interface QuizResult {
 function getQuizResults(): QuizResult[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem("marketlens_quiz_results") || "[]");
+    const v = JSON.parse(localStorage.getItem("marketlens_quiz_results") || "[]");
+    return Array.isArray(v) ? v : [];
   } catch {
     return [];
   }

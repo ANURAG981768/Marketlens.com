@@ -20,7 +20,8 @@ const PORTFOLIO_KEY = "equityiq_portfolio";
 export function getWatchlist(): WatchlistItem[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
+    const v = JSON.parse(localStorage.getItem(WATCHLIST_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
   } catch {
     return [];
   }
@@ -46,7 +47,8 @@ export function isInWatchlist(symbol: string): boolean {
 export function getPortfolio(): PortfolioHolding[] {
   if (typeof window === "undefined") return [];
   try {
-    return JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || "[]");
+    const v = JSON.parse(localStorage.getItem(PORTFOLIO_KEY) || "[]");
+    return Array.isArray(v) ? v : [];
   } catch {
     return [];
   }

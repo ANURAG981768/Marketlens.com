@@ -15,8 +15,8 @@ const KEY = "marketlens_price_alerts";
 export function getAlerts(): PriceAlert[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as PriceAlert[]) : [];
+    const v = JSON.parse(localStorage.getItem(KEY) || "[]");
+    return Array.isArray(v) ? (v as PriceAlert[]) : [];
   } catch {
     return [];
   }

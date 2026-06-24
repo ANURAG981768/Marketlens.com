@@ -12,8 +12,13 @@ interface Props {
 function readJSON<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
-    const v = localStorage.getItem(key);
-    return v ? (JSON.parse(v) as T) : fallback;
+    const v = JSON.parse(localStorage.getItem(key) || "null");
+    // Only trust the stored value if its shape matches the fallback's — a
+    // "null" or wrong-typed entry must never leak through and crash a consumer.
+    if (v === null || v === undefined) return fallback;
+    if (Array.isArray(fallback) !== Array.isArray(v)) return fallback;
+    if (typeof v !== typeof fallback) return fallback;
+    return v as T;
   } catch {
     return fallback;
   }

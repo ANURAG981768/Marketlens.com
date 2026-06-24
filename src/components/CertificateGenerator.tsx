@@ -78,17 +78,20 @@ const CERTIFICATE_TRACKS = [
   },
 ];
 
+function isPlainObject(v: unknown): boolean {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
 function loadProgress(): Record<string, string[]> {
   if (typeof window === "undefined") return {};
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
+  try { const v = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return isPlainObject(v) ? v : {}; } catch { return {}; }
 }
 function loadCertificates(): Record<string, CertRecord> {
   if (typeof window === "undefined") return {};
-  try { return JSON.parse(localStorage.getItem(CERT_KEY) || "{}"); } catch { return {}; }
+  try { const v = JSON.parse(localStorage.getItem(CERT_KEY) || "{}"); return isPlainObject(v) ? v : {}; } catch { return {}; }
 }
 function loadQuizResults(): QuizResult[] {
   if (typeof window === "undefined") return [];
-  try { return JSON.parse(localStorage.getItem(QUIZ_KEY) || "[]"); } catch { return []; }
+  try { const v = JSON.parse(localStorage.getItem(QUIZ_KEY) || "[]"); return Array.isArray(v) ? v : []; } catch { return []; }
 }
 function isLessonComplete(progress: Record<string, string[]>, lessonId: string): boolean {
   const lesson = LESSONS.find((l) => l.id === lessonId);
