@@ -49,14 +49,17 @@ export default function StockScreener({ onSelect }: Props) {
 
   // Overlay live price / market cap / volume / change% from the batch quote
   // endpoint onto a set of screener rows (one Yahoo call for the whole list).
-  const overlayLiveQuotes = useCallback(async (rows: ScreenResult[]): Promise<ScreenResult[]> => {
+  const overlayLiveQuotes = useCallback(async (
+    rows: ScreenResult[],
+    preset?: { min: number; max: number } | null,
+  ): Promise<ScreenResult[]> => {
     const symbols = rows.map((r) => r.symbol).slice(0, 60);
     if (symbols.length === 0) return rows;
     try {
       const res = await fetch(`/api/quotes?symbols=${encodeURIComponent(symbols.join(","))}`);
       const json = await res.json();
       if (!json.quotes) return rows;
-      return rows.map((r) => {
+      const overlaid = rows.map((r) => {
         const q = json.quotes[r.symbol.toUpperCase()];
         if (!q) return r;
         return {
@@ -67,6 +70,13 @@ export default function StockScreener({ onSelect }: Props) {
           changePercent: q.changePercent,
         };
       });
+      // Re-filter against the LIVE market cap so results always match the
+      // selected size band (a stock whose real cap fell below the threshold
+      // must drop off, even if its cached cap qualified).
+      if (preset) {
+        return overlaid.filter((r) => r.marketCap >= preset.min && r.marketCap < preset.max);
+      }
+      return overlaid;
     } catch {
       return rows;
     }
@@ -103,7 +113,7 @@ export default function StockScreener({ onSelect }: Props) {
         setIsDemo(true);
         const base = staticUniverse();
         setResults(base); // show immediately
-        const live = await overlayLiveQuotes(base);
+        const live = await overlayLiveQuotes(base, preset);
         setResults(live);
       } else {
         setIsDemo(false);
@@ -111,7 +121,7 @@ export default function StockScreener({ onSelect }: Props) {
       }
     } catch {
       setIsDemo(true);
-      setResults(await overlayLiveQuotes(staticUniverse()));
+      setResults(await overlayLiveQuotes(staticUniverse(), preset));
     } finally {
       setLoading(false);
     }
@@ -124,12 +134,13 @@ export default function StockScreener({ onSelect }: Props) {
   // Keep prices fresh while the user is looking at the screener.
   useEffect(() => {
     if (results.length === 0) return;
+    const preset = capPreset >= 0 ? MARKET_CAP_PRESETS[capPreset] : null;
     const interval = setInterval(async () => {
-      const live = await overlayLiveQuotes(results);
+      const live = await overlayLiveQuotes(results, preset);
       setResults(live);
     }, 60000);
     return () => clearInterval(interval);
-  }, [results, overlayLiveQuotes]);
+  }, [results, overlayLiveQuotes, capPreset]);
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
