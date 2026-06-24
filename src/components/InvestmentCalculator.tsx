@@ -42,17 +42,21 @@ export default function InvestmentCalculator() {
 
   const compoundResult = useMemo(() => {
     const p = parseFloat(initial) || 0;
-    const r = (parseFloat(rate) || 0) / 100;
+    const monthlyRate = (parseFloat(rate) || 0) / 100 / 12;
     const n = parseInt(years) || 0;
     const c = parseFloat(contribution) || 0;
 
+    // Compound monthly so monthly contributions actually grow within the year
+    // (start-of-month / annuity-due), matching how DCA works and real accounts.
     const breakdown: { year: number; balance: number; invested: number; gains: number }[] = [];
     let balance = p;
     let totalInvested = p;
 
     for (let y = 1; y <= n; y++) {
-      balance = balance * (1 + r) + c * 12;
-      totalInvested += c * 12;
+      for (let m = 0; m < 12; m++) {
+        balance = (balance + c) * (1 + monthlyRate);
+        totalInvested += c;
+      }
       breakdown.push({
         year: y,
         balance,
@@ -100,8 +104,11 @@ export default function InvestmentCalculator() {
     const futureInit = init * Math.pow(1 + r, months);
     const remaining = target - futureInit;
 
+    // Future-value annuity-DUE factor (contributions at start of month), to
+    // match the DCA calculator's convention.
+    const annuityDueFactor = ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
     const monthlyNeeded =
-      remaining > 0 ? remaining / ((Math.pow(1 + r, months) - 1) / r) : 0;
+      remaining > 0 ? remaining / annuityDueFactor : 0;
 
     const totalInvested = init + monthlyNeeded * months;
 
@@ -563,7 +570,8 @@ export default function InvestmentCalculator() {
                     if (months <= 0 || r <= 0) return null;
                     const futureInit = init * Math.pow(1 + r, months);
                     const remaining = target - futureInit;
-                    const monthly = remaining > 0 ? remaining / ((Math.pow(1 + r, months) - 1) / r) : 0;
+                    const annuityDueFactor = ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
+                    const monthly = remaining > 0 ? remaining / annuityDueFactor : 0;
 
                     return (
                       <div key={yr} className="flex items-center justify-between py-2 border-b border-[var(--color-border)] last:border-0">
