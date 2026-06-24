@@ -58,6 +58,64 @@ const LESSON_TINTS = [
   { color: "#be185d", bg: "rgba(190,24,93,0.10)" },
 ];
 
+// Renders lesson prose with real structure: bullet lines ("• …") become proper
+// lists with the leading term bolded, single newlines are preserved as line
+// breaks, and "Term — explanation" gets visual emphasis. Without this, bullet
+// lists collapse onto one run-on line because HTML ignores single newlines.
+function renderRichContent(content: string): React.ReactNode[] {
+  const emphasizeTerm = (text: string, key: number) => {
+    const m = text.match(/^(.{1,42}?)\s[—–]\s([\s\S]+)$/);
+    if (m) {
+      return (
+        <span key={key}>
+          <strong className="text-[var(--color-text-primary)] font-semibold">{m[1]}</strong>
+          {" — "}
+          {m[2]}
+        </span>
+      );
+    }
+    return <span key={key}>{text}</span>;
+  };
+
+  return content.split("\n\n").map((block, bi) => {
+    const lines = block.split("\n").filter((l) => l.trim().length > 0);
+    const bullets = lines.filter((l) => /^[•\-]\s/.test(l.trim()));
+
+    if (bullets.length > 0) {
+      const intro = lines.filter((l) => !/^[•\-]\s/.test(l.trim()));
+      return (
+        <div key={bi} className="mb-4">
+          {intro.map((l, ii) => (
+            <p key={ii} className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-2">
+              {l.trim()}
+            </p>
+          ))}
+          <ul className="space-y-2">
+            {bullets.map((l, li) => (
+              <li key={li} className="flex gap-2.5 text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                <span className="text-[var(--color-brand)] mt-0.5 shrink-0">•</span>
+                <span>{emphasizeTerm(l.trim().replace(/^[•\-]\s*/, ""), 0)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    }
+
+    // Plain paragraph — keep any single line breaks intact.
+    return (
+      <p key={bi} className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-4 last:mb-0">
+        {lines.map((line, li) => (
+          <span key={li}>
+            {line}
+            {li < lines.length - 1 && <br />}
+          </span>
+        ))}
+      </p>
+    );
+  });
+}
+
 export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLessonId, onLessonOpened }: { onNavigateToQuiz?: () => void; onNavigateToCerts?: () => void; openLessonId?: string | null; onLessonOpened?: () => void }) {
   const [progress, setProgress] = useState<Record<string, string[]>>({});
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
@@ -197,15 +255,8 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
             {section.heading}
           </h2>
 
-          <div className="prose prose-sm max-w-none">
-            {section.content.split("\n\n").map((para, i) => (
-              <p
-                key={i}
-                className="text-sm text-[var(--color-text-secondary)] leading-relaxed mb-4 last:mb-0"
-              >
-                {para}
-              </p>
-            ))}
+          <div className="max-w-none">
+            {renderRichContent(section.content)}
           </div>
 
           {/* Key Takeaway */}
