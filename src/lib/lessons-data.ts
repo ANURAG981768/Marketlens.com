@@ -13,6 +13,7 @@ export interface LessonSection {
   heading: string;
   content: string;
   keyTakeaway?: string;
+  example?: string; // a concrete worked example with real numbers
 }
 
 export const LESSONS: Lesson[] = [
@@ -69,7 +70,8 @@ export const LESSONS: Lesson[] = [
       {
         heading: "The Income Statement (P&L)",
         content: "The Income Statement starts with Revenue (total sales) at the top and works down through expenses to arrive at Net Income (profit) at the bottom. That's why revenue is called the 'top line' and net income is the 'bottom line.'\n\nKey lines to watch:\n• Revenue — Is sales growing year over year?\n• Gross Profit — Revenue minus direct costs (Cost of Goods Sold). Shows pricing power.\n• Operating Income — Gross profit minus operating expenses (salaries, rent, R&D). Shows how efficiently the business runs.\n• Net Income — The final profit after all expenses, interest, and taxes.\n\nMargins matter more than raw numbers. A company with $1B revenue and 20% net margin is healthier than one with $5B revenue and 2% margin.",
-        keyTakeaway: "Follow the money from top (revenue) to bottom (net income). Margins tell you more than raw numbers."
+        keyTakeaway: "Follow the money from top (revenue) to bottom (net income). Margins tell you more than raw numbers.",
+        example: "A company posts $500M in revenue and $400M in total costs → Net income = $100M, so net margin = 100 ÷ 500 = 20%. Now compare a rival with $2B revenue but only $40M profit: its margin is just 40 ÷ 2,000 = 2%. The smaller company keeps 10× more of every sales dollar — far more efficient despite a quarter of the revenue."
       },
       {
         heading: "The Balance Sheet",
@@ -79,7 +81,8 @@ export const LESSONS: Lesson[] = [
       {
         heading: "The Cash Flow Statement",
         content: "This is arguably the most important statement because cash is king. A company can report profits on the income statement while actually burning cash — that's a red flag.\n\nThe Cash Flow Statement has three sections:\n• Operating Cash Flow — Cash generated from the actual business. Should be positive and growing.\n• Investing Cash Flow — Cash spent on growth (buying equipment, acquiring companies). Usually negative, which is fine.\n• Financing Cash Flow — Cash from borrowing, issuing shares, or paying dividends.\n\nFree Cash Flow (FCF) = Operating Cash Flow − Capital Expenditures. This is the real money available to reward shareholders through dividends or buybacks.",
-        keyTakeaway: "Profits can be manipulated; cash flow can't. Free Cash Flow is the truest measure of financial health."
+        keyTakeaway: "Profits can be manipulated; cash flow can't. Free Cash Flow is the truest measure of financial health.",
+        example: "Suppose operating cash flow is $300M and the company spends $80M on equipment and facilities (capital expenditures). Free Cash Flow = $300M − $80M = $220M. That $220M is the real cash left over to pay dividends, buy back shares, or pay down debt — the cash that actually rewards shareholders."
       },
       {
         heading: "Red Flags to Watch For",
@@ -105,12 +108,14 @@ export const LESSONS: Lesson[] = [
       {
         heading: "P/E Ratio — The Starting Point",
         content: "The Price-to-Earnings (P/E) ratio is the most widely used valuation metric. It tells you how much investors are paying for each dollar of earnings:\n\nP/E = Stock Price ÷ Earnings Per Share\n\nA P/E of 20 means you're paying $20 for every $1 the company earns annually. Is that expensive? It depends on context:\n• The S&P 500 average is historically around 15-17x.\n• High-growth tech companies often trade at 30-50x because investors expect rapid earnings growth.\n• Slow-growth utilities might trade at 10-15x.\n\nAlways compare a company's P/E to its industry peers and its own historical average, not to the broad market.",
-        keyTakeaway: "P/E tells you the price tag on earnings. Always compare to peers and historical averages, not in isolation."
+        keyTakeaway: "P/E tells you the price tag on earnings. Always compare to peers and historical averages, not in isolation.",
+        example: "A stock trades at $50 and earns $2.50 per share → P/E = 50 ÷ 2.50 = 20. You're paying $20 for every $1 of annual profit. A competitor earning the same $2.50 but priced at $30 has a P/E of 12 — you'd get identical earnings for 40% less. All else equal, the second stock is the better value."
       },
       {
         heading: "Beyond P/E — Other Key Ratios",
         content: "No single ratio tells the whole story. Here are the others professionals use:\n\n• P/B (Price-to-Book): Price ÷ Book Value per share. Below 1.0 might indicate undervaluation (or a broken business). Good for banks and asset-heavy industries.\n\n• P/S (Price-to-Sales): Market Cap ÷ Revenue. Useful for unprofitable companies where P/E doesn't work. Lower is generally better.\n\n• PEG Ratio: P/E ÷ Expected Earnings Growth Rate. A PEG of 1.0 = fairly valued for its growth. Below 1.0 = potentially cheap.\n\n• EV/EBITDA: Enterprise Value ÷ EBITDA. Accounts for debt, making it better than P/E for comparing companies with different capital structures.\n\nUse multiple ratios together — if several all point to undervaluation, your confidence increases.",
-        keyTakeaway: "Use multiple valuation ratios together. If P/E, PEG, and EV/EBITDA all agree, the signal is stronger."
+        keyTakeaway: "Use multiple valuation ratios together. If P/E, PEG, and EV/EBITDA all agree, the signal is stronger.",
+        example: "Why PEG matters: Stock A has a P/E of 30 but grows earnings 30% a year → PEG = 30 ÷ 30 = 1.0 (fairly priced for its growth). Stock B looks 'cheaper' at a P/E of 15, but only grows 5% → PEG = 15 ÷ 5 = 3.0. Once you account for growth, the lower-P/E stock is actually three times more expensive."
       },
       {
         heading: "Discounted Cash Flow (DCF)",
@@ -162,7 +167,8 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Why Risk Management Is Everything",
         content: "The most successful investors don't have the best stock picks — they have the best risk management. Consider this math: If you lose 50% of your portfolio, you need a 100% gain just to break even. If you lose 33%, you need a 50% gain. Losses compound faster than you think.\n\nWarren Buffett's Rule #1: Never lose money. Rule #2: Never forget Rule #1. He doesn't mean never have a losing trade — he means protect your capital so aggressively that no single mistake can ruin you.\n\nRisk management isn't about avoiding risk entirely. It's about taking calculated risks where the potential reward justifies the potential loss.",
-        keyTakeaway: "Protecting capital is more important than growing it. A 50% loss requires a 100% gain to recover."
+        keyTakeaway: "Protecting capital is more important than growing it. A 50% loss requires a 100% gain to recover.",
+        example: "The recovery math: a $10,000 portfolio that drops 50% falls to $5,000. To climb back to $10,000 you now need a +100% gain — not +50%. Compare the ladder: a 10% loss needs +11% to recover, a 20% loss needs +25%, a 33% loss needs +50%, and a 50% loss needs +100%. Losses get exponentially harder to undo, which is why avoiding the big drawdown beats chasing the big win."
       },
       {
         heading: "Diversification — Don't Put All Eggs in One Basket",
@@ -172,7 +178,8 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Position Sizing",
         content: "Position sizing determines how much of your portfolio to allocate to each investment. It's arguably more important than which stocks you pick.\n\nThe most common rules:\n• Never put more than 5-10% of your portfolio in a single stock.\n• New investors should cap individual positions at 3-5%.\n• Size positions based on conviction AND risk — a high-conviction, low-risk idea deserves more capital.\n\nThe 1% Rule (for active traders): Never risk more than 1% of your total account on a single trade. If your account is $10,000, your maximum loss on any trade should be $100.\n\nThis means you need to calculate your stop-loss level before entering a trade and size your position accordingly.",
-        keyTakeaway: "Never bet more than 5-10% on one stock. Use the 1% rule for active trading to survive losing streaks."
+        keyTakeaway: "Never bet more than 5-10% on one stock. Use the 1% rule for active trading to survive losing streaks.",
+        example: "Position sizing with the 1% rule: your account is $10,000, so your max risk is 1% = $100 per trade. You buy at $50 and set a stop-loss at $45 — a risk of $5 per share. Position size = $100 ÷ $5 = 20 shares ($1,000 invested). If the stop triggers, you lose exactly $100 (1% of the account) and live to trade another day. The stop-loss distance, not gut feeling, sets the position size."
       },
       {
         heading: "Stop-Loss Orders and Exit Strategy",

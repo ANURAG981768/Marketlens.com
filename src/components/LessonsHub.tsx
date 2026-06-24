@@ -14,6 +14,7 @@ import {
   Brain,
   Sparkles,
   Target,
+  Calculator,
 } from "lucide-react";
 
 const STORAGE_KEY = "marketlens_lessons_progress";
@@ -214,9 +215,13 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
 
   // Active lesson reader view
   if (activeLesson) {
-    const section = activeLesson.sections[activeSection];
+    const total = activeLesson.sections.length;
+    // Clamp the index defensively so the reader can never crash on a stale or
+    // out-of-bounds section pointer.
+    const idx = Math.min(Math.max(activeSection, 0), total - 1);
+    const section = activeLesson.sections[idx];
     const completedSections = progress[activeLesson.id] || [];
-    const isLast = activeSection === activeLesson.sections.length - 1;
+    const isLast = idx === total - 1;
 
     return (
       <div className="max-w-3xl mx-auto animate-fade-in-up">
@@ -234,9 +239,9 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
           {activeLesson.sections.map((_, i) => (
             <button
               key={i}
-              onClick={() => { markSectionComplete(activeLesson.id, activeSection); setActiveSection(i); }}
+              onClick={() => { markSectionComplete(activeLesson.id, idx); setActiveSection(i); }}
               className={`h-2 rounded-full transition-all ${
-                i === activeSection
+                i === idx
                   ? "w-8 bg-[var(--color-brand)]"
                   : completedSections.includes(`${i}`)
                   ? "w-2 bg-[var(--color-brand)]/40"
@@ -245,7 +250,7 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
             />
           ))}
           <span className="text-[10px] text-[var(--color-text-muted)] ml-auto">
-            {activeSection + 1} of {activeLesson.sections.length}
+            {idx + 1} of {activeLesson.sections.length}
           </span>
         </div>
 
@@ -258,6 +263,23 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
           <div className="max-w-none">
             {renderRichContent(section.content)}
           </div>
+
+          {/* Worked Example */}
+          {section.example && (
+            <div className="mt-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl">
+              <div className="flex items-start gap-2.5">
+                <Calculator size={16} className="text-indigo-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">
+                    Worked Example
+                  </p>
+                  <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                    {section.example}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Key Takeaway */}
           {section.keyTakeaway && (
@@ -281,7 +303,7 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
         <div className="flex items-center justify-between mt-6">
           <button
             onClick={handlePrev}
-            disabled={activeSection === 0}
+            disabled={idx === 0}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-medium border border-[var(--color-border)] hover:bg-[var(--color-surface-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft size={14} />
@@ -417,16 +439,17 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
       <div className="space-y-3">
         {LESSONS.map((lesson, i) => {
           const completed = progress[lesson.id] || [];
-          const pct = lesson.sections.length > 0 ? Math.round((completed.length / lesson.sections.length) * 100) : 0;
-          const isComplete = pct === 100;
-          const started = completed.length > 0 && !isComplete;
+          const doneCount = Math.min(completed.length, lesson.sections.length);
+          const pct = lesson.sections.length > 0 ? Math.round((doneCount / lesson.sections.length) * 100) : 0;
+          const isComplete = doneCount >= lesson.sections.length;
+          const started = doneCount > 0 && !isComplete;
           const tint = LESSON_TINTS[i % LESSON_TINTS.length];
           const cta = isComplete ? "Review" : started ? `Continue · ${pct}%` : "Start lesson";
 
           return (
             <button
               key={lesson.id}
-              onClick={() => { setActiveLesson(lesson); setActiveSection(started ? completed.length : 0); }}
+              onClick={() => { setActiveLesson(lesson); setActiveSection(started ? doneCount : 0); }}
               className={`w-full bg-white border rounded-2xl p-4 sm:p-5 text-left transition-all group hover:shadow-md hover:-translate-y-0.5 ${
                 isComplete ? "border-[var(--color-brand)]/30" : "border-[var(--color-border)]"
               }`}
