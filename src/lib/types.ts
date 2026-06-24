@@ -91,6 +91,13 @@ export interface StockData {
     count: number | null;
     recommendationKey: string | null;
     recommendationMean: number | null;
+    distribution?: {
+      strongBuy: number;
+      buy: number;
+      hold: number;
+      sell: number;
+      strongSell: number;
+    } | null;
   };
   balance?: {
     totalCash: number | null;

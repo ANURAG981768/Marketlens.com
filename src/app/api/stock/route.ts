@@ -13,7 +13,7 @@ const num = (v: unknown): number => {
 const safeDiv = (a: number, b: number) => (b ? a / b : 0);
 
 async function quoteSummary(symbol: string, crumb: string, cookie: string) {
-  const mods = "assetProfile,price,summaryDetail,defaultKeyStatistics,financialData,incomeStatementHistory";
+  const mods = "assetProfile,price,summaryDetail,defaultKeyStatistics,financialData,incomeStatementHistory,recommendationTrend";
   const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${mods}&crumb=${encodeURIComponent(crumb)}`;
   return fetch(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 120 } });
 }
@@ -277,6 +277,22 @@ export async function GET(req: NextRequest) {
     };
 
     // Real Wall Street analyst price targets + consensus (when covered).
+    const trend = (r.recommendationTrend?.trend?.[0]) as
+      | { strongBuy?: number; buy?: number; hold?: number; sell?: number; strongSell?: number }
+      | undefined;
+    const distribution = trend
+      ? {
+          strongBuy: num(trend.strongBuy),
+          buy: num(trend.buy),
+          hold: num(trend.hold),
+          sell: num(trend.sell),
+          strongSell: num(trend.strongSell),
+        }
+      : null;
+    const distTotal = distribution
+      ? distribution.strongBuy + distribution.buy + distribution.hold + distribution.sell + distribution.strongSell
+      : 0;
+
     const analyst = {
       low: num(fd.targetLowPrice) || null,
       mean: num(fd.targetMeanPrice) || null,
@@ -284,6 +300,7 @@ export async function GET(req: NextRequest) {
       count: num(fd.numberOfAnalystOpinions) || null,
       recommendationKey: typeof fd.recommendationKey === "string" ? fd.recommendationKey : null,
       recommendationMean: num(fd.recommendationMean) || null,
+      distribution: distTotal > 0 ? distribution : null,
     };
 
     const [income, history, dividends] = await Promise.all([

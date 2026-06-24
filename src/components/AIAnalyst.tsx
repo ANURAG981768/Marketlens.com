@@ -384,6 +384,37 @@ export default function AIAnalyst({ data }: Props) {
           </div>
         </div>
 
+        {/* Analyst ratings distribution — the real Wall Street breakdown */}
+        {data.analyst?.distribution && (() => {
+          const d = data.analyst.distribution!;
+          const total = d.strongBuy + d.buy + d.hold + d.sell + d.strongSell;
+          if (total === 0) return null;
+          const segs = [
+            { label: "Strong Buy", n: d.strongBuy, color: "#0a7c3f" },
+            { label: "Buy", n: d.buy, color: "#22a35a" },
+            { label: "Hold", n: d.hold, color: "#a8851a" },
+            { label: "Sell", n: d.sell, color: "#dc2626" },
+            { label: "Strong Sell", n: d.strongSell, color: "#991b1b" },
+          ];
+          return (
+            <div>
+              <p className="text-[10px] font-medium text-[var(--color-text-muted)] uppercase tracking-wider mb-1.5">
+                Analyst Ratings · {total} analysts
+              </p>
+              <div className="flex h-2.5 rounded-full overflow-hidden mb-2 bg-[var(--color-surface)]">
+                {segs.map((s) => (s.n > 0 ? <div key={s.label} style={{ width: `${(s.n / total) * 100}%`, background: s.color }} /> : null))}
+              </div>
+              <div className="flex flex-wrap gap-x-3 gap-y-1">
+                {segs.filter((s) => s.n > 0).map((s) => (
+                  <span key={s.label} className="inline-flex items-center gap-1 text-[10px] text-[var(--color-text-muted)]">
+                    <span className="w-2 h-2 rounded-sm" style={{ background: s.color }} /> {s.label} {s.n}
+                  </span>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Summary */}
         <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed bg-[var(--color-surface)] rounded-lg p-3">
           {analysis.summary}
