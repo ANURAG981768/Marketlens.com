@@ -120,7 +120,8 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Discounted Cash Flow (DCF)",
         content: "The DCF model is considered the gold standard of valuation by professional analysts. The idea is simple: a company's value equals all the cash it will generate in the future, discounted back to today's dollars.\n\nThe steps:\n1. Project future Free Cash Flow for 5-10 years\n2. Estimate a terminal value (the company's worth beyond the projection period)\n3. Discount all future cash flows to present value using WACC (weighted average cost of capital)\n4. Sum everything up = Intrinsic Value\n\nThe challenge: small changes in growth rate or discount rate assumptions can dramatically change the output. That's why analysts run multiple scenarios (bull, base, bear cases).\n\nMarketLens includes a built-in DCF calculator — try it on the Research tab when analyzing any stock.",
-        keyTakeaway: "DCF values a company based on its future cash generation potential, discounted to today's value."
+        keyTakeaway: "DCF values a company based on its future cash generation potential, discounted to today's value.",
+        example: "Simplified DCF: a company generates $100M of free cash flow next year, growing 8% a year. Each future year is discounted back at a 10% rate (so $108M earned in year 2 is worth about $89M today). Sum ~10 years of discounted cash plus a terminal value and you might get an intrinsic value of $1.5B. If its market cap is $1.2B it looks ~20% undervalued; at $1.9B it's ~25% overvalued. Bump the discount rate from 10% to 11% and the value can drop by hundreds of millions — which is exactly why analysts run bull, base, and bear cases."
       }
     ]
   },
@@ -146,12 +147,14 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Moving Averages",
         content: "Moving averages smooth out price noise to reveal the underlying trend. The two most common are:\n\n• SMA (Simple Moving Average): Average of closing prices over N days. Each day is weighted equally.\n• EMA (Exponential Moving Average): Gives more weight to recent prices, reacting faster to new information.\n\nKey moving averages traders watch:\n• 50-day MA: The medium-term trend. Stocks above their 50-day MA are in an uptrend.\n• 200-day MA: The long-term trend. Widely watched by institutional investors.\n\nGolden Cross: When the 50-day MA crosses above the 200-day MA — a bullish signal suggesting a new uptrend.\nDeath Cross: When the 50-day crosses below the 200-day — a bearish signal.\n\nMoving averages work best in trending markets. They lag in choppy, sideways markets.",
-        keyTakeaway: "The 50-day and 200-day moving averages define medium and long-term trends. Their crossovers signal major shifts."
+        keyTakeaway: "The 50-day and 200-day moving averages define medium and long-term trends. Their crossovers signal major shifts.",
+        example: "Golden cross in action: a stock's 50-day average sits at $95 while its 200-day average is at $98 (downtrend). As it rallies, the 50-day climbs and crosses above the 200-day — the 'golden cross,' which has often marked the start of sustained uptrends. The opposite — the 50-day falling below the 200-day — is the 'death cross.' Tip: open any stock's chart here, tap 'Trend lines,' and you can watch these two averages yourself."
       },
       {
         heading: "RSI and Momentum",
         content: "The Relative Strength Index (RSI) measures momentum on a scale of 0-100. It tells you whether recent price action has been overwhelmingly bullish or bearish.\n\n• RSI above 70: The stock may be 'overbought' — it's risen too fast and could pull back.\n• RSI below 30: The stock may be 'oversold' — it's fallen too far and could bounce.\n\nImportant: Overbought doesn't mean 'sell immediately.' Strong stocks can stay overbought for weeks during powerful uptrends. RSI divergence is more reliable — when the stock makes a new high but RSI makes a lower high, it suggests momentum is fading even though price is still rising.\n\nVolume confirms momentum. A price breakout on heavy volume is more likely to sustain than one on thin volume.",
-        keyTakeaway: "RSI measures momentum speed. Overbought/oversold levels suggest potential reversals, but divergences are more reliable."
+        keyTakeaway: "RSI measures momentum speed. Overbought/oversold levels suggest potential reversals, but divergences are more reliable.",
+        example: "Reading RSI: a stock jumps from $40 to $60 in three weeks and its RSI hits 82 — deeply 'overbought.' That's not an automatic sell, but it warns the move is stretched. If the stock then nudges to a new high of $62 while RSI only reaches 74 (a lower high), that 'bearish divergence' hints momentum is fading even as the price still rises — a classic early warning."
       }
     ]
   },
@@ -173,7 +176,8 @@ export const LESSONS: Lesson[] = [
       {
         heading: "Diversification — Don't Put All Eggs in One Basket",
         content: "Diversification is the simplest and most powerful risk management tool. By spreading investments across different stocks, sectors, and asset classes, you reduce the impact of any single investment going wrong.\n\nKey principles:\n• Own stocks across different sectors (tech, healthcare, finance, consumer).\n• Mix growth stocks with value stocks and dividend payers.\n• Consider geographic diversification (U.S., international, emerging markets).\n• Add bonds for stability — they often rise when stocks fall.\n\nA well-diversified portfolio of 15-25 stocks across different sectors captures most of the market's returns while significantly reducing company-specific risk. Beyond 30 stocks, additional diversification benefits diminish rapidly.",
-        keyTakeaway: "15-25 stocks across different sectors provides strong diversification. Beyond 30, benefits diminish."
+        keyTakeaway: "15-25 stocks across different sectors provides strong diversification. Beyond 30, benefits diminish.",
+        example: "Why it matters: put $10,000 all into one stock that falls 40% and you lose $4,000. Spread the same $10,000 across 20 stocks ($500 each) and if one of them falls 40%, you lose just $200 — 2% of the portfolio — while the other 19 likely cushion the blow. Same bad event, a fraction of the damage. That's diversification doing its job."
       },
       {
         heading: "Position Sizing",
