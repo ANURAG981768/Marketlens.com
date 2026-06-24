@@ -268,6 +268,14 @@ export async function GET(req: NextRequest) {
       revenueGrowthTTM: num(fd.revenueGrowth),
     };
 
+    // Real balance-sheet cash & debt for an accurate DCF equity bridge.
+    // Net debt can be negative (net cash) for cash-rich companies, which
+    // should raise — not lower — intrinsic equity value.
+    const balance = {
+      totalCash: num(fd.totalCash) || null,
+      totalDebt: num(fd.totalDebt) || null,
+    };
+
     // Real Wall Street analyst price targets + consensus (when covered).
     const analyst = {
       low: num(fd.targetLowPrice) || null,
@@ -290,7 +298,7 @@ export async function GET(req: NextRequest) {
       profile.lastDiv = dividends.trailingAnnual;
     }
 
-    return NextResponse.json({ profile, quote, metrics, income, history, dividends: dividends.history, analyst });
+    return NextResponse.json({ profile, quote, metrics, income, history, dividends: dividends.history, analyst, balance });
   } catch {
     return NextResponse.json({ error: "demo" }, { status: 200 });
   }

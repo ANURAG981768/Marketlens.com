@@ -162,9 +162,13 @@ export default function DCFModel({ data }: Props) {
 
     const totalPvFcf = projections.reduce((sum, p) => sum + p.pvFcf, 0);
     const enterpriseValue = totalPvFcf + pvTerminal;
-    const netDebt = (metrics.debtToEquityTTM ?? 0) > 0
-      ? enterpriseValue * 0.05
-      : 0;
+    // Equity value = EV − net debt, where net debt = total debt − total cash.
+    // Net debt is negative for cash-rich companies (net cash), which correctly
+    // lifts the per-share value. Falls back to 0 when the balance sheet is
+    // unavailable rather than inventing a placeholder.
+    const cash = data.balance?.totalCash ?? null;
+    const debt = data.balance?.totalDebt ?? null;
+    const netDebt = cash !== null || debt !== null ? (debt ?? 0) - (cash ?? 0) : 0;
     const equityValue = enterpriseValue - netDebt;
     const fairValue = equityValue / sharesOutstanding;
 
@@ -181,7 +185,7 @@ export default function DCFModel({ data }: Props) {
       upside,
       sharesOutstanding,
     };
-  }, [assumptions, latestRevenue, quote.price, sharesOutstanding, metrics.debtToEquityTTM]);
+  }, [assumptions, latestRevenue, quote.price, sharesOutstanding, data.balance]);
 
   const verdictColor =
     dcfResult.upside > 15

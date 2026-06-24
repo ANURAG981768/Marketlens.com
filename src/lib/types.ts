@@ -92,6 +92,10 @@ export interface StockData {
     recommendationKey: string | null;
     recommendationMean: number | null;
   };
+  balance?: {
+    totalCash: number | null;
+    totalDebt: number | null;
+  };
   quote: {
     price: number;
     changesPercentage: number;
