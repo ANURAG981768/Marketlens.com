@@ -43,7 +43,7 @@ export default function RevenueChart({ income }: Props) {
       </div>
 
       <div className="h-[280px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={data} barCategoryGap="20%">
             <CartesianGrid
               strokeDasharray="3 3"

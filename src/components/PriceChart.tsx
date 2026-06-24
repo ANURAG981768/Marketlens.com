@@ -82,7 +82,7 @@ export default function PriceChart({ history }: Props) {
       </div>
 
       <div className="h-[320px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={320}>
           <AreaChart data={data}>
             <defs>
               <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">

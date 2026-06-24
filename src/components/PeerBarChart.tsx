@@ -66,7 +66,7 @@ export default function PeerBarChart({ peers }: Props) {
       </div>
 
       <div className="h-[260px]">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height={260}>
           <BarChart data={data} layout="vertical" barCategoryGap="20%">
             <CartesianGrid
               strokeDasharray="3 3"
