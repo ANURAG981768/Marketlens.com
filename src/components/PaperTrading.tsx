@@ -1461,7 +1461,7 @@ export default function PaperTrading({ onSelect }: Props) {
 
       {/* ═══ TRADE CONFIRMATION MODAL ═══ */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
           <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl p-6 max-w-sm mx-4 shadow-2xl w-full">
             <div className="text-center mb-6">
               <h3 className="text-lg font-bold">
@@ -1526,7 +1526,7 @@ export default function PaperTrading({ onSelect }: Props) {
 
       {/* ═══ RESET MODAL ═══ */}
       {showReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
           <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl p-6 max-w-sm mx-4 shadow-2xl">
             <h3 className="text-lg font-bold text-center mb-2">Reset Account?</h3>
             <p className="text-sm text-[var(--color-text-muted)] mb-6 text-center">

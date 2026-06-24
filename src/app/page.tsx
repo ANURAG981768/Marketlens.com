@@ -74,6 +74,7 @@ import {
   BookMarked,
   Medal,
   Trophy,
+  ArrowLeft,
   Scale,
   Calculator,
   ChevronRight,
@@ -437,7 +438,7 @@ export default function Home() {
 
       {/* Mobile Nav Drawer */}
       {mobileNavOpen && (
-        <div className="md:hidden fixed inset-0 z-[95] bg-black/50 backdrop-blur-sm" onClick={() => setMobileNavOpen(false)}>
+        <div className="md:hidden fixed inset-0 z-[95] bg-black/50" onClick={() => setMobileNavOpen(false)}>
           <div
             className="absolute right-0 top-0 h-full w-[82%] max-w-xs bg-[var(--color-surface-elevated)] shadow-2xl flex flex-col animate-slide-in-right"
             onClick={(e) => e.stopPropagation()}
@@ -1183,6 +1184,13 @@ export default function Home() {
             ) : data ? (
               /* Research Dashboard */
               <div className="space-y-6 animate-fade-in-up">
+                {/* Back to search/screener */}
+                <button
+                  onClick={() => { setData(null); setActiveSymbol(null); setError(null); }}
+                  className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+                >
+                  <ArrowLeft size={14} /> Back to search
+                </button>
                 {/* Stock Header + Actions */}
                 <div>
                   <StockHeader data={data} />

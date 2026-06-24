@@ -115,7 +115,7 @@ function LegalModal({ page, onClose }: { page: LegalPage; onClose: () => void })
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70" />
       <div
         className="relative w-full max-w-2xl max-h-[80vh] bg-[#0f1419] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-fade-in-up"
         onClick={(e) => e.stopPropagation()}

@@ -569,7 +569,7 @@ export default function CertificateGenerator() {
 
       {/* Name Modal */}
       {showNamePrompt && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => { setShowNamePrompt(false); setPendingClaimId(null); }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={() => { setShowNamePrompt(false); setPendingClaimId(null); }}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -601,7 +601,7 @@ export default function CertificateGenerator() {
 
       {/* Certificate Preview Modal */}
       {showCertificate && activeCert && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => setShowCertificate(false)}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowCertificate(false)}>
           <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
             <div className="relative bg-white p-8 sm:p-10 border-b border-[var(--color-border)]">
               <div className="absolute inset-4 border-2 border-[#c8a84e]/40 rounded-xl pointer-events-none" />
