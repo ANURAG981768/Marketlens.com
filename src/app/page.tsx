@@ -21,6 +21,7 @@ import NewsFeed from "@/components/NewsFeed";
 import WatchlistButton from "@/components/WatchlistButton";
 import AddToPortfolio from "@/components/AddToPortfolio";
 import WatchlistPanel from "@/components/WatchlistPanel";
+import SectionBanner from "@/components/SectionBanner";
 import PriceAlerts from "@/components/PriceAlerts";
 import Leaderboard from "@/components/Leaderboard";
 import PortfolioPanel from "@/components/PortfolioPanel";
@@ -834,15 +835,13 @@ export default function Home() {
         {/* Watchlist Tab */}
         {activeTab === "watchlist" && (
           <div className="max-w-3xl mx-auto space-y-6 animate-fade-in-up">
-            <div className="text-center py-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20">
-                <Star size={28} className="text-white" />
-              </div>
-              <h2 className="font-display text-[28px] font-semibold mb-2">Watchlist</h2>
-              <p className="text-sm text-[var(--color-text-muted)] max-w-md mx-auto">
-                Monitor price movements on the equities that matter to you
-              </p>
-            </div>
+            <SectionBanner
+              eyebrow="Your list"
+              title="Watchlist"
+              subtitle="Monitor price movements on the equities that matter to you."
+              accent="gold"
+              icon={Star}
+            />
             <WatchlistPanel onSelect={fetchStock} refreshKey={refreshKey} />
             <PriceAlerts />
             <NewsFeed isDemo />
@@ -852,15 +851,13 @@ export default function Home() {
         {/* Portfolio Tab */}
         {activeTab === "portfolio" && (
           <div className="max-w-3xl mx-auto space-y-6 animate-fade-in-up">
-            <div className="text-center py-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
-                <Briefcase size={28} className="text-white" />
-              </div>
-              <h2 className="font-display text-[28px] font-semibold mb-2">Portfolio</h2>
-              <p className="text-sm text-[var(--color-text-muted)] max-w-md mx-auto">
-                Track holdings, cost basis, and unrealized P&L at a glance
-              </p>
-            </div>
+            <SectionBanner
+              eyebrow="Your holdings"
+              title="Portfolio"
+              subtitle="Track holdings, cost basis, and unrealized P&L at a glance."
+              accent="azure"
+              icon={Briefcase}
+            />
             <PortfolioPanel onSelect={fetchStock} refreshKey={refreshKey} />
             <NewsFeed isDemo />
           </div>
