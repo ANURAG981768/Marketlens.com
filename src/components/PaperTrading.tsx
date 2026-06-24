@@ -133,6 +133,8 @@ export default function PaperTrading({ onSelect }: Props) {
   const [sectorLoading, setSectorLoading] = useState(false);
   const [sectorSearch, setSectorSearch] = useState("");
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+  // Per-share day change ($) for each held symbol, for the portfolio's "Today" line.
+  const [dayChanges, setDayChanges] = useState<Record<string, number>>({});
   // Full quote snapshot for the symbol currently being traded — powers the
   // price-context panel (change, day range, 52-week range, volume) so the trade
   // screen isn't just a bare number.
@@ -225,16 +227,19 @@ export default function PaperTrading({ onSelect }: Props) {
     const symbols = Object.keys(p.holdings);
     if (symbols.length === 0) return;
     const prices: Record<string, number> = {};
+    const changes: Record<string, number> = {};
     await Promise.all(
       symbols.map(async (sym) => {
         try {
           const res = await fetch(`/api/quote?symbol=${encodeURIComponent(sym)}`);
           const json = await res.json();
           if (json.price) prices[sym] = json.price;
+          if (typeof json.change === "number") changes[sym] = json.change;
         } catch {}
       })
     );
     setLivePrices((prev) => ({ ...prev, ...prices }));
+    setDayChanges((prev) => ({ ...prev, ...changes }));
   }
 
   const fetchPrice = useCallback(async (symbol: string) => {
@@ -607,6 +612,12 @@ export default function PaperTrading({ onSelect }: Props) {
   const totalValue = portfolio.cash + holdingsValue;
   const totalReturn = totalValue - portfolio.startingBalance;
   const totalReturnPct = (totalReturn / portfolio.startingBalance) * 100;
+  // Today's change of the whole book — Robinhood-style: sum each holding's
+  // per-share day move × shares, against the prior-close value of the holdings.
+  const todayChange = holdingEntries.reduce((sum, [sym, h]) => sum + h.shares * (dayChanges[sym] ?? 0), 0);
+  const priorHoldingsValue = holdingsValue - todayChange;
+  const todayChangePct = priorHoldingsValue > 0 ? (todayChange / priorHoldingsValue) * 100 : 0;
+  const hasToday = holdingEntries.some(([sym]) => sym in dayChanges);
   const numTrades = portfolio.trades.length;
   const buyTrades = portfolio.trades.filter((t) => t.type === "buy");
   const sellTrades = portfolio.trades.filter((t) => t.type === "sell");
@@ -673,12 +684,18 @@ export default function PaperTrading({ onSelect }: Props) {
         <h2 className="font-display text-4xl sm:text-5xl font-semibold tabular-nums tracking-tight leading-none">
           {formatCurrency(totalValue)}
         </h2>
-        <div className="mt-3">
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <span className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full ${totalReturn >= 0 ? "bg-[var(--color-positive)]/10 text-[var(--color-positive)]" : "bg-[var(--color-negative)]/10 text-[var(--color-negative)]"}`}>
             {totalReturn >= 0 ? <TrendingUp size={15} /> : <TrendingDown size={15} />}
             {totalReturn >= 0 ? "+" : ""}{formatCurrency(Math.abs(totalReturn))} ({totalReturn >= 0 ? "+" : ""}{totalReturnPct.toFixed(2)}%)
             <span className="font-normal opacity-70">· all time</span>
           </span>
+          {hasToday && (
+            <span className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full ${todayChange >= 0 ? "bg-[var(--color-positive)]/10 text-[var(--color-positive)]" : "bg-[var(--color-negative)]/10 text-[var(--color-negative)]"}`}>
+              {todayChange >= 0 ? "+" : ""}{formatCurrency(Math.abs(todayChange))} ({todayChange >= 0 ? "+" : ""}{todayChangePct.toFixed(2)}%)
+              <span className="font-normal opacity-70">· today</span>
+            </span>
+          )}
         </div>
         {/* Stat cards */}
         <div className="grid grid-cols-3 gap-2.5 mt-5">
