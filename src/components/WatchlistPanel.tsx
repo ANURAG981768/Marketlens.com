@@ -17,10 +17,33 @@ interface Props {
 
 export default function WatchlistPanel({ onSelect, refreshKey }: Props) {
   const [items, setItems] = useState<WatchlistItem[]>([]);
+  const [live, setLive] = useState<Record<string, { price: number; changePercent: number }>>({});
 
   useEffect(() => {
     setItems(getWatchlist());
   }, [refreshKey]);
+
+  // Live, polling prices for every watchlist symbol — a watchlist with stale
+  // add-time prices isn't useful.
+  const symbolsKey = items.map((i) => i.symbol).join(",");
+  useEffect(() => {
+    if (!symbolsKey) return;
+    let active = true;
+    const load = () => {
+      fetch(`/api/quotes?symbols=${encodeURIComponent(symbolsKey)}`)
+        .then((r) => r.json())
+        .then((j) => {
+          if (active && j.quotes) setLive(j.quotes);
+        })
+        .catch(() => {});
+    };
+    load();
+    const id = setInterval(load, 30000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, [symbolsKey]);
 
   function handleRemove(symbol: string) {
     const updated = removeFromWatchlist(symbol);
@@ -50,6 +73,11 @@ export default function WatchlistPanel({ onSelect, refreshKey }: Props) {
           <span className="text-[10px] text-[var(--color-text-muted)] bg-[var(--color-surface)] px-1.5 py-0.5 rounded-full">
             {items.length}
           </span>
+          {Object.keys(live).length > 0 && (
+            <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-1.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> LIVE
+            </span>
+          )}
         </div>
       </div>
       <div className="divide-y divide-[var(--color-border)]">
@@ -73,30 +101,32 @@ export default function WatchlistPanel({ onSelect, refreshKey }: Props) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {item.price && (
-                <div className="text-right">
-                  <p className="text-xs tabular-nums text-[var(--color-text-secondary)]">
-                    ${item.price.toFixed(2)}
-                  </p>
-                  {item.change !== undefined && (
-                    <p
-                      className={`text-[10px] tabular-nums flex items-center gap-0.5 justify-end ${
-                        item.change >= 0
-                          ? "text-[var(--color-positive)]"
-                          : "text-[var(--color-negative)]"
-                      }`}
-                    >
-                      {item.change >= 0 ? (
-                        <TrendingUp size={9} />
-                      ) : (
-                        <TrendingDown size={9} />
-                      )}
-                      {item.change >= 0 ? "+" : ""}
-                      {item.change.toFixed(2)}
+              {(() => {
+                const q = live[item.symbol.toUpperCase()];
+                const price = q?.price ?? item.price;
+                const pct = q?.changePercent;
+                if (price == null) return null;
+                return (
+                  <div className="text-right">
+                    <p className="text-xs tabular-nums text-[var(--color-text-primary)]">
+                      ${price.toFixed(2)}
                     </p>
-                  )}
-                </div>
-              )}
+                    {pct !== undefined && (
+                      <p
+                        className={`text-[10px] tabular-nums flex items-center gap-0.5 justify-end ${
+                          pct >= 0
+                            ? "text-[var(--color-positive)]"
+                            : "text-[var(--color-negative)]"
+                        }`}
+                      >
+                        {pct >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+                        {pct >= 0 ? "+" : ""}
+                        {pct.toFixed(2)}%
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
