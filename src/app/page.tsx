@@ -140,6 +140,10 @@ export default function Home() {
   const [isDemo, setIsDemo] = useState(false);
   const [activeSymbol, setActiveSymbol] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  // Commodities, forex and indices have no income statements — gate the
+  // equity-only financial sections so their detail page stays clean (price,
+  // chart, technicals, news) instead of showing empty/broken financial cards.
+  const hasFinancials = (data?.income?.length ?? 0) > 0;
   const [activeTab, setActiveTab] = useState<Tab>("screener");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [openLessonId, setOpenLessonId] = useState<string | null>(null);
@@ -1231,31 +1235,37 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Row 2: AI Analysis + Score card + Margin trend */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <AIAnalyst data={data} />
-                  <ScoreCard data={data} />
-                  <MarginTrend income={data.income} />
-                </div>
-
-                {/* Key Metrics */}
-                <KeyMetricsGrid data={data} />
-
-                {/* DCF Valuation Model + Dividend Analysis */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <div className="lg:col-span-2">
-                    <DCFModel data={data} />
+                {/* Row 2: AI Analysis + Score card + Margin trend (equities only) */}
+                {hasFinancials && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <AIAnalyst data={data} />
+                    <ScoreCard data={data} />
+                    <MarginTrend income={data.income} />
                   </div>
-                  <DividendHistory data={data} />
-                </div>
+                )}
 
-                {/* Row 3: Revenue + Peer Benchmark bar chart */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <RevenueChart income={data.income} />
-                  {peers && peers.length > 1 && (
-                    <PeerBarChart peers={peers} />
-                  )}
-                </div>
+                {/* Key Metrics (equities only) */}
+                {hasFinancials && <KeyMetricsGrid data={data} />}
+
+                {/* DCF Valuation Model + Dividend Analysis (equities only) */}
+                {hasFinancials && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                      <DCFModel data={data} />
+                    </div>
+                    <DividendHistory data={data} />
+                  </div>
+                )}
+
+                {/* Row 3: Revenue + Peer Benchmark bar chart (equities only) */}
+                {hasFinancials && (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <RevenueChart income={data.income} />
+                    {peers && peers.length > 1 && (
+                      <PeerBarChart peers={peers} />
+                    )}
+                  </div>
+                )}
 
                 {/* Stock News */}
                 <NewsFeed symbol={activeSymbol ?? undefined} name={data?.profile?.companyName} isDemo={isDemo} />
@@ -1265,8 +1275,8 @@ export default function Home() {
                   <PeerComparison peers={peers} />
                 )}
 
-                {/* Income Statement */}
-                <FinancialTable income={data.income} />
+                {/* Income Statement (equities only) */}
+                {hasFinancials && <FinancialTable income={data.income} />}
 
                 {/* Data attribution — credibility */}
                 <p className="text-[11px] text-[var(--color-text-muted)] text-center pt-2 pb-1 leading-relaxed">
