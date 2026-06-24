@@ -2,9 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
-// Popular tickers used to build a broad "market news" feed when no symbol is given
-const MARKET_TICKERS = "AAPL,MSFT,NVDA,GOOGL,AMZN,META,TSLA,JPM,V,WMT";
-
 interface Article {
   symbol: string;
   publishedDate: string;
@@ -30,88 +27,96 @@ function decodeEntities(s: string): string {
     .trim();
 }
 
-function tag(block: string, name: string): string {
+function field(block: string, name: string): string {
   const m = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`, "i"));
   return m ? decodeEntities(m[1]) : "";
 }
 
-function siteFromUrl(url: string): string {
-  try {
-    const host = new URL(url).hostname.replace(/^www\./, "").replace(/\.com$|\.net$|\.org$|\.co$/, "");
-    const map: Record<string, string> = {
-      "finance.yahoo": "Yahoo Finance",
-      "247wallst": "24/7 Wall St",
-      bloomberg: "Bloomberg",
-      reuters: "Reuters",
-      cnbc: "CNBC",
-      wsj: "WSJ",
-      marketwatch: "MarketWatch",
-      fool: "Motley Fool",
-      "seekingalpha": "Seeking Alpha",
-      barrons: "Barron's",
-      investorplace: "InvestorPlace",
-      benzinga: "Benzinga",
-      thestreet: "TheStreet",
-      "businessinsider": "Business Insider",
-      forbes: "Forbes",
-      coindesk: "CoinDesk",
-      ft: "Financial Times",
-    };
-    for (const key of Object.keys(map)) {
-      if (host.includes(key)) return map[key];
-    }
-    // Title-case the bare hostname as a fallback
-    const base = host.split(".").pop() || host;
-    return base.charAt(0).toUpperCase() + base.slice(1);
-  } catch {
-    return "Market News";
+// Build a query that targets the actual company / instrument rather than the
+// raw ticker — Yahoo's per-symbol RSS feed is deprecated and now returns the
+// same generic market news for every symbol, which is exactly the complaint
+// from user testing ("NVDA shows news about other stocks"). Searching Google
+// News by company name returns genuinely company-specific, fresh headlines.
+function buildQuery(symbol: string | null, name: string | null): string {
+  if (!symbol) return "stock market today";
+  const isDerivative = /[=^]/.test(symbol); // futures / forex / index
+  let base = (name || "").trim();
+  if (base) {
+    base = base
+      // drop corporate suffixes / share-class noise so the match is clean
+      .replace(/\b(Inc|Incorporated|Corporation|Corp|Company|Co|Ltd|Limited|PLC|LLC|Holdings|Group|AG|NV|SA)\b\.?/gi, "")
+      .replace(/\bClass\s+[A-C]\b/gi, "")
+      .replace(/[,.]+\s*$/, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
   }
+  if (!base) base = symbol;
+  // Equities read better with "stock"; commodities/forex don't.
+  return isDerivative ? base : `${base} stock`;
 }
 
-function parseRss(xml: string, fallbackSymbol: string): Article[] {
+function parseGoogleNews(xml: string, symbol: string): Article[] {
   const items = xml.match(/<item>([\s\S]*?)<\/item>/gi) || [];
   const out: Article[] = [];
+  const seen = new Set<string>();
   for (const raw of items) {
-    const title = tag(raw, "title");
-    const link = tag(raw, "link");
+    let title = field(raw, "title");
+    const link = field(raw, "link");
     if (!title || !link) continue;
-    const desc = tag(raw, "description");
-    const pub = tag(raw, "pubDate");
+    // Google News sometimes repeats the same headline — drop duplicates.
+    const key = title.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 60);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const pub = (raw.match(/<pubDate>([\s\S]*?)<\/pubDate>/i) || [])[1] || "";
+    const source = field(raw, "source");
+    // Google News titles are "Headline - Publisher"; strip the publisher tail.
+    if (source && title.endsWith(` - ${source}`)) {
+      title = title.slice(0, -(source.length + 3)).trim();
+    } else {
+      title = title.replace(/\s[-–]\s[^-–]{2,40}$/, "").trim();
+    }
     out.push({
-      symbol: fallbackSymbol,
+      symbol,
       title,
       url: link,
-      text: desc.length > 240 ? desc.slice(0, 240) + "…" : desc,
+      text: "",
       publishedDate: pub ? new Date(pub).toISOString() : new Date().toISOString(),
-      site: siteFromUrl(link),
+      site: source || "Google News",
       image: "",
     });
   }
+  // Freshest first so the feed reads as "latest".
+  out.sort((a, b) => +new Date(b.publishedDate) - +new Date(a.publishedDate));
   return out;
 }
 
 export async function GET(req: NextRequest) {
-  const symbol = req.nextUrl.searchParams.get("symbol")?.toUpperCase().trim();
-  const tickers = symbol && /^[A-Z0-9.=^-]{1,15}$/.test(symbol) ? symbol : MARKET_TICKERS;
+  const rawSymbol = req.nextUrl.searchParams.get("symbol")?.toUpperCase().trim() || null;
+  const symbol = rawSymbol && /^[A-Z0-9.=^-]{1,15}$/.test(rawSymbol) ? rawSymbol : null;
+  // Company name from our own quote/profile data — sanitized before use.
+  const name = (req.nextUrl.searchParams.get("name") || "")
+    .replace(/[^\w\s.&/-]/g, "")
+    .slice(0, 60)
+    .trim() || null;
 
-  const url = `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(
-    tickers
-  )}&region=US&lang=en-US`;
+  const query = buildQuery(symbol, name);
+  const url = `https://news.google.com/rss/search?q=${encodeURIComponent(
+    `${query} when:7d`
+  )}&hl=en-US&gl=US&ceid=US:en`;
 
   try {
     const res = await fetch(url, {
       headers: { "User-Agent": UA },
-      next: { revalidate: 300 }, // cache 5 min — fresh but not hammering
+      next: { revalidate: 180 }, // fresh every few minutes without hammering
     });
-    if (!res.ok) throw new Error(`Yahoo RSS ${res.status}`);
+    if (!res.ok) throw new Error(`Google News ${res.status}`);
     const xml = await res.text();
-    const articles = parseRss(xml, symbol || "");
+    const articles = parseGoogleNews(xml, symbol || "").slice(0, 20);
     if (articles.length === 0) {
       return NextResponse.json({ error: "demo" }, { status: 200 });
     }
     return NextResponse.json({ articles });
   } catch {
-    // Fall back to demo data on the client
     return NextResponse.json({ error: "demo" }, { status: 200 });
   }
 }

@@ -15,6 +15,7 @@ interface Article {
 
 interface Props {
   symbol?: string;
+  name?: string;
   isDemo?: boolean;
 }
 
@@ -45,7 +46,7 @@ function getSiteColor(site: string): string {
   return "#6b7280";
 }
 
-export default function NewsFeed({ symbol }: Props) {
+export default function NewsFeed({ symbol, name }: Props) {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
@@ -57,7 +58,9 @@ export default function NewsFeed({ symbol }: Props) {
 
     // News is sourced live from Yahoo Finance RSS and works regardless of demo mode.
     try {
-      const params = symbol ? `?symbol=${encodeURIComponent(symbol)}` : "";
+      const params = symbol
+        ? `?symbol=${encodeURIComponent(symbol)}${name ? `&name=${encodeURIComponent(name)}` : ""}`
+        : "";
       const res = await fetch(`/api/news${params}`);
       const json = await res.json();
 
@@ -75,7 +78,7 @@ export default function NewsFeed({ symbol }: Props) {
     } finally {
       if (!background) setLoading(false);
     }
-  }, [symbol]);
+  }, [symbol, name]);
 
   useEffect(() => {
     fetchNews();

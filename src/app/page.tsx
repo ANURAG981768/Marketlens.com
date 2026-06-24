@@ -1258,7 +1258,7 @@ export default function Home() {
                 </div>
 
                 {/* Stock News */}
-                <NewsFeed symbol={activeSymbol ?? undefined} isDemo={isDemo} />
+                <NewsFeed symbol={activeSymbol ?? undefined} name={data?.profile?.companyName} isDemo={isDemo} />
 
                 {/* Peer Comparison Table */}
                 {peers && peers.length > 1 && (
