@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
 type Accent = "brand" | "azure" | "violet" | "gold" | "teal";
@@ -18,6 +19,7 @@ interface Props {
   subtitle?: string;
   accent?: Accent;
   icon?: LucideIcon;
+  children?: ReactNode;
 }
 
 /*
@@ -26,7 +28,7 @@ interface Props {
  * every major view so the whole app reads as one cohesively designed product
  * rather than a set of plain strips.
  */
-export default function SectionBanner({ eyebrow, title, subtitle, accent = "brand", icon: Icon }: Props) {
+export default function SectionBanner({ eyebrow, title, subtitle, accent = "brand", icon: Icon, children }: Props) {
   const hex = ACCENT_HEX[accent];
   return (
     <div className="relative overflow-hidden rounded-2xl premium-ink border-t-2 border-t-[var(--color-gold)]">
@@ -57,6 +59,7 @@ export default function SectionBanner({ eyebrow, title, subtitle, accent = "bran
           </div>
         </div>
         {subtitle && <p className="text-sm text-gray-400 mt-2.5 leading-relaxed">{subtitle}</p>}
+        {children && <div className="mt-3">{children}</div>}
       </div>
     </div>
   );

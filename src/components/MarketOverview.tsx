@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { TrendingUp, TrendingDown, Activity, Globe } from "lucide-react";
+import SectionBanner from "./SectionBanner";
 
 interface SectorData {
   name: string;
@@ -146,21 +147,20 @@ export default function MarketOverview() {
 
   return (
     <div className="space-y-8">
-      <div className="text-center py-6">
-        <div className="w-14 h-14 rounded-2xl bg-[var(--color-brand)]/10 border border-[var(--color-brand)]/20 flex items-center justify-center mx-auto mb-4">
-          <Activity size={28} className="text-[var(--color-brand)]" />
-        </div>
-        <h2 className="font-display text-3xl font-semibold mb-2">Market Overview</h2>
-        <p className="text-sm text-[var(--color-text-muted)]">
-          US markets, global indices, and sector performance
-        </p>
+      <SectionBanner
+        eyebrow="Live market data"
+        title="Market Overview"
+        subtitle="U.S. markets, global indices, and sector performance."
+        accent="brand"
+        icon={Activity}
+      >
         {isLive && (
-          <div className="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full bg-green-50 border border-green-200 text-xs font-medium text-green-700">
-            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--color-positive)]/15 border border-[var(--color-positive)]/30 text-xs font-medium text-[var(--color-positive)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)] animate-pulse" />
             Live · {updatedAt ? `updated ${updatedAt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}` : ""} · refreshes every 60s
           </div>
         )}
-      </div>
+      </SectionBanner>
 
       {/* US Major Indices */}
       <div>
