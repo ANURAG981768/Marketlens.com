@@ -82,6 +82,10 @@ interface MetricRow {
   // or bigger market cap doesn't make a stock a "better" investment, so they
   // are never crowned or counted toward the overall winner.
   comparable?: boolean;
+  // Valuation ratios where a non-positive value (0 or negative) signals no /
+  // negative earnings or missing data — NOT "cheap". Such values must never be
+  // crowned the lowest/"best", so we drop them from contention entirely.
+  positiveOnly?: boolean;
 }
 
 const METRICS: MetricRow[] = [
@@ -91,10 +95,10 @@ const METRICS: MetricRow[] = [
   { label: "52W High", key: "fiftyTwoWeekHigh", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: true, category: "Price", icon: TrendingUp, comparable: false },
   { label: "Analyst Target", key: "targetPrice", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: true, category: "Price", icon: TrendingUp, hint: "Mean analyst price target", comparable: false },
 
-  { label: "P/E Ratio", key: "pe", format: (v) => `${v.toFixed(1)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Price / Earnings — lower is cheaper" },
-  { label: "Forward P/E", key: "forwardPe", format: (v) => `${v.toFixed(1)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Based on next-year earnings" },
-  { label: "P/S Ratio", key: "ps", format: (v) => `${v.toFixed(2)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Price / Sales" },
-  { label: "P/B Ratio", key: "pb", format: (v) => `${v.toFixed(2)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Price / Book value" },
+  { label: "P/E Ratio", key: "pe", format: (v) => `${v.toFixed(1)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Price / Earnings — lower is cheaper", positiveOnly: true },
+  { label: "Forward P/E", key: "forwardPe", format: (v) => `${v.toFixed(1)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Based on next-year earnings", positiveOnly: true },
+  { label: "P/S Ratio", key: "ps", format: (v) => `${v.toFixed(2)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Price / Sales", positiveOnly: true },
+  { label: "P/B Ratio", key: "pb", format: (v) => `${v.toFixed(2)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Price / Book value", positiveOnly: true },
 
   { label: "Gross Margin", key: "grossMargin", format: (v) => `${v.toFixed(1)}%`, higherIsBetter: true, category: "Profitability", icon: TrendingUp },
   { label: "Operating Margin", key: "operatingMargin", format: (v) => `${v.toFixed(1)}%`, higherIsBetter: true, category: "Profitability", icon: TrendingUp },
@@ -201,7 +205,8 @@ export default function StockCompare() {
       if (metric.comparable === false) continue; // skip informational price-level rows
       const vals = loaded
         .map((s) => ({ symbol: s.symbol, value: s.data![metric.key] as number | null }))
-        .filter((v) => v.value !== null && v.value !== undefined && !isNaN(v.value as number));
+        .filter((v) => v.value !== null && v.value !== undefined && !isNaN(v.value as number))
+        .filter((v) => !metric.positiveOnly || (v.value as number) > 0);
       if (vals.length < 2) continue;
       vals.sort((a, b) =>
         metric.higherIsBetter ? (b.value as number) - (a.value as number) : (a.value as number) - (b.value as number)
@@ -466,7 +471,9 @@ export default function StockCompare() {
                 symbol: s.symbol,
                 value: s.data ? (s.data[metric.key] as number | null) : null,
               }));
-              const valid = vals.filter((v) => v.value !== null && v.value !== undefined && !isNaN(v.value as number));
+              const valid = vals
+                .filter((v) => v.value !== null && v.value !== undefined && !isNaN(v.value as number))
+                .filter((v) => !metric.positiveOnly || (v.value as number) > 0);
               let best: string | null = null;
               if (valid.length > 1 && metric.comparable !== false) {
                 const sorted = [...valid].sort((a, b) =>

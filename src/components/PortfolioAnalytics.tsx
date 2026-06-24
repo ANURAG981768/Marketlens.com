@@ -143,7 +143,10 @@ function getBeta(symbol: string): number {
 }
 
 function getSector(symbol: string): string {
-  return SECTOR_MAP[symbol.toUpperCase()] ?? "Technology";
+  // Unmapped tickers fall into "Other" rather than being silently counted as
+  // Technology — otherwise the sector breakdown and diversification score would
+  // overstate tech concentration for any stock outside the known map.
+  return SECTOR_MAP[symbol.toUpperCase()] ?? "Other";
 }
 
 function clamp(v: number, lo: number, hi: number): number {
