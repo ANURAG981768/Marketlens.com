@@ -53,7 +53,7 @@ export function middleware(req: NextRequest) {
   if (!isDev) {
     res.headers.set(
       "Content-Security-Policy",
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://financialmodelingprep.com; frame-ancestors 'none';"
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';"
     );
   }
 
