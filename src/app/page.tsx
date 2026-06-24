@@ -1223,7 +1223,7 @@ export default function Home() {
                 {/* Row 1: Price chart + technicals (left) · stats + about (right) */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
                   <div className="lg:col-span-2 space-y-6">
-                    <PriceChart history={data.history} />
+                    <PriceChart history={data.history} symbol={data.profile.symbol} />
                     <TechnicalIndicators
                       history={data.history}
                       currentPrice={data.quote.price}
