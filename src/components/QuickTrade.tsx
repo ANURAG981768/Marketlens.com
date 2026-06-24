@@ -14,7 +14,13 @@ import {
   paperSell,
   type PaperPortfolio,
 } from "@/lib/storage";
-import { getMarketStatus } from "@/lib/market-hours";
+import { getMarketStatus, classifyInstrument } from "@/lib/market-hours";
+
+// Whole numbers for stocks, trimmed fractions for crypto/forex.
+function fmtQty(q: number): string {
+  if (!Number.isFinite(q)) return "0";
+  return Number.isInteger(q) ? q.toLocaleString() : q.toLocaleString("en-US", { maximumFractionDigits: 6 });
+}
 
 interface Props {
   symbol: string;
@@ -47,9 +53,10 @@ export default function QuickTrade({ symbol, name, price }: Props) {
 
   function execute() {
     setError("");
-    const qty = parseInt(shares);
+    const frac = classifyInstrument(symbol) !== "equity";
+    const qty = frac ? parseFloat(shares) : parseInt(shares);
     if (!qty || qty <= 0) {
-      setError("Enter a valid number of shares");
+      setError("Enter a valid amount");
       return;
     }
     const market = getMarketStatus(symbol);
@@ -64,7 +71,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
       }
       const total = qty * price;
       setSuccess(
-        `${mode === "buy" ? "Bought" : "Sold"} ${qty.toLocaleString()} shares @ $${price.toFixed(2)} = $${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}${market.isOpen ? "" : " · last close (market closed)"}`
+        `${mode === "buy" ? "Bought" : "Sold"} ${fmtQty(qty)} ${symbol} @ $${price.toFixed(2)} = $${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}${market.isOpen ? "" : " · last close (market closed)"}`
       );
       setShares("");
       setTimeout(() => setOpen(false), 2000);
@@ -75,7 +82,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
 
   const portfolio = typeof window !== "undefined" ? getPaperPortfolio() : null;
   const holding = portfolio?.holdings[symbol];
-  const qty = parseInt(shares) || 0;
+  const qty = (classifyInstrument(symbol) !== "equity" ? parseFloat(shares) : parseInt(shares)) || 0;
   const total = qty * price;
   const market = open ? getMarketStatus(symbol) : null;
 
@@ -186,7 +193,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
             {qty > 0 && (
               <div className="flex items-center justify-between text-xs px-3 py-2.5 bg-[var(--color-surface)] rounded-lg border border-[var(--color-border)] mb-4">
                 <span className="text-[var(--color-text-muted)]">
-                  {qty.toLocaleString()} × ${price.toFixed(2)}
+                  {fmtQty(qty)} × ${price.toFixed(2)}
                 </span>
                 <span className="font-bold tabular-nums">
                   ${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}

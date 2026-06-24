@@ -24,7 +24,7 @@ import {
   Coins,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
-import { getMarketStatus, type MarketStatus } from "@/lib/market-hours";
+import { getMarketStatus, classifyInstrument, type MarketStatus } from "@/lib/market-hours";
 import { useAuth } from "@/lib/auth-context";
 import { shareText } from "@/lib/share";
 import {
@@ -58,6 +58,13 @@ const QUICK_INSTRUMENTS: SearchItem[] = [
   { symbol: "USDJPY=X", name: "USD / JPY", exchange: "FX" },
   { symbol: "USDINR=X", name: "USD / INR", exchange: "FX" },
 ];
+
+// Quantity display: whole numbers for stocks, trimmed fractions for crypto/forex
+// (so 0.0016129 BTC shows cleanly instead of a long float).
+function fmtQty(q: number): string {
+  if (!Number.isFinite(q)) return "0";
+  return Number.isInteger(q) ? q.toLocaleString() : q.toLocaleString("en-US", { maximumFractionDigits: 6 });
+}
 type BuyMode = "shares" | "dollars" | "recurring";
 
 const SECTORS = [
@@ -440,14 +447,20 @@ export default function PaperTrading({ onSelect }: Props) {
     fetchPrice(symbol);
   }
 
+  // Crypto, forex and futures trade in fractional units (you buy 0.0016 BTC,
+  // not "1 share"). Equities stay whole-share in this simulator.
+  const allowsFractional = classifyInstrument(tradeSymbol) !== "equity";
+
   function getResolvedShares(): number {
     if (tradeType === "buy" && buyMode === "dollars") {
       const dollars = parseFloat(dollarAmount);
       const price = parseFloat(tradePrice);
       if (!dollars || !price || price <= 0) return 0;
-      return Math.floor(dollars / price);
+      const raw = dollars / price;
+      return allowsFractional ? raw : Math.floor(raw);
     }
-    return parseInt(tradeShares) || 0;
+    const raw = parseFloat(tradeShares) || 0;
+    return allowsFractional ? raw : Math.floor(raw);
   }
 
   function getResolvedPrice(): number {
@@ -484,7 +497,7 @@ export default function PaperTrading({ onSelect }: Props) {
     }
     if (tradeType === "sell" && portfolio) {
       const h = portfolio.holdings[tradeSymbol];
-      if (!h || h.shares < shares) { setError(`You own ${h?.shares ?? 0} shares of ${tradeSymbol}`); return; }
+      if (!h || h.shares < shares) { setError(`You own ${fmtQty(h?.shares ?? 0)} of ${tradeSymbol}`); return; }
     }
     setShowConfirm(true);
   }
@@ -544,7 +557,7 @@ export default function PaperTrading({ onSelect }: Props) {
       const orderLabel = orderType === "market" ? "" : ` (${ORDER_TYPES.find(o => o.key === orderType)?.label})`;
       const recurLabel = buyMode === "recurring" ? ` — ${recurringFreq} recurring` : "";
       setSuccess(
-        `${tradeType === "buy" ? "Bought" : "Sold"} ${shares.toLocaleString()} shares of ${tradeSymbol} at $${price.toFixed(2)}${orderLabel}${recurLabel}${marketClosed ? " · filled at last close (market closed)" : ""}`
+        `${tradeType === "buy" ? "Bought" : "Sold"} ${fmtQty(shares)} ${tradeSymbol} at $${price.toFixed(2)}${orderLabel}${recurLabel}${marketClosed ? " · filled at last close (market closed)" : ""}`
       );
       setTradeShares("");
       setDollarAmount("");
@@ -748,7 +761,7 @@ export default function PaperTrading({ onSelect }: Props) {
                           </div>
                           <div>
                             <p className="text-sm font-bold">{symbol}</p>
-                            <p className="text-xs text-[var(--color-text-muted)]">{h.shares.toLocaleString()} shares</p>
+                            <p className="text-xs text-[var(--color-text-muted)]">{fmtQty(h.shares)} units</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -976,7 +989,7 @@ export default function PaperTrading({ onSelect }: Props) {
                     </p>
                   )}
                   {tradeType === "sell" && portfolio.holdings[tradeSymbol] && (
-                    <p className="text-[10px] text-[var(--color-text-muted)]">{portfolio.holdings[tradeSymbol].shares} shares owned</p>
+                    <p className="text-[10px] text-[var(--color-text-muted)]">{fmtQty(portfolio.holdings[tradeSymbol].shares)} owned</p>
                   )}
                 </div>
                 <button onClick={() => { setTradeSymbol(""); setSearchQuery(""); setTradePrice(""); }} className="text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]">
@@ -1114,7 +1127,7 @@ export default function PaperTrading({ onSelect }: Props) {
                       </div>
                       {parseFloat(dollarAmount) > 0 && parseFloat(tradePrice) > 0 && (
                         <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
-                          ≈ {Math.floor(parseFloat(dollarAmount) / parseFloat(tradePrice)).toLocaleString()} shares at ${parseFloat(tradePrice).toFixed(2)}
+                          ≈ {fmtQty(resolvedShares)} units at ${parseFloat(tradePrice).toFixed(2)}
                         </p>
                       )}
                     </>
@@ -1521,7 +1534,7 @@ export default function PaperTrading({ onSelect }: Props) {
                           </span>
                         </div>
                         <p className="text-xs text-[var(--color-text-muted)]">
-                          {trade.shares.toLocaleString()} shares · ${trade.price.toFixed(2)}
+                          {fmtQty(trade.shares)} · ${trade.price.toFixed(2)}
                         </p>
                       </div>
                     </div>
