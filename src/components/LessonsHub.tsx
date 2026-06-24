@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { LESSONS, type Lesson } from "@/lib/lessons-data";
 import {
   BookOpen,
@@ -121,6 +121,13 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
   const [progress, setProgress] = useState<Record<string, string[]>>({});
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
   const [activeSection, setActiveSection] = useState(0);
+  const lessonTopRef = useRef<HTMLDivElement>(null);
+
+  // Snap the reader to a consistent position when you move between sections, so
+  // clicking Next/Back doesn't leave you scrolled mid-page hunting for the text.
+  useEffect(() => {
+    lessonTopRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [activeSection, activeLesson]);
 
   useEffect(() => {
     setProgress(loadProgress());
@@ -224,7 +231,7 @@ export default function LessonsHub({ onNavigateToQuiz, onNavigateToCerts, openLe
     const isLast = idx === total - 1;
 
     return (
-      <div className="max-w-3xl mx-auto animate-fade-in-up">
+      <div ref={lessonTopRef} className="max-w-3xl mx-auto animate-fade-in-up scroll-mt-24">
         {/* Back button */}
         <button
           onClick={() => { setActiveLesson(null); setActiveSection(0); }}

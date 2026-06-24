@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ChevronRight,
   ChevronLeft,
@@ -56,10 +56,18 @@ export default function FinanceQuiz() {
   const [results, setResults] = useState<QuizResult[]>([]);
   const [startTime, setStartTime] = useState(0);
   const [streak, setStreak] = useState(0);
+  const topRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setResults(getQuizResults());
   }, []);
+
+  // Keep the view steady: when the question changes, the quiz starts, or it
+  // finishes, snap the quiz card back to a consistent spot instead of leaving
+  // the user scrolled wherever the previous (longer/shorter) question left them.
+  useEffect(() => {
+    topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [currentQ, finished, activeSection]);
 
   function startQuiz(section: QuizSection) {
     setActiveSection(section);
@@ -134,7 +142,7 @@ export default function FinanceQuiz() {
     const secs = elapsed % 60;
 
     return (
-      <div className="max-w-2xl mx-auto">
+      <div ref={topRef} className="max-w-2xl mx-auto scroll-mt-24">
         <div className="bg-white border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
           <div className={`p-8 text-center ${pct >= 70 ? "bg-gradient-to-b from-[var(--color-positive)]/5 to-transparent" : "bg-gradient-to-b from-[var(--color-gold)]/5 to-transparent"}`}>
             <div className="w-20 h-20 rounded-full bg-white border-4 border-[var(--color-border)] flex items-center justify-center mx-auto mb-4 shadow-lg">
@@ -211,7 +219,7 @@ export default function FinanceQuiz() {
     const progress = ((currentQ + (answered ? 1 : 0)) / activeSection.questions.length) * 100;
 
     return (
-      <div className="max-w-2xl mx-auto">
+      <div ref={topRef} className="max-w-2xl mx-auto scroll-mt-24">
         <div className="flex items-center justify-between mb-6">
           <button
             onClick={() => { setActiveSection(null); setFinished(false); }}
