@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { DEMO_NEWS_AAPL, DEMO_NEWS_GENERAL } from "@/lib/demo-news";
 import { Newspaper, ExternalLink, Clock, ChevronRight } from "lucide-react";
 
 interface Article {
@@ -66,11 +65,12 @@ export default function NewsFeed({ symbol }: Props) {
         setArticles(json.articles);
         setIsLive(true);
       } else {
-        setArticles(symbol ? DEMO_NEWS_AAPL : DEMO_NEWS_GENERAL);
+        // No live headlines right now — show an honest empty state, never fake news.
+        setArticles([]);
         setIsLive(false);
       }
     } catch {
-      setArticles(symbol ? DEMO_NEWS_AAPL : DEMO_NEWS_GENERAL);
+      setArticles([]);
       setIsLive(false);
     } finally {
       if (!background) setLoading(false);
@@ -109,6 +109,14 @@ export default function NewsFeed({ symbol }: Props) {
       {loading ? (
         <div className="p-8 flex items-center justify-center">
           <div className="w-5 h-5 border-2 border-[var(--color-brand)] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : articles.length === 0 ? (
+        <div className="p-8 text-center">
+          <Newspaper size={24} className="mx-auto mb-2 text-[var(--color-text-muted)] opacity-40" />
+          <p className="text-sm text-[var(--color-text-secondary)]">No fresh headlines right now.</p>
+          <p className="text-xs text-[var(--color-text-muted)] mt-1">
+            Live news refreshes every few minutes — check back shortly.
+          </p>
         </div>
       ) : (
         <div>

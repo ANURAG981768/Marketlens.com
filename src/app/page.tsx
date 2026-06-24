@@ -3,8 +3,6 @@
 import { useState, useCallback, useEffect } from "react";
 import type { StockData } from "@/lib/types";
 import { getUSMarketStatus } from "@/lib/market-hours";
-import { DEMO_DATA } from "@/lib/demo-data";
-import { DEMO_PEERS } from "@/lib/demo-peers";
 import SearchBar from "@/components/SearchBar";
 import StockHeader from "@/components/StockHeader";
 import StockDetailSkeleton from "@/components/StockDetailSkeleton";
@@ -213,18 +211,16 @@ export default function Home() {
 
   const refresh = () => setRefreshKey((k) => k + 1);
 
-  const fetchPeers = useCallback(async (symbol: string, demo: boolean) => {
-    if (demo) {
-      setPeers(DEMO_PEERS.peers);
-      return;
-    }
+  const fetchPeers = useCallback(async (symbol: string) => {
+    // Only ever show real peer data — never a fabricated fallback. If the peer
+    // feed is unavailable, the peer sections simply hide (peers stays null).
     try {
       const res = await fetch(`/api/peers?symbol=${encodeURIComponent(symbol)}`);
       const json = await res.json();
-      if (json.error === "demo") {
-        setPeers(DEMO_PEERS.peers);
-      } else if (json.peers) {
+      if (json.peers && Array.isArray(json.peers) && json.peers.length > 0) {
         setPeers(json.peers);
+      } else {
+        setPeers(null);
       }
     } catch {
       setPeers(null);
@@ -260,7 +256,7 @@ export default function Home() {
         }
 
         setData(json);
-        fetchPeers(symbol, false);
+        fetchPeers(symbol);
       } catch {
         setError("Network issue — please check your connection and try again.");
       } finally {
