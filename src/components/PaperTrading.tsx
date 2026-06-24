@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { getUSMarketStatus, type MarketStatus } from "@/lib/market-hours";
+import { useAuth } from "@/lib/auth-context";
 import {
   getPaperPortfolio,
   paperBuy,
@@ -67,6 +68,7 @@ const ORDER_TYPES: { key: OrderType; label: string; desc: string }[] = [
 ];
 
 export default function PaperTrading({ onSelect }: Props) {
+  const { user, cloudEnabled } = useAuth();
   const [portfolio, setPortfolio] = useState<PaperPortfolio | null>(null);
   const [activeTab, setActiveTab] = useState<TradeTab>("portfolio");
   const [tradeSymbol, setTradeSymbol] = useState("");
@@ -535,6 +537,23 @@ export default function PaperTrading({ onSelect }: Props) {
 
   return (
     <div className="space-y-5">
+      {/* Account binding — make it clear who this portfolio belongs to */}
+      {cloudEnabled && !user && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-[var(--color-gold)]/30 bg-[var(--color-gold)]/8 px-4 py-3">
+          <Wallet size={15} className="mt-0.5 shrink-0 text-[var(--color-gold)]" />
+          <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+            <span className="font-semibold text-[var(--color-text-primary)]">This portfolio is saved on this device only.</span>{" "}
+            Create a free account (<span className="font-medium">Sign in</span>, top-right) to secure it to you and pick up your holdings on any device.
+          </p>
+        </div>
+      )}
+      {cloudEnabled && user && (
+        <div className="flex items-center gap-2 text-[11px] text-[var(--color-positive)]">
+          <CheckCircle2 size={13} className="shrink-0" />
+          Secured to {(user.user_metadata?.display_name as string) || user.email} · synced across your devices
+        </div>
+      )}
+
       {/* Queued-order fill notice (shown when the open clears the queue) */}
       {pendingNotice && (
         <div className="flex items-start gap-2 rounded-xl border border-[var(--color-brand)]/25 bg-[var(--color-brand)]/8 px-4 py-3 text-sm text-[var(--color-text-secondary)]">
