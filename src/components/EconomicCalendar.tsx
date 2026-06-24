@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Calendar,
   TrendingUp,
@@ -16,8 +16,6 @@ import {
   Activity,
   DollarSign,
   Building2,
-  ShoppingCart,
-  Users,
   Factory,
   Landmark,
 } from "lucide-react";
@@ -48,14 +46,6 @@ interface EconomicEvent {
   sectorsAffected: string[];
 }
 
-interface IndicatorCard {
-  name: string;
-  value: string;
-  previous: string;
-  trend: "up" | "down";
-  explanation: string;
-  icon: React.ReactNode;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Demo data — economic events                                        */
@@ -374,72 +364,34 @@ const DEMO_EVENTS: EconomicEvent[] = [
 /*  Key indicator cards                                                */
 /* ------------------------------------------------------------------ */
 
-const KEY_INDICATORS: IndicatorCard[] = [
-  {
-    name: "GDP Growth Rate",
-    value: "2.4%",
-    previous: "3.4%",
-    trend: "down",
-    explanation: "Economy growing but slowing from Q4 pace",
-    icon: <BarChart3 className="w-4 h-4" />,
-  },
-  {
-    name: "Inflation (CPI)",
-    value: "3.2%",
-    previous: "3.4%",
-    trend: "down",
-    explanation: "Prices still rising faster than Fed's 2% target",
-    icon: <TrendingUp className="w-4 h-4" />,
-  },
-  {
-    name: "Unemployment",
-    value: "3.8%",
-    previous: "3.9%",
-    trend: "down",
-    explanation: "Labor market remains tight near historic lows",
-    icon: <Users className="w-4 h-4" />,
-  },
-  {
-    name: "Fed Funds Rate",
-    value: "5.25-5.50%",
-    previous: "5.25-5.50%",
-    trend: "up",
-    explanation: "Highest level since 2001, held steady since July 2023",
-    icon: <Landmark className="w-4 h-4" />,
-  },
-  {
-    name: "10Y Treasury Yield",
-    value: "4.28%",
-    previous: "4.51%",
-    trend: "down",
-    explanation: "Benchmark rate for mortgages and corporate borrowing",
-    icon: <DollarSign className="w-4 h-4" />,
-  },
-  {
-    name: "Consumer Confidence",
-    value: "102.3",
-    previous: "97.0",
-    trend: "up",
-    explanation: "Households cautiously optimistic about conditions",
-    icon: <ShoppingCart className="w-4 h-4" />,
-  },
-  {
-    name: "PMI Manufacturing",
-    value: "51.2",
-    previous: "50.3",
-    trend: "up",
-    explanation: "Above 50 = expansion; factory activity slightly growing",
-    icon: <Factory className="w-4 h-4" />,
-  },
-  {
-    name: "Retail Sales Growth",
-    value: "0.4%",
-    previous: "0.0%",
-    trend: "up",
-    explanation: "Monthly consumer spending rebounded modestly",
-    icon: <ShoppingCart className="w-4 h-4" />,
-  },
-];
+// Live macro indicators come from /api/macro (real Yahoo data). We map each to
+// an icon by its symbol. No hardcoded CPI/GDP/Fed-funds figures we can't verify.
+interface LiveMacro {
+  name: string;
+  symbol: string;
+  value: number;
+  change: number;
+  changePct: number;
+  unit: "%" | "$" | "pt";
+  decimals: number;
+  explanation: string;
+}
+
+const MACRO_ICON: Record<string, React.ReactNode> = {
+  "^TNX": <Landmark className="w-4 h-4" />,
+  "^TYX": <Landmark className="w-4 h-4" />,
+  "^IRX": <Building2 className="w-4 h-4" />,
+  "^VIX": <Activity className="w-4 h-4" />,
+  "DX-Y.NYB": <DollarSign className="w-4 h-4" />,
+  "GC=F": <BarChart3 className="w-4 h-4" />,
+  "CL=F": <Factory className="w-4 h-4" />,
+};
+
+function formatMacro(m: LiveMacro): string {
+  if (m.unit === "%") return `${m.value.toFixed(m.decimals)}%`;
+  if (m.unit === "$") return `$${m.value.toLocaleString("en-US", { maximumFractionDigits: m.decimals })}`;
+  return m.value.toFixed(m.decimals);
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -456,18 +408,6 @@ function getImpactColor(impact: Impact): string {
   }
 }
 
-function getOutcomeStyle(outcome: Outcome): { label: string; color: string } | null {
-  if (!outcome) return null;
-  switch (outcome) {
-    case "Beat":
-      return { label: "Beat", color: "text-[var(--color-positive)]" };
-    case "Miss":
-      return { label: "Miss", color: "text-[var(--color-negative)]" };
-    case "In-Line":
-      return { label: "In-Line", color: "text-[var(--color-text-muted)]" };
-  }
-}
-
 function formatEventDate(dateStr: string): string {
   const d = new Date(dateStr + "T12:00:00");
   return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -475,7 +415,7 @@ function formatEventDate(dateStr: string): string {
 
 function isEventInRange(event: EconomicEvent, filter: TimeFilter): boolean {
   const eventDate = new Date(event.date + "T12:00:00");
-  const now = new Date("2025-06-20T12:00:00"); // anchored demo date
+  const now = new Date(); // real current date — events are rebased to this month
   const dayOfWeek = now.getDay();
   const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
 
@@ -521,7 +461,9 @@ function rebaseEvents(events: EconomicEvent[]): EconomicEvent[] {
     const origDay = parseInt(e.date.split("-")[2], 10) || 1;
     const day = Math.min(origDay, daysInMonth);
     const dateStr = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return { ...e, date: dateStr, actual: null, outcome: null };
+    // Strip every fabricated figure (previous/forecast/actual/outcome). We keep
+    // only the real release cadence and the educational context — never invented numbers.
+    return { ...e, date: dateStr, previous: "", forecast: "", actual: null, outcome: null };
   });
 }
 
@@ -539,6 +481,25 @@ export default function EconomicCalendar() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("this-month");
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [showBanner, setShowBanner] = useState(true);
+  const [macro, setMacro] = useState<LiveMacro[]>([]);
+
+  // Live macro indicators (Treasury yields, VIX, dollar, gold, oil) from Yahoo.
+  useEffect(() => {
+    let active = true;
+    const load = () =>
+      fetch("/api/macro")
+        .then((r) => r.json())
+        .then((j) => {
+          if (active && Array.isArray(j.indicators)) setMacro(j.indicators as LiveMacro[]);
+        })
+        .catch(() => {});
+    load();
+    const id = setInterval(load, 120000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, []);
 
   const filteredEvents = SCHEDULED_EVENTS.filter((e) => isEventInRange(e, timeFilter)).sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -631,7 +592,6 @@ export default function EconomicCalendar() {
         ) : (
           filteredEvents.map((event) => {
             const isExpanded = expandedEvent === event.id;
-            const outcomeStyle = getOutcomeStyle(event.outcome);
 
             return (
               <div key={event.id} className="transition-colors">
@@ -678,57 +638,14 @@ export default function EconomicCalendar() {
                       </div>
                     </div>
 
-                    {/* Right side: values */}
+                    {/* Right side: expand chevron */}
                     <div className="flex items-center gap-4 shrink-0">
-                      <div className="hidden sm:flex items-center gap-3 text-xs">
-                        <div className="text-center">
-                          <div className="text-[var(--color-text-muted)] mb-0.5">Prev</div>
-                          <div className="font-medium text-[var(--color-text-secondary)]">
-                            {event.previous}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-[var(--color-text-muted)] mb-0.5">Forecast</div>
-                          <div className="font-medium text-[var(--color-text-secondary)]">
-                            {event.forecast}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-[var(--color-text-muted)] mb-0.5">Actual</div>
-                          <div className="font-medium text-[var(--color-text-primary)]">
-                            {event.actual ?? "—"}
-                          </div>
-                        </div>
-                        {outcomeStyle && (
-                          <span className={`text-xs font-bold ${outcomeStyle.color}`}>
-                            {outcomeStyle.label}
-                          </span>
-                        )}
-                      </div>
                       {isExpanded ? (
                         <ChevronUp className="w-4 h-4 text-[var(--color-text-muted)]" />
                       ) : (
                         <ChevronDown className="w-4 h-4 text-[var(--color-text-muted)]" />
                       )}
                     </div>
-                  </div>
-
-                  {/* Mobile values row */}
-                  <div className="flex sm:hidden items-center gap-3 mt-2 ml-[5.75rem] text-xs">
-                    <span className="text-[var(--color-text-muted)]">
-                      Prev: <span className="text-[var(--color-text-secondary)]">{event.previous}</span>
-                    </span>
-                    <span className="text-[var(--color-text-muted)]">
-                      Fcst: <span className="text-[var(--color-text-secondary)]">{event.forecast}</span>
-                    </span>
-                    <span className="text-[var(--color-text-muted)]">
-                      Act: <span className="text-[var(--color-text-primary)]">{event.actual ?? "—"}</span>
-                    </span>
-                    {outcomeStyle && (
-                      <span className={`font-bold ${outcomeStyle.color}`}>
-                        {outcomeStyle.label}
-                      </span>
-                    )}
                   </div>
                 </button>
 
@@ -803,50 +720,66 @@ export default function EconomicCalendar() {
         )}
       </div>
 
-      {/* ── Key Indicators Dashboard ── */}
+      {/* ── Key Indicators Dashboard (live market-based macro data) ── */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Globe className="w-5 h-5 text-[var(--color-brand)]" />
-          <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
-            Key Economic Indicators
-          </h3>
+        <div className="flex items-center justify-between gap-2 mb-4 flex-wrap">
+          <div className="flex items-center gap-2">
+            <Globe className="w-5 h-5 text-[var(--color-brand)]" />
+            <h3 className="text-base font-semibold text-[var(--color-text-primary)]">
+              Key Market Indicators
+            </h3>
+          </div>
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" /> LIVE · Yahoo Finance
+          </span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {KEY_INDICATORS.map((indicator) => (
-            <div
-              key={indicator.name}
-              className="bg-white border border-[var(--color-border)] rounded-xl p-4 hover:shadow-sm transition-shadow"
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
-                  {indicator.name}
-                </span>
-                <span className="text-[var(--color-text-muted)]">{indicator.icon}</span>
-              </div>
+        {macro.length === 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="bg-white border border-[var(--color-border)] rounded-xl p-4 h-28 animate-pulse" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {macro.map((m) => {
+              const up = m.changePct >= 0;
+              return (
+                <div
+                  key={m.symbol}
+                  className="bg-white border border-[var(--color-border)] rounded-xl p-4 hover:shadow-sm transition-shadow"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-[var(--color-text-muted)] uppercase tracking-wide">
+                      {m.name}
+                    </span>
+                    <span className="text-[var(--color-text-muted)]">{MACRO_ICON[m.symbol]}</span>
+                  </div>
 
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-xl font-bold text-[var(--color-text-primary)]">
-                  {indicator.value}
-                </span>
-                <div className="flex items-center gap-1 pb-0.5">
-                  {indicator.trend === "up" ? (
-                    <TrendingUp className="w-3.5 h-3.5 text-[var(--color-positive)]" />
-                  ) : (
-                    <TrendingDown className="w-3.5 h-3.5 text-[var(--color-negative)]" />
-                  )}
-                  <span className="text-xs text-[var(--color-text-muted)]">
-                    from {indicator.previous}
-                  </span>
+                  <div className="flex items-end gap-2 mb-1">
+                    <span className="text-xl font-bold text-[var(--color-text-primary)]">
+                      {formatMacro(m)}
+                    </span>
+                    <div className="flex items-center gap-1 pb-0.5">
+                      {up ? (
+                        <TrendingUp className="w-3.5 h-3.5 text-[var(--color-positive)]" />
+                      ) : (
+                        <TrendingDown className="w-3.5 h-3.5 text-[var(--color-negative)]" />
+                      )}
+                      <span className={`text-xs font-medium ${up ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}>
+                        {up ? "+" : ""}{m.changePct.toFixed(2)}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
+                    {m.explanation}
+                  </p>
                 </div>
-              </div>
-
-              <p className="text-xs text-[var(--color-text-muted)] leading-relaxed">
-                {indicator.explanation}
-              </p>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
