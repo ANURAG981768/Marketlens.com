@@ -22,6 +22,7 @@ import WatchlistButton from "@/components/WatchlistButton";
 import AddToPortfolio from "@/components/AddToPortfolio";
 import WatchlistPanel from "@/components/WatchlistPanel";
 import PriceAlerts from "@/components/PriceAlerts";
+import Leaderboard from "@/components/Leaderboard";
 import PortfolioPanel from "@/components/PortfolioPanel";
 import StockScreener from "@/components/StockScreener";
 import MarketOverview from "@/components/MarketOverview";
@@ -72,6 +73,7 @@ import {
   BookText,
   BookMarked,
   Medal,
+  Trophy,
   Scale,
   Calculator,
   ChevronRight,
@@ -127,7 +129,7 @@ const CRYPTO_DEFAULTS = [
   { symbol: "LINK-USD", name: "Chainlink", price: "7.88", change: "-0.33%", positive: false },
 ];
 
-type Tab = "home" | "watchlist" | "portfolio" | "screener" | "market" | "earnings" | "paper" | "quiz" | "glossary" | "journal" | "achievements" | "lessons" | "compare" | "calculator" | "heatmap" | "transcripts" | "economy" | "analytics" | "ratios" | "certificates";
+type Tab = "home" | "watchlist" | "portfolio" | "screener" | "market" | "earnings" | "paper" | "quiz" | "glossary" | "journal" | "achievements" | "lessons" | "compare" | "calculator" | "heatmap" | "transcripts" | "economy" | "analytics" | "ratios" | "certificates" | "leaderboard";
 
 export default function Home() {
   const [data, setData] = useState<StockData | null>(null);
@@ -284,6 +286,7 @@ export default function Home() {
     { key: "paper", label: "Trade", icon: DollarSign },
     { key: "watchlist", label: "Watchlist", icon: Star },
     { key: "portfolio", label: "Portfolio", icon: Briefcase },
+    { key: "leaderboard", label: "Leaderboard", icon: Trophy },
     { key: "analytics", label: "Analytics", icon: Shield },
     { key: "lessons", label: "Lessons", icon: BookMarked },
     { key: "quiz", label: "Quiz", icon: GraduationCap },
@@ -702,6 +705,13 @@ export default function Home() {
         {activeTab === "achievements" && (
           <div className="animate-fade-in-up">
             <Achievements />
+          </div>
+        )}
+
+        {/* Leaderboard Tab */}
+        {activeTab === "leaderboard" && (
+          <div className="animate-fade-in-up">
+            <Leaderboard />
           </div>
         )}
 
