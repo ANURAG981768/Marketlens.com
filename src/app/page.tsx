@@ -22,6 +22,7 @@ import WatchlistButton from "@/components/WatchlistButton";
 import AddToPortfolio from "@/components/AddToPortfolio";
 import WatchlistPanel from "@/components/WatchlistPanel";
 import SectionBanner from "@/components/SectionBanner";
+import SafeSection from "@/components/SafeSection";
 import PriceAlerts from "@/components/PriceAlerts";
 import Leaderboard from "@/components/Leaderboard";
 import PortfolioPanel from "@/components/PortfolioPanel";
@@ -702,7 +703,9 @@ export default function Home() {
         {/* Paper Trading Tab */}
         {activeTab === "paper" && (
           <div className="max-w-4xl mx-auto animate-fade-in-up">
-            <PaperTrading onSelect={fetchStock} />
+            <SafeSection label="paper trading">
+              <PaperTrading onSelect={fetchStock} />
+            </SafeSection>
           </div>
         )}
 
@@ -1252,13 +1255,15 @@ export default function Home() {
 
                 {/* Row 1: Price chart + technicals (left) · stats + about (right) */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-                  <div className="lg:col-span-2 space-y-6">
-                    <PriceChart history={data.history} symbol={data.profile.symbol} />
-                    <TechnicalIndicators
-                      history={data.history}
-                      currentPrice={data.quote.price}
-                    />
-                  </div>
+                  <SafeSection label="the charts">
+                    <div className="lg:col-span-2 space-y-6">
+                      <PriceChart history={data.history} symbol={data.profile.symbol} />
+                      <TechnicalIndicators
+                        history={data.history}
+                        currentPrice={data.quote.price}
+                      />
+                    </div>
+                  </SafeSection>
                   <div className="space-y-6">
                     <QuickStats data={data} />
                     <CompanyOverview profile={data.profile} />
@@ -1267,11 +1272,13 @@ export default function Home() {
 
                 {/* Row 2: AI Analysis + Score card + Margin trend (equities only) */}
                 {hasFinancials && (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <AIAnalyst data={data} />
-                    <ScoreCard data={data} />
-                    <MarginTrend income={data.income} />
-                  </div>
+                  <SafeSection label="the analysis">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <AIAnalyst data={data} />
+                      <ScoreCard data={data} />
+                      <MarginTrend income={data.income} />
+                    </div>
+                  </SafeSection>
                 )}
 
                 {/* Key Metrics (equities only) */}
@@ -1279,22 +1286,26 @@ export default function Home() {
 
                 {/* DCF Valuation Model + Dividend Analysis (equities only) */}
                 {hasFinancials && (
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2">
-                      <DCFModel data={data} />
+                  <SafeSection label="the valuation model">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      <div className="lg:col-span-2">
+                        <DCFModel data={data} />
+                      </div>
+                      <DividendHistory data={data} />
                     </div>
-                    <DividendHistory data={data} />
-                  </div>
+                  </SafeSection>
                 )}
 
                 {/* Row 3: Revenue + Peer Benchmark bar chart (equities only) */}
                 {hasFinancials && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <RevenueChart income={data.income} />
-                    {peers && peers.length > 1 && (
-                      <PeerBarChart peers={peers} />
-                    )}
-                  </div>
+                  <SafeSection label="the financial charts">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <RevenueChart income={data.income} />
+                      {peers && peers.length > 1 && (
+                        <PeerBarChart peers={peers} />
+                      )}
+                    </div>
+                  </SafeSection>
                 )}
 
                 {/* Stock News */}
@@ -1302,11 +1313,17 @@ export default function Home() {
 
                 {/* Peer Comparison Table */}
                 {peers && peers.length > 1 && (
-                  <PeerComparison peers={peers} />
+                  <SafeSection label="the peer comparison">
+                    <PeerComparison peers={peers} />
+                  </SafeSection>
                 )}
 
                 {/* Income Statement (equities only) */}
-                {hasFinancials && <FinancialTable income={data.income} />}
+                {hasFinancials && (
+                  <SafeSection label="the income statement">
+                    <FinancialTable income={data.income} />
+                  </SafeSection>
+                )}
 
                 {/* Data attribution — credibility */}
                 <p className="text-[11px] text-[var(--color-text-muted)] text-center pt-2 pb-1 leading-relaxed">
