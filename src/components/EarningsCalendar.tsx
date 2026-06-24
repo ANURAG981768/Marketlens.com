@@ -12,21 +12,6 @@ interface EarningsEvent {
   revenueEstimate: string | null;
 }
 
-const DEMO_EARNINGS: EarningsEvent[] = [
-  { symbol: "AAPL", company: "Apple Inc.", date: "2026-07-30", time: "AMC", epsEstimate: 1.35, revenueEstimate: "$85.2B" },
-  { symbol: "MSFT", company: "Microsoft Corp.", date: "2026-07-22", time: "AMC", epsEstimate: 3.22, revenueEstimate: "$64.8B" },
-  { symbol: "GOOGL", company: "Alphabet Inc.", date: "2026-07-22", time: "AMC", epsEstimate: 2.01, revenueEstimate: "$88.3B" },
-  { symbol: "AMZN", company: "Amazon.com", date: "2026-07-31", time: "AMC", epsEstimate: 1.14, revenueEstimate: "$158.2B" },
-  { symbol: "META", company: "Meta Platforms", date: "2026-07-23", time: "AMC", epsEstimate: 5.12, revenueEstimate: "$42.1B" },
-  { symbol: "NVDA", company: "NVIDIA Corp.", date: "2026-08-27", time: "AMC", epsEstimate: 0.82, revenueEstimate: "$37.5B" },
-  { symbol: "TSLA", company: "Tesla Inc.", date: "2026-07-23", time: "AMC", epsEstimate: 0.62, revenueEstimate: "$25.8B" },
-  { symbol: "JPM", company: "JPMorgan Chase", date: "2026-07-15", time: "BMO", epsEstimate: 4.56, revenueEstimate: "$42.8B" },
-  { symbol: "V", company: "Visa Inc.", date: "2026-07-22", time: "AMC", epsEstimate: 2.42, revenueEstimate: "$9.2B" },
-  { symbol: "JNJ", company: "Johnson & Johnson", date: "2026-07-15", time: "BMO", epsEstimate: 2.78, revenueEstimate: "$22.5B" },
-  { symbol: "WMT", company: "Walmart Inc.", date: "2026-08-15", time: "BMO", epsEstimate: 0.65, revenueEstimate: "$168.5B" },
-  { symbol: "PG", company: "Procter & Gamble", date: "2026-07-29", time: "BMO", epsEstimate: 1.37, revenueEstimate: "$21.4B" },
-];
-
 const TIME_LABELS: Record<string, string> = {
   BMO: "Before Market Open",
   AMC: "After Market Close",
@@ -45,8 +30,9 @@ interface Props {
 
 export default function EarningsCalendar({ onSelect }: Props) {
   const [weekOffset, setWeekOffset] = useState(0);
-  const [earnings, setEarnings] = useState<EarningsEvent[]>(DEMO_EARNINGS);
+  const [earnings, setEarnings] = useState<EarningsEvent[]>([]);
   const [isLive, setIsLive] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     fetch("/api/earnings")
@@ -57,7 +43,8 @@ export default function EarningsCalendar({ onSelect }: Props) {
           setIsLive(true);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoaded(true));
   }, []);
 
   const today = new Date();
@@ -108,6 +95,13 @@ export default function EarningsCalendar({ onSelect }: Props) {
           {isLive ? "Real earnings dates & analyst estimates via Yahoo Finance." : "Track upcoming earnings releases for major companies."}
         </p>
       </div>
+
+      {loaded && earnings.length === 0 && (
+        <div className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-[var(--color-surface-card)] border border-[var(--color-border)] text-sm text-[var(--color-text-secondary)]">
+          <Calendar size={14} className="text-[var(--color-text-muted)] shrink-0" />
+          Live earnings data is temporarily unavailable — please check back shortly.
+        </div>
+      )}
 
       {/* Week Navigator */}
       <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-4">

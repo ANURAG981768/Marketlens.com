@@ -6,21 +6,22 @@ import { TrendingUp, TrendingDown, Activity, Globe } from "lucide-react";
 interface SectorData {
   name: string;
   change: number;
-  marketCap: string;
 }
 
-const DEMO_SECTORS: SectorData[] = [
-  { name: "Technology", change: 1.42, marketCap: "$16.8T" },
-  { name: "Healthcare", change: -0.38, marketCap: "$7.2T" },
-  { name: "Financial", change: 0.89, marketCap: "$9.1T" },
-  { name: "Consumer Cyclical", change: 0.56, marketCap: "$5.8T" },
-  { name: "Communication", change: 1.15, marketCap: "$4.3T" },
-  { name: "Industrials", change: 0.23, marketCap: "$5.4T" },
-  { name: "Consumer Defensive", change: -0.12, marketCap: "$3.9T" },
-  { name: "Energy", change: -1.05, marketCap: "$3.2T" },
-  { name: "Real Estate", change: -0.67, marketCap: "$1.4T" },
-  { name: "Utilities", change: 0.31, marketCap: "$1.6T" },
-  { name: "Basic Materials", change: -0.45, marketCap: "$1.8T" },
+// Real GICS sector names only — performance is filled in live from /api/sectors.
+// No fabricated change or market-cap figures.
+const SECTOR_NAMES: SectorData[] = [
+  { name: "Technology", change: 0 },
+  { name: "Healthcare", change: 0 },
+  { name: "Financial", change: 0 },
+  { name: "Consumer Cyclical", change: 0 },
+  { name: "Communication", change: 0 },
+  { name: "Industrials", change: 0 },
+  { name: "Consumer Defensive", change: 0 },
+  { name: "Energy", change: 0 },
+  { name: "Real Estate", change: 0 },
+  { name: "Utilities", change: 0 },
+  { name: "Basic Materials", change: 0 },
 ];
 
 interface IndexData {
@@ -55,7 +56,8 @@ const GLOBAL_INDICES: IndexData[] = [
 ];
 
 export default function MarketOverview() {
-  const [sectors, setSectors] = useState(DEMO_SECTORS);
+  const [sectors, setSectors] = useState(SECTOR_NAMES);
+  const [sectorsLive, setSectorsLive] = useState(false);
   const [regionFilter, setRegionFilter] = useState<string>("all");
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export default function MarketOverview() {
               return live ? { ...s, change: live.change } : s;
             })
           );
+          setSectorsLive(true);
         })
         .catch(() => {});
     }
@@ -79,8 +82,8 @@ export default function MarketOverview() {
     const interval = setInterval(loadSectors, 60000);
     return () => clearInterval(interval);
   }, []);
-  const [usIndices, setUsIndices] = useState<IndexData[]>(US_INDICES);
-  const [globalIndices, setGlobalIndices] = useState<IndexData[]>(GLOBAL_INDICES);
+  const [usIndices, setUsIndices] = useState<IndexData[]>([]);
+  const [globalIndices, setGlobalIndices] = useState<IndexData[]>([]);
   const [isLive, setIsLive] = useState(false);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
@@ -166,6 +169,10 @@ export default function MarketOverview() {
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">US Markets</h3>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {usIndices.length === 0 &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={`sk-${i}`} className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-4 h-[88px] animate-pulse" />
+            ))}
           {usIndices.map((idx) => (
             <div
               key={idx.name}
@@ -218,6 +225,10 @@ export default function MarketOverview() {
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5">
+          {globalIndices.length === 0 &&
+            Array.from({ length: 8 }).map((_, i) => (
+              <div key={`gsk-${i}`} className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-3.5 h-[68px] animate-pulse" />
+            ))}
           {filteredGlobal.map((idx) => (
             <div
               key={idx.name}
@@ -262,19 +273,21 @@ export default function MarketOverview() {
               <p className="text-xs font-semibold text-[var(--color-text-primary)] truncate">
                 {s.name}
               </p>
-              <p
-                className={`text-base font-bold tabular-nums mt-1 ${
-                  s.change >= 0
-                    ? "text-[var(--color-positive)]"
-                    : "text-[var(--color-negative)]"
-                }`}
-              >
-                {s.change >= 0 ? "+" : ""}
-                {s.change.toFixed(2)}%
-              </p>
-              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">
-                {s.marketCap}
-              </p>
+              {sectorsLive ? (
+                <p
+                  className={`text-base font-bold tabular-nums mt-1 ${
+                    s.change >= 0
+                      ? "text-[var(--color-positive)]"
+                      : "text-[var(--color-negative)]"
+                  }`}
+                >
+                  {s.change >= 0 ? "+" : ""}
+                  {s.change.toFixed(2)}%
+                </p>
+              ) : (
+                <p className="text-base font-bold tabular-nums mt-1 text-[var(--color-text-muted)]">—</p>
+              )}
+              <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">Today</p>
             </div>
           ))}
         </div>
