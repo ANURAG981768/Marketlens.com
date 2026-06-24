@@ -92,7 +92,7 @@ function parseRss(xml: string, fallbackSymbol: string): Article[] {
 
 export async function GET(req: NextRequest) {
   const symbol = req.nextUrl.searchParams.get("symbol")?.toUpperCase().trim();
-  const tickers = symbol && /^[A-Z.\-]{1,8}$/.test(symbol) ? symbol : MARKET_TICKERS;
+  const tickers = symbol && /^[A-Z0-9.=^-]{1,15}$/.test(symbol) ? symbol : MARKET_TICKERS;
 
   const url = `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(
     tickers

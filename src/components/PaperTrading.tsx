@@ -21,6 +21,7 @@ import {
   Share2,
   Award,
   Layers,
+  Coins,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import { getUSMarketStatus, type MarketStatus } from "@/lib/market-hours";
@@ -43,6 +44,20 @@ interface Props {
 
 type TradeTab = "portfolio" | "trade" | "history" | "analytics";
 type OrderType = "market" | "limit" | "stop" | "stop_limit" | "trailing_stop";
+
+// Curated commodities + forex so users can tap into them without knowing the
+// Yahoo ticker (CL=F, EURUSD=X …). They search, quote and trade exactly like
+// stocks now that the symbol rules accept "=" instruments.
+const QUICK_INSTRUMENTS: SearchItem[] = [
+  { symbol: "CL=F", name: "Crude Oil (WTI)", exchange: "NYMEX" },
+  { symbol: "GC=F", name: "Gold", exchange: "COMEX" },
+  { symbol: "NG=F", name: "Natural Gas", exchange: "NYMEX" },
+  { symbol: "SI=F", name: "Silver", exchange: "COMEX" },
+  { symbol: "EURUSD=X", name: "EUR / USD", exchange: "FX" },
+  { symbol: "GBPUSD=X", name: "GBP / USD", exchange: "FX" },
+  { symbol: "USDJPY=X", name: "USD / JPY", exchange: "FX" },
+  { symbol: "USDINR=X", name: "USD / INR", exchange: "FX" },
+];
 type BuyMode = "shares" | "dollars" | "recurring";
 
 const SECTORS = [
@@ -808,7 +823,7 @@ export default function PaperTrading({ onSelect }: Props) {
                 value={searchQuery}
                 onChange={(e) => handleSearchStock(e.target.value)}
                 onFocus={() => { if (searchResults.length > 0) setShowSearch(true); }}
-                placeholder="Search stocks..."
+                placeholder="Search stocks, commodities, forex…"
                 className="w-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-full pl-11 pr-4 py-3 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-positive)] transition-colors"
               />
             </div>
@@ -833,6 +848,28 @@ export default function PaperTrading({ onSelect }: Props) {
               </div>
             )}
           </div>
+
+          {/* Commodities & Forex quick-pick — discoverable without knowing the
+              underlying Yahoo ticker. */}
+          {!tradeSymbol && !activeSector && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Coins size={14} className="text-[var(--color-text-muted)]" />
+                <h4 className="text-sm font-semibold text-[var(--color-text-secondary)]">Commodities &amp; Forex</h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {QUICK_INSTRUMENTS.map((it) => (
+                  <button
+                    key={it.symbol}
+                    onClick={() => selectStock(it)}
+                    className="px-3 py-1.5 rounded-full text-xs font-medium bg-[var(--color-surface-elevated)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-positive)]/40 hover:text-[var(--color-text-primary)] transition-colors"
+                  >
+                    {it.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Browse by Sector */}
           {!tradeSymbol && !activeSector && (

@@ -4,7 +4,11 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 
 // Universal symbol search via Yahoo Finance — covers virtually every public
 // company, ETF, index and crypto globally (no hardcoded list, no API key).
-const ALLOWED = new Set(["EQUITY", "ETF", "INDEX", "CRYPTOCURRENCY", "MUTUALFUND"]);
+const ALLOWED = new Set([
+  "EQUITY", "ETF", "INDEX", "CRYPTOCURRENCY", "MUTUALFUND",
+  "FUTURE",    // commodities + index futures (Crude CL=F, Gold GC=F, Nat Gas NG=F …)
+  "CURRENCY",  // forex pairs (EURUSD=X, USDINR=X …)
+]);
 
 const TYPE_LABEL: Record<string, string> = {
   EQUITY: "stock",
@@ -12,6 +16,8 @@ const TYPE_LABEL: Record<string, string> = {
   INDEX: "index",
   CRYPTOCURRENCY: "crypto",
   MUTUALFUND: "fund",
+  FUTURE: "futures",
+  CURRENCY: "forex",
 };
 
 export async function GET(req: NextRequest) {

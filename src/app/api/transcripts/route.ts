@@ -130,7 +130,7 @@ function quarterLabel(dateStr: string | undefined): string {
 
 export async function GET(req: NextRequest) {
   const symbol = req.nextUrl.searchParams.get("symbol")?.toUpperCase().trim();
-  if (!symbol || !/^[A-Z0-9.\-]{1,12}$/.test(symbol)) {
+  if (!symbol || !/^[A-Z0-9.=^-]{1,15}$/.test(symbol)) {
     return NextResponse.json({ error: "bad_symbol" }, { status: 200 });
   }
 

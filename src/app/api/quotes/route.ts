@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
     .toUpperCase()
     .split(",")
     .map((s) => s.trim())
-    .filter((s) => /^[A-Z0-9.\-]{1,12}$/.test(s))
+    .filter((s) => /^[A-Z0-9.=^-]{1,15}$/.test(s))
     .slice(0, 60);
 
   if (symbols.length === 0) {
