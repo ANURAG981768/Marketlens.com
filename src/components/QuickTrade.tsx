@@ -12,8 +12,10 @@ import {
   getPaperPortfolio,
   paperBuy,
   paperSell,
+  queuePaperOrder,
   type PaperPortfolio,
 } from "@/lib/storage";
+import { getUSMarketStatus } from "@/lib/market-hours";
 
 interface Props {
   symbol: string;
@@ -51,7 +53,17 @@ export default function QuickTrade({ symbol, name, price }: Props) {
       setError("Enter a valid number of shares");
       return;
     }
+    const market = getUSMarketStatus();
     try {
+      // Mirror the Trade tab: orders only fill during the regular session;
+      // when the market is closed they queue for the next open.
+      if (!market.isOpen) {
+        queuePaperOrder(symbol, name, mode, qty);
+        setSuccess(`Order queued — ${mode} ${qty.toLocaleString()} ${symbol} fills at the next open (${market.localOpen} your time).`);
+        setShares("");
+        setTimeout(() => setOpen(false), 2200);
+        return;
+      }
       if (mode === "buy") {
         paperBuy(symbol, name, qty, price);
       } else {
@@ -72,6 +84,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
   const holding = portfolio?.holdings[symbol];
   const qty = parseInt(shares) || 0;
   const total = qty * price;
+  const market = open ? getUSMarketStatus() : null;
 
   return (
     <>
@@ -207,15 +220,24 @@ export default function QuickTrade({ symbol, name, price }: Props) {
               </div>
             )}
 
+            {market && (
+              <div className={`flex items-start gap-2 px-3 py-2 rounded-lg text-[11px] mb-3 ${market.isOpen ? "bg-[var(--color-positive)]/8 text-[var(--color-positive)]" : "bg-[var(--color-surface)] text-[var(--color-text-secondary)]"}`}>
+                <span className={`mt-1 w-1.5 h-1.5 rounded-full shrink-0 ${market.isOpen ? "bg-[var(--color-positive)]" : "bg-[var(--color-text-muted)]"}`} />
+                <span><span className="font-semibold">{market.isOpen ? "Market open" : "Market closed"}</span> · {market.detail}</span>
+              </div>
+            )}
+
             <button
               onClick={execute}
               className={`w-full py-3 rounded-xl text-white text-sm font-semibold transition-colors ${
-                mode === "buy"
+                market && !market.isOpen
+                  ? "bg-[var(--color-ink)] hover:opacity-90"
+                  : mode === "buy"
                   ? "bg-[var(--color-positive)] hover:bg-emerald-400"
                   : "bg-[var(--color-negative)] hover:bg-red-400"
               }`}
             >
-              {mode === "buy" ? "Buy" : "Sell"} {symbol}
+              {market && !market.isOpen ? `Queue ${mode === "buy" ? "Buy" : "Sell"}` : `${mode === "buy" ? "Buy" : "Sell"} ${symbol}`}
             </button>
           </div>
         </div>
