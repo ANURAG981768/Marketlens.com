@@ -260,10 +260,32 @@ function analyzeStock(data: Props["data"]): {
   };
 }
 
+const RECO_LABEL: Record<string, string> = {
+  strong_buy: "Strong Buy",
+  buy: "Buy",
+  hold: "Hold",
+  underperform: "Underperform",
+  sell: "Sell",
+};
+
 export default function AIAnalyst({ data }: Props) {
   const analysis = analyzeStock(data);
   const price = data.quote.price;
   const asOf = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+  // Real Wall Street consensus (separate from our own computed score).
+  const an = data.analyst;
+  const consensus =
+    an && an.recommendationKey && an.count && an.count > 0
+      ? {
+          label: RECO_LABEL[an.recommendationKey] || an.recommendationKey.replace(/_/g, " "),
+          count: an.count,
+          bullish:
+            an.recommendationKey === "strong_buy" || an.recommendationKey === "buy",
+          bearish:
+            an.recommendationKey === "sell" || an.recommendationKey === "underperform",
+        }
+      : null;
 
   const verdictColor =
     analysis.verdict === "Strong Buy" || analysis.verdict === "Buy"
@@ -337,8 +359,25 @@ export default function AIAnalyst({ data }: Props) {
           <div>
             <p className={`text-lg font-black ${verdictColor}`}>{analysis.verdict}</p>
             <p className="text-[11px] text-[var(--color-text-muted)]">
-              Based on {analysis.signals.length} fundamental indicators
+              MarketLens score · {analysis.signals.length} fundamental indicators
             </p>
+            {consensus && (
+              <p className="mt-1 text-[11px] text-[var(--color-text-secondary)]">
+                Wall St consensus:{" "}
+                <span
+                  className={`font-semibold ${
+                    consensus.bullish
+                      ? "text-[var(--color-positive)]"
+                      : consensus.bearish
+                      ? "text-[var(--color-negative)]"
+                      : "text-amber-500"
+                  }`}
+                >
+                  {consensus.label}
+                </span>{" "}
+                <span className="text-[var(--color-text-muted)]">· {consensus.count} analysts</span>
+              </p>
+            )}
           </div>
         </div>
 
