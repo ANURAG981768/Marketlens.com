@@ -97,6 +97,20 @@ export default function PaperTrading({ onSelect }: Props) {
   const [sectorLoading, setSectorLoading] = useState(false);
   const [sectorSearch, setSectorSearch] = useState("");
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
+  // Full quote snapshot for the symbol currently being traded — powers the
+  // price-context panel (change, day range, 52-week range, volume) so the trade
+  // screen isn't just a bare number.
+  const [quoteStats, setQuoteStats] = useState<{
+    symbol: string;
+    change: number;
+    changePercent: number;
+    previousClose: number;
+    dayHigh: number | null;
+    dayLow: number | null;
+    fiftyTwoWeekHigh: number | null;
+    fiftyTwoWeekLow: number | null;
+    volume: number | null;
+  } | null>(null);
   const [market, setMarket] = useState<MarketStatus>(() => getUSMarketStatus());
   const [pendingNotice, setPendingNotice] = useState("");
   const [benchmarkPct, setBenchmarkPct] = useState<number | null>(null);
@@ -221,17 +235,35 @@ export default function PaperTrading({ onSelect }: Props) {
   }, [activeSector, sectorStocks.length]);
 
   useEffect(() => {
-    if (!tradeSymbol) return;
-    // Poll the selected stock's live price frequently so the quote visibly
-    // updates while you're deciding (only meaningful while the market is open;
-    // when it's closed the price is genuinely frozen at the last close).
-    const interval = setInterval(() => {
+    if (!tradeSymbol) { setQuoteStats(null); return; }
+    // Pull the full quote (price + change + day/52w range + volume) immediately
+    // on select, then poll so the numbers visibly update while you decide (only
+    // meaningful while the market is open; when closed the price is frozen at
+    // the last close).
+    let cancelled = false;
+    const pull = () => {
       fetch(`/api/quote?symbol=${encodeURIComponent(tradeSymbol)}`)
         .then((r) => r.json())
-        .then((json) => { if (json.price) setTradePrice(json.price.toFixed(2)); })
+        .then((json) => {
+          if (cancelled || !json.price) return;
+          setTradePrice(json.price.toFixed(2));
+          setQuoteStats({
+            symbol: tradeSymbol,
+            change: json.change ?? 0,
+            changePercent: json.changePercent ?? 0,
+            previousClose: json.previousClose ?? 0,
+            dayHigh: json.dayHigh ?? null,
+            dayLow: json.dayLow ?? null,
+            fiftyTwoWeekHigh: json.fiftyTwoWeekHigh ?? null,
+            fiftyTwoWeekLow: json.fiftyTwoWeekLow ?? null,
+            volume: json.volume ?? null,
+          });
+        })
         .catch(() => {});
-    }, 6000);
-    return () => clearInterval(interval);
+    };
+    pull();
+    const interval = setInterval(pull, 6000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [tradeSymbol]);
 
   async function fetchSectorStocks(sector: string) {
@@ -890,6 +922,11 @@ export default function PaperTrading({ onSelect }: Props) {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold tabular-nums">${tradePrice || "—"}</p>
+                  {quoteStats && quoteStats.symbol === tradeSymbol && quoteStats.previousClose > 0 && (
+                    <p className={`text-[11px] font-semibold tabular-nums ${quoteStats.change >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}>
+                      {quoteStats.change >= 0 ? "+" : ""}{quoteStats.change.toFixed(2)} ({quoteStats.change >= 0 ? "+" : ""}{quoteStats.changePercent.toFixed(2)}%)
+                    </p>
+                  )}
                   {tradeType === "sell" && portfolio.holdings[tradeSymbol] && (
                     <p className="text-[10px] text-[var(--color-text-muted)]">{portfolio.holdings[tradeSymbol].shares} shares owned</p>
                   )}
@@ -898,6 +935,24 @@ export default function PaperTrading({ onSelect }: Props) {
                   <X size={14} />
                 </button>
               </div>
+
+              {/* Price context — the standard stats traders expect, not just a
+                  bare number. Day change, day range, 52-week range, volume. */}
+              {quoteStats && quoteStats.symbol === tradeSymbol && (
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: "Prev Close", value: quoteStats.previousClose > 0 ? `$${quoteStats.previousClose.toFixed(2)}` : "—" },
+                    { label: "Day Range", value: (quoteStats.dayLow != null && quoteStats.dayHigh != null) ? `$${quoteStats.dayLow.toFixed(2)} – $${quoteStats.dayHigh.toFixed(2)}` : "—" },
+                    { label: "52-Wk Range", value: (quoteStats.fiftyTwoWeekLow != null && quoteStats.fiftyTwoWeekHigh != null) ? `$${quoteStats.fiftyTwoWeekLow.toFixed(2)} – $${quoteStats.fiftyTwoWeekHigh.toFixed(2)}` : "—" },
+                    { label: "Volume", value: quoteStats.volume != null ? (quoteStats.volume >= 1e9 ? (quoteStats.volume / 1e9).toFixed(2) + "B" : quoteStats.volume >= 1e6 ? (quoteStats.volume / 1e6).toFixed(1) + "M" : quoteStats.volume >= 1e3 ? Math.round(quoteStats.volume / 1e3) + "K" : String(quoteStats.volume)) : "—" },
+                  ].map((s) => (
+                    <div key={s.label} className="flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--color-surface)] border border-[var(--color-border)]">
+                      <span className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wide">{s.label}</span>
+                      <span className="text-[11px] font-semibold tabular-nums">{s.value}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Buy Mode: Shares / Dollars / Recurring */}
               {tradeType === "buy" && (

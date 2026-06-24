@@ -23,10 +23,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
+    const price = meta.regularMarketPrice;
+    const prevClose = meta.chartPreviousClose || meta.previousClose || 0;
+    const change = prevClose ? price - prevClose : 0;
+    const changePercent = prevClose ? (change / prevClose) * 100 : 0;
+
     return NextResponse.json({
       symbol: meta.symbol,
-      price: meta.regularMarketPrice,
-      previousClose: meta.chartPreviousClose || meta.previousClose || 0,
+      price,
+      previousClose: prevClose,
+      change,
+      changePercent,
+      dayHigh: meta.regularMarketDayHigh ?? null,
+      dayLow: meta.regularMarketDayLow ?? null,
+      fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh ?? null,
+      fiftyTwoWeekLow: meta.fiftyTwoWeekLow ?? null,
+      volume: meta.regularMarketVolume ?? null,
       currency: meta.currency || "USD",
       exchange: meta.exchangeName || "",
     });
