@@ -541,7 +541,7 @@ export default function Home() {
         {/* Market Tab */}
         {activeTab === "market" && (
           <div className="max-w-5xl mx-auto animate-fade-in-up">
-            <MarketOverview />
+            <SafeSection label="the market overview"><MarketOverview /></SafeSection>
           </div>
         )}
 
@@ -688,7 +688,7 @@ export default function Home() {
 
             {/* Screener Component */}
             <div className="max-w-5xl mx-auto animate-fade-in-up animate-delay-200">
-              <StockScreener onSelect={fetchStock} />
+              <SafeSection label="the screener"><StockScreener onSelect={fetchStock} /></SafeSection>
             </div>
           </div>
         )}
@@ -696,7 +696,7 @@ export default function Home() {
         {/* Earnings Tab */}
         {activeTab === "earnings" && (
           <div className="max-w-4xl mx-auto animate-fade-in-up">
-            <EarningsCalendar onSelect={fetchStock} />
+            <SafeSection label="the earnings calendar"><EarningsCalendar onSelect={fetchStock} /></SafeSection>
           </div>
         )}
 
@@ -712,83 +712,85 @@ export default function Home() {
         {/* Quiz / Learn Tab */}
         {activeTab === "quiz" && (
           <div className="animate-fade-in-up">
-            <FinanceQuiz />
+            <SafeSection label="the quiz"><FinanceQuiz /></SafeSection>
           </div>
         )}
 
         {/* Glossary Tab */}
         {activeTab === "glossary" && (
           <div className="animate-fade-in-up">
-            <Glossary />
+            <SafeSection label="the glossary"><Glossary /></SafeSection>
           </div>
         )}
 
         {/* Trade Journal Tab */}
         {activeTab === "journal" && (
           <div className="animate-fade-in-up">
-            <TradeJournal />
+            <SafeSection label="the trade journal"><TradeJournal /></SafeSection>
           </div>
         )}
 
         {/* Lessons Tab */}
         {activeTab === "lessons" && (
           <div className="max-w-5xl mx-auto animate-fade-in-up">
-            <ProgressDashboard onContinue={(id) => setOpenLessonId(id)} />
-            <LessonsHub
-              openLessonId={openLessonId}
-              onLessonOpened={() => setOpenLessonId(null)}
-              onNavigateToQuiz={() => setActiveTab("quiz")}
-              onNavigateToCerts={() => setActiveTab("certificates")}
-            />
+            <SafeSection label="your progress"><ProgressDashboard onContinue={(id) => setOpenLessonId(id)} /></SafeSection>
+            <SafeSection label="lessons">
+              <LessonsHub
+                openLessonId={openLessonId}
+                onLessonOpened={() => setOpenLessonId(null)}
+                onNavigateToQuiz={() => setActiveTab("quiz")}
+                onNavigateToCerts={() => setActiveTab("certificates")}
+              />
+            </SafeSection>
           </div>
         )}
 
         {/* Achievements Tab */}
         {activeTab === "achievements" && (
           <div className="animate-fade-in-up">
-            <Achievements />
+            <SafeSection label="achievements"><Achievements /></SafeSection>
           </div>
         )}
 
         {/* Leaderboard Tab */}
         {activeTab === "leaderboard" && (
           <div className="animate-fade-in-up">
-            <Leaderboard />
+            <SafeSection label="the leaderboard"><Leaderboard /></SafeSection>
           </div>
         )}
 
         {/* Compare Tab */}
         {activeTab === "compare" && (
           <div className="animate-fade-in-up">
-            <StockCompare />
+            <SafeSection label="stock compare"><StockCompare /></SafeSection>
           </div>
         )}
 
         {/* Calculator Tab */}
         {activeTab === "calculator" && (
           <div className="animate-fade-in-up">
-            <InvestmentCalculator />
+            <SafeSection label="the calculator"><InvestmentCalculator /></SafeSection>
           </div>
         )}
 
         {/* Heatmap Tab */}
         {activeTab === "heatmap" && (
           <div className="max-w-5xl mx-auto animate-fade-in-up">
-            <SectorHeatmap />
+            <SafeSection label="the heatmap"><SectorHeatmap /></SafeSection>
           </div>
         )}
 
         {/* Earnings Transcripts Tab */}
         {activeTab === "transcripts" && (
           <div className="max-w-4xl mx-auto animate-fade-in-up">
-            <EarningsTranscripts />
+            <SafeSection label="the track record"><EarningsTranscripts /></SafeSection>
           </div>
         )}
 
         {/* Economic Calendar Tab */}
         {activeTab === "economy" && (
           <div className="max-w-5xl mx-auto animate-fade-in-up">
-            <EconomicCalendar />
+            <SafeSection label="the economy view"><EconomicCalendar /></SafeSection>
           </div>
         )}
 
@@ -814,9 +816,9 @@ export default function Home() {
               ))}
             </div>
             {analyticsView === "outlook" ? (
-              <CompanyOutlook />
+              <SafeSection label="company outlook"><CompanyOutlook /></SafeSection>
             ) : (
-              <PortfolioAnalytics onStartTrading={() => setActiveTab("paper")} />
+              <SafeSection label="portfolio analytics"><PortfolioAnalytics onStartTrading={() => setActiveTab("paper")} /></SafeSection>
             )}
           </div>
         )}
@@ -824,14 +826,14 @@ export default function Home() {
         {/* Financial Ratios Guide Tab */}
         {activeTab === "ratios" && (
           <div className="max-w-4xl mx-auto animate-fade-in-up">
-            <RatioExplainer />
+            <SafeSection label="the ratio guide"><RatioExplainer /></SafeSection>
           </div>
         )}
 
         {/* Certificates Tab */}
         {activeTab === "certificates" && (
           <div className="max-w-4xl mx-auto animate-fade-in-up">
-            <CertificateGenerator />
+            <SafeSection label="certificates"><CertificateGenerator /></SafeSection>
           </div>
         )}
 
@@ -845,7 +847,7 @@ export default function Home() {
               accent="gold"
               icon={Star}
             />
-            <WatchlistPanel onSelect={fetchStock} refreshKey={refreshKey} />
+            <SafeSection label="your watchlist"><WatchlistPanel onSelect={fetchStock} refreshKey={refreshKey} /></SafeSection>
             <PriceAlerts />
             <NewsFeed isDemo />
           </div>
@@ -861,7 +863,7 @@ export default function Home() {
               accent="azure"
               icon={Briefcase}
             />
-            <PortfolioPanel onSelect={fetchStock} refreshKey={refreshKey} />
+            <SafeSection label="your portfolio"><PortfolioPanel onSelect={fetchStock} refreshKey={refreshKey} /></SafeSection>
             <NewsFeed isDemo />
           </div>
         )}
