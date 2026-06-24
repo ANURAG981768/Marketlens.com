@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Filter, Search, ChevronDown, Loader2, ChevronRight } from "lucide-react";
+import { Search, ChevronDown, Loader2, ChevronRight } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
 import CompanyLogo from "./CompanyLogo";
 import { SCREENER_DATABASE, type ScreenResult } from "@/lib/screener-data";
@@ -203,18 +203,33 @@ export default function StockScreener({ onSelect }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[var(--color-ink)] flex items-center justify-center shadow-sm">
-            <Filter size={18} className="text-white" />
+      {/* Header — a premium banner with a subtle market-graphic backdrop and a
+          gold edge, rather than a flat strip. Matches the hero/dashboard feel. */}
+      <div className="relative overflow-hidden rounded-2xl premium-ink border-t-2 border-t-[var(--color-gold)]">
+        <div className="absolute inset-0 hero-grid pointer-events-none" />
+        {/* decorative rising sparkline (desktop only) */}
+        <div className="hidden sm:block absolute right-0 top-0 bottom-0 w-1/2 pointer-events-none" aria-hidden="true">
+          <svg viewBox="0 0 400 170" preserveAspectRatio="xMaxYMax meet" className="absolute right-0 bottom-0 w-full h-full">
+            <defs>
+              <linearGradient id="scrArea" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#00b84a" stopOpacity="0.22" />
+                <stop offset="100%" stopColor="#00b84a" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M20 130 L70 110 L120 118 L170 86 L220 96 L270 58 L320 70 L390 32 L390 170 L20 170 Z" fill="url(#scrArea)" />
+            <path d="M20 130 L70 110 L120 118 L170 86 L220 96 L270 58 L320 70 L390 32" fill="none" stroke="#1fd35e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="390" cy="32" r="3.5" fill="#1fd35e" />
+          </svg>
+        </div>
+        <div className="relative px-6 py-6 sm:px-8 sm:py-7 max-w-xl">
+          <div className="inline-flex items-center gap-2 mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--color-gold-light)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)] animate-pulse" />
+            Live prices · refreshes every 60s
           </div>
-          <div>
-            <h2 className="font-display text-xl font-semibold leading-tight">Stock Screener</h2>
-            <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-positive)] animate-pulse" />
-              Live prices · refreshes every 60s
-            </p>
-          </div>
+          <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white leading-tight">Stock Screener</h2>
+          <p className="text-sm text-gray-400 mt-1.5">
+            Scan thousands of stocks, commodities and funds — sort by price, today&apos;s move, P/E, market cap and more to spot your next idea.
+          </p>
         </div>
       </div>
 
