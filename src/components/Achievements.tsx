@@ -34,60 +34,70 @@ interface AchievementState {
 const STORAGE_KEY = "marketlens_achievements";
 
 function loadState(): AchievementState {
-  if (typeof window === "undefined") return { unlockedIds: [], firstUnlockedAt: {} };
+  const fallback: AchievementState = { unlockedIds: [], firstUnlockedAt: {} };
+  if (typeof window === "undefined") return fallback;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : { unlockedIds: [], firstUnlockedAt: {} };
+    const p = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+    // Validate the shape — a malformed or null value (e.g. from a bad sync)
+    // must never leave unlockedIds undefined, or .includes()/.length crashes.
+    if (p && typeof p === "object" && Array.isArray(p.unlockedIds)) {
+      return {
+        unlockedIds: p.unlockedIds,
+        firstUnlockedAt: p.firstUnlockedAt && typeof p.firstUnlockedAt === "object" ? p.firstUnlockedAt : {},
+      };
+    }
+    return fallback;
   } catch {
-    return { unlockedIds: [], firstUnlockedAt: {} };
+    return fallback;
   }
 }
 
-function getQuizResults(): Record<string, { bestScore: number; total: number }> {
-  if (typeof window === "undefined") return {};
+// Every loader is defensive: it returns the correct type even if the stored
+// value is missing, "null", or malformed — so a single bad localStorage entry
+// can never crash the Awards section (which is what was happening).
+function safeArray(key: string): unknown[] {
+  if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem("marketlens_quiz_results");
-    return raw ? JSON.parse(raw) : {};
+    const p = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(p) ? p : [];
   } catch {
-    return {};
+    return [];
+  }
+}
+
+interface QuizResultRec { sectionId: string; score: number; total: number }
+
+// Quiz results are stored as an ARRAY of { sectionId, score, total } (best kept
+// per section) — not a keyed record, and the field is `score`, not `bestScore`.
+function getQuizResults(): QuizResultRec[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const p = JSON.parse(localStorage.getItem("marketlens_quiz_results") || "[]");
+    return Array.isArray(p) ? p : [];
+  } catch {
+    return [];
   }
 }
 
 function getTradeJournal(): unknown[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem("marketlens_trade_journal");
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return safeArray("marketlens_trade_journal");
 }
 
+// Watchlist + portfolio are stored under the legacy equityiq_* keys (storage.ts).
 function getWatchlist(): unknown[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem("marketlens_watchlist");
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return safeArray("equityiq_watchlist");
 }
 
 function getPortfolio(): unknown[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem("marketlens_portfolio");
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  return safeArray("equityiq_portfolio");
 }
 
+// Executed paper trades live inside the paper portfolio object's `trades` array.
 function getPaperTrades(): unknown[] {
   if (typeof window === "undefined") return [];
   try {
-    const raw = localStorage.getItem("marketlens_paper_trades");
-    return raw ? JSON.parse(raw) : [];
+    const p = JSON.parse(localStorage.getItem("marketlens_paper_trading") || "{}");
+    return Array.isArray(p?.trades) ? p.trades : [];
   } catch {
     return [];
   }
@@ -102,7 +112,7 @@ const ACHIEVEMENTS: Achievement[] = [
     category: "quiz",
     icon: BookOpen,
     gradient: "from-emerald-400 to-emerald-600",
-    check: () => Object.keys(getQuizResults()).length >= 1,
+    check: () => getQuizResults().length >= 1,
   },
   {
     id: "quiz_five",
@@ -111,7 +121,7 @@ const ACHIEVEMENTS: Achievement[] = [
     category: "quiz",
     icon: Star,
     gradient: "from-blue-400 to-blue-600",
-    check: () => Object.keys(getQuizResults()).length >= 5,
+    check: () => getQuizResults().length >= 5,
   },
   {
     id: "quiz_all",
@@ -120,7 +130,7 @@ const ACHIEVEMENTS: Achievement[] = [
     category: "quiz",
     icon: Crown,
     gradient: "from-amber-400 to-amber-600",
-    check: () => Object.keys(getQuizResults()).length >= 14,
+    check: () => getQuizResults().length >= 14,
   },
   {
     id: "quiz_perfect",
@@ -131,7 +141,7 @@ const ACHIEVEMENTS: Achievement[] = [
     gradient: "from-violet-400 to-violet-600",
     check: () => {
       const results = getQuizResults();
-      return Object.values(results).some((r) => r.bestScore === r.total);
+      return results.some((r) => r.total > 0 && r.score === r.total);
     },
   },
   {
@@ -142,9 +152,8 @@ const ACHIEVEMENTS: Achievement[] = [
     icon: Award,
     gradient: "from-rose-400 to-rose-600",
     check: () => {
-      const results = getQuizResults();
-      const vals = Object.values(results);
-      return vals.length >= 3 && vals.every((r) => r.bestScore / r.total >= 0.9);
+      const vals = getQuizResults();
+      return vals.length >= 3 && vals.every((r) => r.total > 0 && r.score / r.total >= 0.9);
     },
   },
 
