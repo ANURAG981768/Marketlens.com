@@ -493,31 +493,41 @@ export default function PaperTrading({ onSelect }: Props) {
     setSuccess("");
     setShowConfirm(false);
     const shares = getResolvedShares();
-    let price = getResolvedPrice();
-
-    // Trades always fill immediately at the freshest available price — the live
-    // quote during the session, or the last close when the market is shut. A
-    // learning simulator used by students worldwide must never silently swallow
-    // an order, so there is no "closed = queued" barrier; we just label the fill
-    // honestly when the market happened to be closed.
     const marketClosed = !market.isOpen;
 
-    // Market orders fill at the freshest price at the instant of submit — exactly
-    // like a real brokerage. This is what makes the buy and the later sell
-    // capture real price movement instead of a stale cached quote.
-    if (orderType === "market") {
-      try {
-        const res = await fetch(`/api/quote?symbol=${encodeURIComponent(tradeSymbol)}`);
-        const json = await res.json();
-        if (typeof json.price === "number" && isFinite(json.price) && json.price > 0) {
-          price = json.price;
-          setTradePrice(json.price.toFixed(2));
-        }
-      } catch {}
-      if (tradeType === "buy" && portfolio && shares * price > portfolio.cash) {
-        setError("The price moved before your order filled — not enough buying power at the new live price. Adjust and try again.");
+    // Every order fills at the freshest LIVE market price — never at a price the
+    // user typed into a limit/stop field, which would otherwise let a "limit buy
+    // at $1" fill instantly on a $200 stock. Fetch the freshest quote; fall back
+    // to the last displayed price only if the quote is briefly unavailable.
+    let price = parseFloat(tradePrice) || 0;
+    try {
+      const res = await fetch(`/api/quote?symbol=${encodeURIComponent(tradeSymbol)}`);
+      const json = await res.json();
+      if (typeof json.price === "number" && isFinite(json.price) && json.price > 0) {
+        price = json.price;
+        setTradePrice(json.price.toFixed(2));
+      }
+    } catch {}
+    if (!price || price <= 0) { setError("Couldn't fetch a live price just now — please try again."); return; }
+
+    // Limit orders can't rest in this simulator (fills are instant), so a limit
+    // only executes if it's already reachable at the live price; otherwise reject
+    // it rather than fill at an unreachable price.
+    if (orderType === "limit") {
+      const lim = parseFloat(limitPrice) || 0;
+      if (lim > 0 && tradeType === "buy" && price > lim) {
+        setError(`Limit not reached: ${tradeSymbol} is $${price.toFixed(2)}, above your $${lim.toFixed(2)} buy limit. MarketLens fills instantly — set a limit at/above the current price, or use a Market order.`);
         return;
       }
+      if (lim > 0 && tradeType === "sell" && price < lim) {
+        setError(`Limit not reached: ${tradeSymbol} is $${price.toFixed(2)}, below your $${lim.toFixed(2)} sell limit. MarketLens fills instantly — set a limit at/below the current price, or use a Market order.`);
+        return;
+      }
+    }
+
+    if (tradeType === "buy" && portfolio && shares * price > portfolio.cash) {
+      setError("Not enough buying power at the live price. Adjust the amount and try again.");
+      return;
     }
 
     try {

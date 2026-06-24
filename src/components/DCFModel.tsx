@@ -155,8 +155,14 @@ export default function DCFModel({ data }: Props) {
     }
 
     const lastFcf = projections[projections.length - 1]?.fcf ?? 0;
+    // The Gordon Growth terminal value divides by (discount − terminal growth).
+    // If a user drags WACC down to meet terminal growth (both can hit 5%), that
+    // denominator goes to zero (→ Infinity) or negative (→ nonsense). Keep
+    // terminal growth at least 0.5% below the discount rate so the model stays
+    // finite and sensible at every slider position.
+    const safeTermGrowth = Math.min(termGrowth, discount - 0.005);
     const terminalValue =
-      (lastFcf * (1 + termGrowth)) / (discount - termGrowth);
+      (lastFcf * (1 + safeTermGrowth)) / (discount - safeTermGrowth);
     const pvTerminal =
       terminalValue / Math.pow(1 + discount, projectionYears);
 
