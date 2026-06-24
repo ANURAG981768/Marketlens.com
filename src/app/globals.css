@@ -32,17 +32,75 @@
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d0d0d0 transparent;
+  scrollbar-color: var(--color-border-light) transparent;
+}
+
+/* WebKit scrollbars — thin, warm, and unobtrusive to match the palette */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-light);
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+  background-clip: content-box;
 }
 
 body {
   background: var(--color-surface);
   color: var(--color-text-primary);
   font-family: var(--font-sans), system-ui, sans-serif;
+  /* Crisp, even type rendering — the subconscious "premium" tell across every
+     screen. Grayscale smoothing + optical sizing + kerning/ligatures. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-optical-sizing: auto;
+  font-feature-settings: "kern", "liga", "calt", "cv01", "ss01";
+  letter-spacing: -0.011em;
+}
+
+/* Headings inherit a slightly tighter rhythm for a more deliberate, editorial
+   hierarchy; balanced wrapping prevents lonely orphan words. */
+h1, h2, h3, h4 {
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 input::placeholder {
   color: var(--color-text-muted);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Kill the grey tap-flash on mobile — a small but constant "cheap app" tell */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Crisp, brand-tinted keyboard focus ring — accessible and premium. Only shows
+   for keyboard users (focus-visible), never on mouse click. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible) {
+  outline: none;
 }
 
 ::selection {
@@ -54,6 +112,27 @@ input::placeholder {
 .font-display {
   font-family: var(--font-display), Georgia, "Times New Roman", serif;
   letter-spacing: -0.02em;
+  font-optical-sizing: auto;
+  text-wrap: balance;
+}
+
+/* Section eyebrow — the small tracked uppercase label that sits above a
+   heading. Codifies the pattern used ad-hoc across the app so every section
+   reads with the same editorial cadence. */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Lede — the larger intro paragraph under a headline. */
+.lede {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--color-text-secondary);
+  text-wrap: pretty;
 }
 
 /* Terminal grid texture for dark hero surfaces */
