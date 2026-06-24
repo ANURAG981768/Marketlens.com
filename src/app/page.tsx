@@ -801,8 +801,8 @@ export default function Home() {
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-amber-500/20">
                 <Star size={28} className="text-white" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">Watchlist</h2>
-              <p className="text-sm text-[var(--color-text-muted)]">
+              <h2 className="font-display text-[28px] font-semibold mb-2">Watchlist</h2>
+              <p className="text-sm text-[var(--color-text-muted)] max-w-md mx-auto">
                 Monitor price movements on the equities that matter to you
               </p>
             </div>
@@ -819,8 +819,8 @@ export default function Home() {
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-500/20">
                 <Briefcase size={28} className="text-white" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">Portfolio</h2>
-              <p className="text-sm text-[var(--color-text-muted)]">
+              <h2 className="font-display text-[28px] font-semibold mb-2">Portfolio</h2>
+              <p className="text-sm text-[var(--color-text-muted)] max-w-md mx-auto">
                 Track holdings, cost basis, and unrealized P&L at a glance
               </p>
             </div>
@@ -846,7 +846,7 @@ export default function Home() {
                       <Zap size={12} />
                       Your Equity Research Terminal
                     </div>
-                    <h2 className="text-4xl sm:text-5xl font-bold mb-4 leading-tight text-[var(--color-text-primary)]">
+                    <h2 className="font-display text-4xl sm:text-5xl font-semibold mb-4 leading-[1.08] text-[var(--color-text-primary)]">
                       Invest with{" "}
                       <span className="text-[var(--color-brand)]">
                         Confidence
