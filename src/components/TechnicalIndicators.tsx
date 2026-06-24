@@ -200,6 +200,21 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
         </div>
       </div>
 
+      {/* Plain-language read — so a beginner understands the panel without
+          knowing what RSI, SMA or MACD mean. The friend's key point: numbers
+          alone are useless to most people. */}
+      <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]/40">
+        <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">
+          <span className="font-semibold text-[var(--color-text-primary)]">In plain words: </span>
+          {indicators.overall === "Bullish"
+            ? "recent momentum looks positive — the price is mostly trading above its average trend lines, and RSI isn't overheated."
+            : indicators.overall === "Bearish"
+            ? "recent momentum looks weak — the price is mostly trading below its average trend lines."
+            : "signals are mixed — there's no clear short-term direction right now."}
+        </p>
+        <p className="text-[10px] text-[var(--color-text-muted)] mt-1">An educational read of price trends — not financial advice.</p>
+      </div>
+
       {/* RSI Gauge */}
       <div className="px-4 py-3 border-b border-[var(--color-border)]">
         <div className="flex items-center justify-between mb-1.5">
