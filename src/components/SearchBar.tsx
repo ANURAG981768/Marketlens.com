@@ -7,9 +7,11 @@ import { searchStocks, type SearchItem } from "@/lib/search-data";
 interface Props {
   onSearch: (symbol: string) => void;
   loading: boolean;
+  /** Attach the global "/" + ⌘/Ctrl+K focus shortcut + keycap hint (header only). */
+  shortcut?: boolean;
 }
 
-export default function SearchBar({ onSearch, loading }: Props) {
+export default function SearchBar({ onSearch, loading, shortcut = false }: Props) {
   const [value, setValue] = useState("");
   const [results, setResults] = useState<SearchItem[]>([]);
   const [open, setOpen] = useState(false);
@@ -39,6 +41,24 @@ export default function SearchBar({ onSearch, loading }: Props) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Pro shortcut: "/" or ⌘/Ctrl+K jumps to search from anywhere on the page
+  // (ignored while the user is already typing in a field).
+  useEffect(() => {
+    if (!shortcut) return;
+    function onKey(e: KeyboardEvent) {
+      const el = document.activeElement as HTMLElement | null;
+      const typing = !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable);
+      const slash = e.key === "/" && !typing;
+      const cmdK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k";
+      if (slash || cmdK) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [shortcut]);
 
   const doSearch = useCallback((query: string) => {
     const local = searchStocks(query, 8);
@@ -142,6 +162,11 @@ export default function SearchBar({ onSearch, loading }: Props) {
             >
               <X size={16} />
             </button>
+          )}
+          {!value && shortcut && (
+            <kbd className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 items-center text-[11px] font-medium text-[var(--color-text-muted)] bg-[var(--color-surface)] border border-[var(--color-border)] rounded px-1.5 py-0.5 pointer-events-none select-none">
+              /
+            </kbd>
           )}
         </div>
       </form>

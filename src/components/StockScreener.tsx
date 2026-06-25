@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Search, ChevronDown, Loader2, ChevronRight, Telescope } from "lucide-react";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatPrice } from "@/lib/format";
 import CompanyLogo from "./CompanyLogo";
 import SectionBanner from "./SectionBanner";
 import { SCREENER_DATABASE, type ScreenResult } from "@/lib/screener-data";
@@ -335,7 +335,7 @@ export default function StockScreener({ onSelect }: Props) {
                       {r.industry}
                     </td>
                     <td className="py-2.5 px-4 text-xs tabular-nums font-medium text-[var(--color-text-primary)]">
-                      ${(r.price ?? 0).toFixed(2)}
+                      {formatPrice(r.price ?? NaN)}
                     </td>
                     <td className="py-2.5 px-4 text-xs tabular-nums font-medium">
                       {typeof r.changePercent === "number" ? (

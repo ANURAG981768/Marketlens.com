@@ -445,7 +445,7 @@ export default function Home() {
             <AccountMenu />
           </div>
           <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 sm:max-w-md">
-            <SearchBar onSearch={fetchStock} loading={loading} />
+            <SearchBar onSearch={fetchStock} loading={loading} shortcut />
           </div>
         </div>
 
