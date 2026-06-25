@@ -25,20 +25,33 @@ function ema(prices: number[], period: number): number | null {
   return e;
 }
 
+// Wilder's RSI — the professional standard used by TradingView, Yahoo Finance,
+// etc. It smooths the average gain/loss across the whole series rather than a
+// plain average of just the last `period` changes, so our number matches what
+// traders see elsewhere. `prices` arrives newest-first, so we walk it
+// oldest → newest.
 function rsi(prices: number[], period: number = 14): number | null {
   if (prices.length < period + 1) return null;
-  let gains = 0;
-  let losses = 0;
-  for (let i = 0; i < period; i++) {
-    const change = prices[i] - prices[i + 1];
-    if (change > 0) gains += change;
-    else losses += Math.abs(change);
+  const chrono = [...prices].reverse(); // oldest-first
+  let avgGain = 0;
+  let avgLoss = 0;
+  for (let i = 1; i <= period; i++) {
+    const change = chrono[i] - chrono[i - 1];
+    if (change > 0) avgGain += change;
+    else avgLoss += Math.abs(change);
   }
-  const avgGain = gains / period;
-  const avgLoss = losses / period;
+  avgGain /= period;
+  avgLoss /= period;
+  // Wilder smoothing for every later point.
+  for (let i = period + 1; i < chrono.length; i++) {
+    const change = chrono[i] - chrono[i - 1];
+    const gain = change > 0 ? change : 0;
+    const loss = change < 0 ? -change : 0;
+    avgGain = (avgGain * (period - 1) + gain) / period;
+    avgLoss = (avgLoss * (period - 1) + loss) / period;
+  }
   if (avgLoss === 0) return 100;
-  const rs = avgGain / avgLoss;
-  return 100 - 100 / (1 + rs);
+  return 100 - 100 / (1 + avgGain / avgLoss);
 }
 
 export default function TechnicalIndicators({ history, currentPrice }: Props) {
