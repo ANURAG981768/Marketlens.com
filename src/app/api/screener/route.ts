@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 
 const API_KEY = process.env.FMP_API_KEY;
 const BASE = "https://financialmodelingprep.com/api/v3";
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
     qp.set("isActivelyTrading", "true");
     qp.set("country", "US");
 
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `${BASE}/stock-screener?${qp.toString()}`,
       { next: { revalidate: 600 } }
     );

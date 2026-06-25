@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
 
 function raw(obj: any): number | null {
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
     `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${modules}&crumb=${encodeURIComponent(crumb)}`;
 
   try {
-    let res = await fetch(buildUrl(auth.crumb), {
+    let res = await fetchWithTimeout(buildUrl(auth.crumb), {
       headers: { "User-Agent": YAHOO_UA, Cookie: auth.cookie },
       next: { revalidate: 30 },
     });
@@ -35,7 +36,7 @@ export async function GET(req: NextRequest) {
       const fresh = await getYahooAuth(true);
       if (!fresh) return NextResponse.json({ error: "auth_failed" }, { status: 200 });
       auth = fresh;
-      res = await fetch(buildUrl(fresh.crumb), {
+      res = await fetchWithTimeout(buildUrl(fresh.crumb), {
         headers: { "User-Agent": YAHOO_UA, Cookie: fresh.cookie },
         next: { revalidate: 30 },
       });

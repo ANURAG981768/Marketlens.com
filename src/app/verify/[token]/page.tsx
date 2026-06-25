@@ -2,16 +2,45 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { useMemo, useEffect, useState } from "react";
-import { ShieldCheck, ShieldAlert, BookOpen, Target, Calendar, ArrowRight } from "lucide-react";
-import { decodeCertificate } from "@/lib/certificate";
+import { useEffect, useState } from "react";
+import { ShieldCheck, ShieldAlert, BookOpen, Target, Calendar, ArrowRight, Loader2 } from "lucide-react";
+import { decodeCertificate, type CertPayload } from "@/lib/certificate";
 import { supabase } from "@/lib/supabase";
 
 export default function VerifyCertificatePage() {
   const params = useParams();
   const token = Array.isArray(params.token) ? params.token[0] : params.token;
-  const cert = useMemo(() => (token ? decodeCertificate(token) : null), [token]);
+  const [cert, setCert] = useState<CertPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+  // Whether the certificate carries a valid server signature (tamper-proof) vs.
+  // an older link only readable via the legacy checksum.
+  const [signed, setSigned] = useState(false);
   const [registry, setRegistry] = useState<"checking" | "confirmed" | "not_found" | "unavailable">("checking");
+
+  // Authoritative check first: ask the server to verify the HMAC signature. Only
+  // fall back to decoding the legacy token for display if that fails.
+  useEffect(() => {
+    if (!token) { setLoading(false); return; }
+    let active = true;
+    (async () => {
+      try {
+        const r = await fetch(`/api/certificate/verify?token=${encodeURIComponent(token)}`);
+        const j = await r.json();
+        if (!active) return;
+        if (j?.valid && j.payload) {
+          setCert(j.payload as CertPayload);
+          setSigned(true);
+          setLoading(false);
+          return;
+        }
+      } catch { /* fall through to legacy */ }
+      if (!active) return;
+      setCert(decodeCertificate(token));
+      setSigned(false);
+      setLoading(false);
+    })();
+    return () => { active = false; };
+  }, [token]);
 
   useEffect(() => {
     if (!cert || !supabase) {
@@ -44,7 +73,12 @@ export default function VerifyCertificatePage() {
       </Link>
 
       <div className="w-full max-w-lg">
-        {cert ? (
+        {loading ? (
+          <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl px-6 py-12 text-center shadow-sm">
+            <Loader2 size={24} className="animate-spin text-[var(--color-brand)] mx-auto mb-3" />
+            <p className="text-sm text-[var(--color-text-secondary)]">Verifying certificate…</p>
+          </div>
+        ) : cert ? (
           <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl overflow-hidden shadow-sm">
             {/* Verified banner */}
             <div className="premium-ink px-6 py-5 flex items-center gap-3 border-t-2 border-t-[var(--color-gold)]">
@@ -52,9 +86,11 @@ export default function VerifyCertificatePage() {
                 <ShieldCheck size={22} className="text-[var(--color-brand-light)]" />
               </div>
               <div>
-                <p className="text-white font-semibold">Certificate verified</p>
+                <p className="text-white font-semibold">{signed ? "Certificate verified · tamper-proof" : "Certificate verified"}</p>
                 <p className="text-xs text-gray-400">
-                  {registry === "confirmed"
+                  {signed
+                    ? "Cryptographically signed by MarketLens"
+                    : registry === "confirmed"
                     ? "Issued by MarketLens · confirmed in credential registry"
                     : registry === "checking"
                     ? "Issued by MarketLens · checking registry…"

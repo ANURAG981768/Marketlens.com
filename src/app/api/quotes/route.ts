@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
+import { fetchWithTimeout } from "@/lib/upstream";
 
 // Batch quote endpoint — returns live price/marketcap/volume/PE for many
 // symbols in a single Yahoo call. Used by the screener and any view that needs
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
     const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${encodeURIComponent(
       symbols.join(",")
     )}&crumb=${encodeURIComponent(crumb)}`;
-    return fetch(url, {
+    return fetchWithTimeout(url, {
       headers: { "User-Agent": YAHOO_UA, Cookie: cookie },
       next: { revalidate: 30 },
     });

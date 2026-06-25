@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Bell, BellRing, X, Plus, TrendingUp, TrendingDown } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
+import { formatPrice } from "@/lib/format";
 import { getAlerts, addAlert, removeAlert, evaluateAlerts, type PriceAlert } from "@/lib/alerts";
 
 export default function PriceAlerts() {
@@ -126,7 +127,7 @@ export default function PriceAlerts() {
           </div>
           {refPrice != null && (
             <p className="text-[11px] text-[var(--color-text-muted)]">
-              {symbol} is at ${refPrice.toFixed(2)} now — you&apos;ll be alerted when it crosses your target.
+              {symbol} is at {formatPrice(refPrice)} now — you&apos;ll be alerted when it crosses your target.
             </p>
           )}
           {error && <p className="text-[11px] text-[var(--color-negative)]">{error}</p>}
@@ -162,8 +163,8 @@ export default function PriceAlerts() {
                     </div>
                     <p className="text-[10px] text-[var(--color-text-muted)] flex items-center gap-1">
                       {a.direction === "above" ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
-                      {a.direction === "above" ? "Above" : "Below"} ${a.target.toFixed(2)}
-                      {cur != null && <span> · now ${cur.toFixed(2)}</span>}
+                      {a.direction === "above" ? "Above" : "Below"} {formatPrice(a.target)}
+                      {cur != null && <span> · now {formatPrice(cur)}</span>}
                     </p>
                   </div>
                 </div>

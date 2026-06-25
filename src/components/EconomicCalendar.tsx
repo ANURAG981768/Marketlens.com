@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import CountryBadge, { flagToCode } from "./CountryBadge";
 import {
   Calendar,
   TrendingUp,
@@ -613,9 +614,9 @@ export default function EconomicCalendar() {
                         </div>
                       </div>
 
-                      {/* Flag */}
-                      <span className="text-lg shrink-0" title={event.countryName}>
-                        {event.country}
+                      {/* Country */}
+                      <span className="shrink-0" title={event.countryName}>
+                        <CountryBadge code={flagToCode(event.country)} />
                       </span>
 
                       {/* Name + impact */}

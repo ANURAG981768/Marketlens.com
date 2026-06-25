@@ -92,6 +92,15 @@ export function mergeBags(local: Bag, cloud: Bag): Bag {
     cloud["equityiq_watchlist"]
   );
 
+  // Paper-trading account: keep the most recently *active* account. Without this
+  // the default {...cloud, ...local} makes a stale local account silently
+  // overwrite (and then push over) trades you just made on another device.
+  const paper = pickPaperAccount(
+    local["marketlens_paper_trading"],
+    cloud["marketlens_paper_trading"]
+  );
+  if (paper !== undefined) out["marketlens_paper_trading"] = paper;
+
   // Name: prefer whichever is set (local wins if both)
   const ln = local["marketlens_user_name"];
   const cn = cloud["marketlens_user_name"];
@@ -143,6 +152,33 @@ function unionBySymbol(a: unknown, b: unknown): unknown[] {
   add(a); // local first — its entries win
   add(b);
   return [...bySymbol.values()];
+}
+
+// Newest trade timestamp in a paper-trading account (0 if none).
+function latestTradeTime(v: unknown): number {
+  if (!isObj(v) || !Array.isArray(v.trades)) return 0;
+  let max = 0;
+  for (const t of v.trades as Array<{ timestamp?: string }>) {
+    const ms = t?.timestamp ? Date.parse(t.timestamp) : NaN;
+    if (Number.isFinite(ms) && ms > max) max = ms;
+  }
+  return max;
+}
+
+// Choose the paper-trading account to keep: the one with the most recent trade
+// wins, so logging in on a second device never clobbers trades you just made on
+// the first. (A true trade-by-trade merge needs an event-sourced ledger; until
+// then this avoids the data loss that blind local-wins caused.)
+function pickPaperAccount(local: unknown, cloud: unknown): unknown {
+  const lt = latestTradeTime(local);
+  const ct = latestTradeTime(cloud);
+  if (ct > lt) return cloud;
+  if (lt > ct) return local;
+  // Tie (e.g. both fresh / neither traded): keep whichever has more history.
+  const lc = isObj(local) && Array.isArray(local.trades) ? local.trades.length : 0;
+  const cc = isObj(cloud) && Array.isArray(cloud.trades) ? cloud.trades.length : 0;
+  if (cc > lc) return cloud;
+  return local !== undefined ? local : cloud;
 }
 
 function mergeQuiz(a: unknown, b: unknown): unknown[] {

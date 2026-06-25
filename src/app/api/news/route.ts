@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
@@ -105,7 +106,7 @@ export async function GET(req: NextRequest) {
   )}&hl=en-US&gl=US&ceid=US:en`;
 
   try {
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       headers: { "User-Agent": UA },
       next: { revalidate: 180 }, // fresh every few minutes without hammering
     });

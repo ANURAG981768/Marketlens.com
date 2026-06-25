@@ -16,6 +16,7 @@ import {
 } from "@/lib/storage";
 import { getMarketStatus, classifyInstrument } from "@/lib/market-hours";
 import { formatPrice } from "@/lib/format";
+import Modal from "./Modal";
 
 // Whole numbers for stocks, trimmed fractions for crypto/forex.
 function fmtQty(q: number): string {
@@ -72,7 +73,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
       }
       const total = qty * price;
       setSuccess(
-        `${mode === "buy" ? "Bought" : "Sold"} ${fmtQty(qty)} ${symbol} @ $${price.toFixed(2)} = $${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}${market.isOpen ? "" : " · last close (market closed)"}`
+        `${mode === "buy" ? "Bought" : "Sold"} ${fmtQty(qty)} ${symbol} @ ${formatPrice(price)} = $${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${market.isOpen ? "" : " · last close (market closed)"}`
       );
       setShares("");
       setTimeout(() => setOpen(false), 2000);
@@ -102,13 +103,12 @@ export default function QuickTrade({ symbol, name, price }: Props) {
           className="flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-semibold bg-[var(--color-negative)]/10 text-[var(--color-negative)] border border-[var(--color-negative)]/20 hover:bg-[var(--color-negative)]/20 transition-colors"
         >
           <ArrowDownRight size={13} />
-          Sell ({holding.shares})
+          Sell ({fmtQty(holding.shares)})
         </button>
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={() => setOpen(false)}>
-          <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl p-6 max-w-sm shadow-2xl w-full" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setOpen(false)} panelClassName="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl p-6 max-w-sm shadow-2xl w-full">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
@@ -148,7 +148,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
                   mode === "sell" ? "bg-[var(--color-negative)] text-white" : "text-[var(--color-text-muted)]"
                 }`}
               >
-                Sell {holding ? `(${holding.shares})` : ""}
+                Sell {holding ? `(${fmtQty(holding.shares)})` : ""}
               </button>
             </div>
 
@@ -238,8 +238,7 @@ export default function QuickTrade({ symbol, name, price }: Props) {
             >
               {`${mode === "buy" ? "Buy" : "Sell"} ${symbol}`}
             </button>
-          </div>
-        </div>
+        </Modal>
       )}
     </>
   );

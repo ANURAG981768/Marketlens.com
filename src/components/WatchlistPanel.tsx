@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Star, X, TrendingUp, TrendingDown } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
 import EmptyState from "./EmptyState";
+import { formatPrice } from "@/lib/format";
 import {
   getWatchlist,
   removeFromWatchlist,
@@ -109,7 +110,7 @@ export default function WatchlistPanel({ onSelect, refreshKey }: Props) {
                 return (
                   <div className="text-right">
                     <p className="text-xs tabular-nums text-[var(--color-text-primary)]">
-                      ${price.toFixed(2)}
+                      {formatPrice(price)}
                     </p>
                     {pct !== undefined && (
                       <p

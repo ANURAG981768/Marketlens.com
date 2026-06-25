@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
 
 const TICKERS: { symbol: string; company: string }[] = [
@@ -43,7 +44,7 @@ async function runBatch(crumb: string, cookie: string): Promise<(EarningsEvent |
     TICKERS.map(async (t) => {
       try {
         const u = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${t.symbol}?modules=calendarEvents&crumb=${encodeURIComponent(crumb)}`;
-        const res = await fetch(u, {
+        const res = await fetchWithTimeout(u, {
           headers: { "User-Agent": YAHOO_UA, Cookie: cookie },
           next: { revalidate: 3600 }, // earnings dates change slowly — cache 1h
         });

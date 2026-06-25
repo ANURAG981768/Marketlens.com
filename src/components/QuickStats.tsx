@@ -1,7 +1,7 @@
 "use client";
 
 import type { StockData } from "@/lib/types";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatPrice } from "@/lib/format";
 
 interface Props {
   data: StockData;
@@ -11,10 +11,10 @@ export default function QuickStats({ data }: Props) {
   const { quote } = data;
 
   const stats = [
-    { label: "Open", value: `$${quote.open.toFixed(2)}` },
-    { label: "Previous Close", value: `$${quote.previousClose.toFixed(2)}` },
-    { label: "Day Range", value: `$${quote.dayLow.toFixed(2)} – $${quote.dayHigh.toFixed(2)}` },
-    { label: "52W Range", value: `$${quote.yearLow.toFixed(2)} – $${quote.yearHigh.toFixed(2)}` },
+    { label: "Open", value: formatPrice(quote.open) },
+    { label: "Previous Close", value: formatPrice(quote.previousClose) },
+    { label: "Day Range", value: `${formatPrice(quote.dayLow)} – ${formatPrice(quote.dayHigh)}` },
+    { label: "52W Range", value: `${formatPrice(quote.yearLow)} – ${formatPrice(quote.yearHigh)}` },
     { label: "Volume", value: formatCurrency(quote.volume).replace("$", "") },
     { label: "Avg Volume", value: formatCurrency(quote.avgVolume).replace("$", "") },
     { label: "P/E", value: quote.pe?.toFixed(2) ?? "N/A" },

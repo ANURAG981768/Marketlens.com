@@ -25,6 +25,7 @@ import SafeSection from "@/components/SafeSection";
 import PriceAlerts from "@/components/PriceAlerts";
 import Leaderboard from "@/components/Leaderboard";
 import PortfolioPanel from "@/components/PortfolioPanel";
+import CountryBadge, { flagToCode } from "@/components/CountryBadge";
 import StockScreener from "@/components/StockScreener";
 import MarketOverview from "@/components/MarketOverview";
 import EarningsCalendar from "@/components/EarningsCalendar";
@@ -154,6 +155,9 @@ export default function Home() {
   useEffect(() => { recordActivity(); }, []);
   const [cryptoPrices, setCryptoPrices] = useState(CRYPTO_DEFAULTS);
   const [globalIndices, setGlobalIndices] = useState(GLOBAL_INDICES_DEFAULT);
+  // Live commodities + volatility for the ticker (Gold, Oil, VIX) — replaces the
+  // old hardcoded values so nothing in the "LIVE" bar is ever stale/fake.
+  const [macroQuotes, setMacroQuotes] = useState<Record<string, { price: number; changePercent: number }>>({});
 
   useEffect(() => {
     function loadIndices() {
@@ -179,6 +183,19 @@ export default function Home() {
     loadIndices();
     const interval = setInterval(loadIndices, 60000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Live Gold / Oil / VIX for the ticker bar.
+  useEffect(() => {
+    function loadMacro() {
+      fetch("/api/quotes?symbols=GC=F,CL=F,^VIX")
+        .then((r) => r.json())
+        .then((json) => { if (json.quotes) setMacroQuotes(json.quotes); })
+        .catch(() => {});
+    }
+    loadMacro();
+    const id = setInterval(loadMacro, 60000);
+    return () => clearInterval(id);
   }, []);
 
   // Global U.S. market open/closed status for the ticker bar.
@@ -250,6 +267,14 @@ export default function Home() {
   }, [activeSymbol]);
 
   const refresh = () => setRefreshKey((k) => k + 1);
+
+  // After sign-in merges cloud data into local storage, re-read everything in
+  // place (replaces the old hard page-reload that flashed/errored on mobile).
+  useEffect(() => {
+    const onSynced = () => setRefreshKey((k) => k + 1);
+    window.addEventListener("marketlens:synced", onSynced);
+    return () => window.removeEventListener("marketlens:synced", onSynced);
+  }, []);
 
   const fetchPeers = useCallback(async (symbol: string) => {
     // Only ever show real peer data — never a fabricated fallback. If the peer
@@ -337,14 +362,27 @@ export default function Home() {
 
   const btcLive = cryptoPrices.find(c => c.symbol === "BTC-USD");
   const ethLive = cryptoPrices.find(c => c.symbol === "ETH-USD");
+  // Build a ticker entry from live data; returns null (omitted) until real data
+  // arrives, so the "LIVE" bar never shows a stale/fabricated number.
+  const macroItem = (label: string, sym: string, prefix: string) => {
+    const q = macroQuotes[sym];
+    if (!q || !Number.isFinite(q.price)) return null;
+    const ch = Number.isFinite(q.changePercent) ? q.changePercent : 0;
+    return {
+      label,
+      value: `${prefix}${q.price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: `${ch >= 0 ? "+" : ""}${ch.toFixed(2)}%`,
+      positive: ch >= 0,
+    };
+  };
   const TICKER_ITEMS = [
     ...globalIndices.map(i => ({ label: i.name, value: i.value, change: i.change, positive: i.positive })),
     { label: "BTC", value: `$${btcLive?.price || "64,014"}`, change: btcLive?.change || "-0.39%", positive: btcLive?.positive ?? false },
     { label: "ETH", value: `$${ethLive?.price || "1,728"}`, change: ethLive?.change || "-0.49%", positive: ethLive?.positive ?? false },
-    { label: "Gold", value: "$2,438", change: "+0.32%", positive: true },
-    { label: "Oil", value: "$78.42", change: "-0.67%", positive: false },
-    { label: "VIX", value: "13.28", change: "-2.14%", positive: false },
-  ];
+    macroItem("Gold", "GC=F", "$"),
+    macroItem("Oil", "CL=F", "$"),
+    macroItem("VIX", "^VIX", ""),
+  ].filter((x): x is { label: string; value: string; change: string; positive: boolean } => x !== null);
 
   return (
     <div className="min-h-screen">
@@ -381,9 +419,9 @@ export default function Home() {
       {/* Header */}
       <header className="sticky top-0 z-40 glass bg-white/80 border-b border-[var(--color-border)] shadow-sm">
         {/* Top bar: logo + search */}
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex items-center justify-between gap-6">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center gap-x-3 sm:gap-x-6 gap-y-2">
           <div
-            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+            className="flex items-center gap-2.5 cursor-pointer group shrink-0 order-1"
             onClick={() => {
               setData(null);
               setActiveSymbol(null);
@@ -400,11 +438,14 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex-1 max-w-md">
-            <SearchBar onSearch={fetchStock} loading={loading} />
-          </div>
-          <div className="shrink-0">
+          {/* On phone the account control stays on the top row (right) and the
+              search bar drops to its own full-width row below, so Sign in / the
+              account avatar is never pushed off-screen. */}
+          <div className="shrink-0 order-2 sm:order-3 ml-auto sm:ml-0">
             <AccountMenu />
+          </div>
+          <div className="order-3 sm:order-2 w-full sm:w-auto sm:flex-1 sm:max-w-md">
+            <SearchBar onSearch={fetchStock} loading={loading} />
           </div>
         </div>
 
@@ -862,7 +903,7 @@ export default function Home() {
               accent="azure"
               icon={Briefcase}
             />
-            <SafeSection label="your portfolio"><PortfolioPanel onSelect={fetchStock} refreshKey={refreshKey} onStartTrading={() => setActiveTab("paper")} /></SafeSection>
+            <SafeSection label="your portfolio"><PortfolioPanel onSelect={fetchStock} refreshKey={refreshKey} onStartTrading={() => setActiveTab("paper")} onTraded={refresh} /></SafeSection>
             <NewsFeed isDemo />
           </div>
         )}
@@ -936,7 +977,7 @@ export default function Home() {
                         className="bg-white border border-[var(--color-border)] rounded-xl p-3.5 hover:shadow-md transition-all"
                       >
                         <div className="flex items-center gap-1.5 mb-1.5">
-                          <span className="text-sm">{idx.flag}</span>
+                          <CountryBadge code={flagToCode(idx.flag)} />
                           <span className="text-[10px] font-medium text-[var(--color-text-muted)] truncate">
                             {idx.name}
                           </span>

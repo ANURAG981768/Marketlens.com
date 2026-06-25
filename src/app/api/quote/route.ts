@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 
 export async function GET(req: NextRequest) {
   const symbol = req.nextUrl.searchParams.get("symbol")?.toUpperCase().trim();
@@ -7,7 +8,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
       {
         next: { revalidate: 30 },

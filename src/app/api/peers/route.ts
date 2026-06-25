@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
 
 // Live peer comparison: real peer symbols from Yahoo recommendations + real
@@ -12,7 +13,7 @@ const num = (v: unknown): number => {
 
 async function getPeerSymbols(symbol: string): Promise<string[]> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://query2.finance.yahoo.com/v6/finance/recommendationsbysymbol/${encodeURIComponent(symbol)}`,
       { headers: { "User-Agent": YAHOO_UA }, next: { revalidate: 86400 } }
     );
@@ -29,7 +30,7 @@ async function fetchOne(symbol: string, isTarget: boolean, crumb: string, cookie
   const mods = "price,summaryDetail,defaultKeyStatistics,financialData,assetProfile";
   const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${mods}&crumb=${encodeURIComponent(crumb)}`;
   try {
-    const res = await fetch(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 120 } });
+    const res = await fetchWithTimeout(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 120 } });
     if (!res.ok) return null;
     const json = await res.json();
     const r = json?.quoteSummary?.result?.[0];

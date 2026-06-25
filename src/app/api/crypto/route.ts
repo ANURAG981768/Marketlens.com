@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 
 const COIN_MAP: Record<string, string> = {
   "BTC-USD": "bitcoin", "ETH-USD": "ethereum", "SOL-USD": "solana",
@@ -27,7 +28,7 @@ const REVERSE_MAP = Object.fromEntries(
 export async function GET() {
   const ids = Object.values(COIN_MAP).join(",");
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`,
       { next: { revalidate: 60 } }
     );

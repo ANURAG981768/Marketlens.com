@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
 
 /* ------------------------------------------------------------------ */
@@ -85,7 +86,7 @@ async function fetchNews(symbol: string): Promise<NewsItem[]> {
     const url = `https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(
       symbol
     )}&region=US&lang=en-US`;
-    const res = await fetch(url, { headers: { "User-Agent": RSS_UA }, next: { revalidate: 300 } });
+    const res = await fetchWithTimeout(url, { headers: { "User-Agent": RSS_UA }, next: { revalidate: 300 } });
     if (!res.ok) return [];
     const xml = await res.text();
     const items = xml.match(/<item>([\s\S]*?)<\/item>/gi) || [];
@@ -113,7 +114,7 @@ async function fetchSummary(symbol: string, crumb: string, cookie: string) {
   const u = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(
     symbol
   )}?modules=${modules}&crumb=${encodeURIComponent(crumb)}`;
-  const res = await fetch(u, {
+  const res = await fetchWithTimeout(u, {
     headers: { "User-Agent": YAHOO_UA, Cookie: cookie },
     next: { revalidate: 3600 },
   });

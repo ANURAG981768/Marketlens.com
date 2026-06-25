@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
+import { fetchWithTimeout } from "@/lib/upstream";
 
 // Real per-symbol company data assembled from free Yahoo Finance endpoints.
 // No paid key required — searching any ticker returns THAT company's data
@@ -15,7 +16,7 @@ const safeDiv = (a: number, b: number) => (b ? a / b : 0);
 async function quoteSummary(symbol: string, crumb: string, cookie: string) {
   const mods = "assetProfile,price,summaryDetail,defaultKeyStatistics,financialData,incomeStatementHistory,recommendationTrend";
   const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}?modules=${mods}&crumb=${encodeURIComponent(crumb)}`;
-  return fetch(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 120 } });
+  return fetchWithTimeout(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 120 } });
 }
 
 // Full annual income statements from Yahoo's fundamentals-timeseries endpoint.
@@ -25,7 +26,7 @@ async function fetchIncome(symbol: string, crumb: string, cookie: string, shares
     const types = "annualTotalRevenue,annualCostOfRevenue,annualGrossProfit,annualOperatingIncome,annualNetIncome,annualEBITDA,annualDilutedEPS,annualOperatingExpense";
     const p2 = Math.floor(Date.now() / 1000);
     const url = `https://query2.finance.yahoo.com/ws/fundamentals-timeseries/v1/finance/timeseries/${encodeURIComponent(symbol)}?symbol=${encodeURIComponent(symbol)}&type=${types}&period1=1500000000&period2=${p2}&crumb=${encodeURIComponent(crumb)}`;
-    const res = await fetch(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 3600 } });
+    const res = await fetchWithTimeout(url, { headers: { "User-Agent": YAHOO_UA, Cookie: cookie }, next: { revalidate: 3600 } });
     if (!res.ok) return [];
     const json = await res.json();
     const groups: Array<Record<string, unknown>> = json?.timeseries?.result || [];
@@ -86,7 +87,7 @@ async function fetchDividends(
   symbol: string
 ): Promise<{ history: { year: string; amount: number }[]; trailingAnnual: number }> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(
         symbol
       )}?interval=1mo&range=10y&events=div`,
@@ -131,7 +132,7 @@ async function fetchDividends(
 
 async function fetchHistory(symbol: string): Promise<unknown[]> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1y`,
       { headers: { "User-Agent": YAHOO_UA }, next: { revalidate: 300 } }
     );

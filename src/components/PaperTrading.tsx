@@ -24,6 +24,7 @@ import {
   Coins,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/format";
+import Modal from "./Modal";
 import { getMarketStatus, classifyInstrument, type MarketStatus } from "@/lib/market-hours";
 import { useAuth } from "@/lib/auth-context";
 import { shareText } from "@/lib/share";
@@ -553,11 +554,11 @@ export default function PaperTrading({ onSelect }: Props) {
     if (orderType === "limit") {
       const lim = parseFloat(limitPrice) || 0;
       if (lim > 0 && tradeType === "buy" && price > lim) {
-        setError(`Limit not reached: ${tradeSymbol} is $${price.toFixed(2)}, above your $${lim.toFixed(2)} buy limit. MarketLens fills instantly — set a limit at/above the current price, or use a Market order.`);
+        setError(`Limit not reached: ${tradeSymbol} is $${priceStr(price)}, above your $${priceStr(lim)} buy limit. MarketLens fills instantly — set a limit at/above the current price, or use a Market order.`);
         return;
       }
       if (lim > 0 && tradeType === "sell" && price < lim) {
-        setError(`Limit not reached: ${tradeSymbol} is $${price.toFixed(2)}, below your $${lim.toFixed(2)} sell limit. MarketLens fills instantly — set a limit at/below the current price, or use a Market order.`);
+        setError(`Limit not reached: ${tradeSymbol} is $${priceStr(price)}, below your $${priceStr(lim)} sell limit. MarketLens fills instantly — set a limit at/below the current price, or use a Market order.`);
         return;
       }
     }
@@ -811,7 +812,7 @@ export default function PaperTrading({ onSelect }: Props) {
                                 {pnl >= 0 ? "+" : ""}{formatCurrency(Math.abs(pnl))} ({pnl >= 0 ? "+" : ""}{pnlPct.toFixed(2)}%)
                               </p>
                             ) : (
-                              <p className="text-xs text-[var(--color-text-muted)] tabular-nums">${h.avgCost.toFixed(2)}/share</p>
+                              <p className="text-xs text-[var(--color-text-muted)] tabular-nums">${priceStr(h.avgCost)}/share</p>
                             )}
                           </div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1166,7 +1167,7 @@ export default function PaperTrading({ onSelect }: Props) {
                       </div>
                       {parseFloat(dollarAmount) > 0 && parseFloat(tradePrice) > 0 && (
                         <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
-                          ≈ {fmtQty(resolvedShares)} units at ${parseFloat(tradePrice).toFixed(2)}
+                          ≈ {fmtQty(resolvedShares)} units at ${priceStr(parseFloat(tradePrice))}
                         </p>
                       )}
                     </>
@@ -1215,7 +1216,7 @@ export default function PaperTrading({ onSelect }: Props) {
                       <p className="text-xs font-medium text-[var(--color-text-muted)] mb-2">Limit Price</p>
                       <input type="number" value={limitPrice} onChange={(e) => setLimitPrice(e.target.value)} placeholder={tradePrice || "0.00"} step="0.01"
                         className="w-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-positive)] tabular-nums" />
-                      {tradePrice && <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">Current: ${parseFloat(tradePrice).toFixed(2)}</p>}
+                      {tradePrice && <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">Current: ${priceStr(parseFloat(tradePrice))}</p>}
                     </>
                   )}
                   {orderType === "stop" && (
@@ -1223,7 +1224,7 @@ export default function PaperTrading({ onSelect }: Props) {
                       <p className="text-xs font-medium text-[var(--color-text-muted)] mb-2">Stop Price</p>
                       <input type="number" value={limitPrice} onChange={(e) => setLimitPrice(e.target.value)} placeholder={tradePrice || "0.00"} step="0.01"
                         className="w-full bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg px-4 py-3 text-sm font-semibold text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-positive)] tabular-nums" />
-                      {tradePrice && <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">Current: ${parseFloat(tradePrice).toFixed(2)}</p>}
+                      {tradePrice && <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">Current: ${priceStr(parseFloat(tradePrice))}</p>}
                     </>
                   )}
                   {orderType === "stop_limit" && (
@@ -1573,7 +1574,7 @@ export default function PaperTrading({ onSelect }: Props) {
                           </span>
                         </div>
                         <p className="text-xs text-[var(--color-text-muted)]">
-                          {fmtQty(trade.shares)} · ${trade.price.toFixed(2)}
+                          {fmtQty(trade.shares)} · ${priceStr(trade.price)}
                         </p>
                       </div>
                     </div>
@@ -1601,8 +1602,7 @@ export default function PaperTrading({ onSelect }: Props) {
 
       {/* ═══ TRADE CONFIRMATION MODAL ═══ */}
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl p-6 max-w-sm mx-4 shadow-2xl w-full">
+        <Modal onClose={() => setShowConfirm(false)} closeOnBackdrop={false} backdropClassName="bg-black/70" panelClassName="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <div className="text-center mb-6">
               <h3 className="text-lg font-bold">
                 {tradeType === "buy" ? "Buy" : "Sell"} {tradeSymbol}
@@ -1616,12 +1616,12 @@ export default function PaperTrading({ onSelect }: Props) {
                 <span className="capitalize">{orderType}</span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-[var(--color-text-muted)]">Shares</span>
-                <span className="tabular-nums">{parseInt(tradeShares).toLocaleString()}</span>
+                <span className="text-[var(--color-text-muted)]">{allowsFractional ? "Units" : "Shares"}</span>
+                <span className="tabular-nums">{fmtQty(resolvedShares)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-[var(--color-text-muted)]">Price</span>
-                <span className="tabular-nums">${execPrice.toFixed(2)}</span>
+                <span className="tabular-nums">${priceStr(execPrice)}</span>
               </div>
               <div className="border-t border-[var(--color-border)] pt-3 flex justify-between text-base">
                 <span className="font-semibold">{market.isOpen ? "Total" : "Est. total"}</span>
@@ -1657,14 +1657,12 @@ export default function PaperTrading({ onSelect }: Props) {
                 {submitting ? "Processing…" : tradeType === "buy" ? "Buy" : "Sell"}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* ═══ RESET MODAL ═══ */}
       {showReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-          <div className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl p-6 max-w-sm mx-4 shadow-2xl">
+        <Modal onClose={() => setShowReset(false)} closeOnBackdrop={false} backdropClassName="bg-black/70" panelClassName="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl p-6 max-w-sm w-full shadow-2xl">
             <h3 className="text-lg font-bold text-center mb-2">Reset Account?</h3>
             <p className="text-sm text-[var(--color-text-muted)] mb-6 text-center">
               This clears all {holdingEntries.length} position{holdingEntries.length !== 1 ? "s" : ""} and {portfolio.trades.length} trade{portfolio.trades.length !== 1 ? "s" : ""}, resetting your balance to $1,000,000.
@@ -1683,8 +1681,7 @@ export default function PaperTrading({ onSelect }: Props) {
                 Reset
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

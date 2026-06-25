@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
@@ -23,7 +24,7 @@ const INDICES: { symbol: string; name: string; flag: string; region: string }[] 
 
 async function fetchOne(symbol: string): Promise<{ price: number; prevClose: number } | null> {
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
       { headers: { "User-Agent": UA }, next: { revalidate: 60 } }
     );

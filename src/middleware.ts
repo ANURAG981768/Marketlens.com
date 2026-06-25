@@ -55,6 +55,12 @@ export function middleware(req: NextRequest) {
       "Content-Security-Policy",
       "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; frame-ancestors 'none';"
     );
+    // Force HTTPS for two years (with subdomains) — browsers refuse to load the
+    // site over plain HTTP after the first visit, preventing downgrade/MITM.
+    res.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload"
+    );
   }
 
   return res;

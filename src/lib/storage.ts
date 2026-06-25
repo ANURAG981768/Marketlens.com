@@ -125,6 +125,17 @@ export interface PaperPortfolio {
 const PAPER_KEY = "marketlens_paper_trading";
 const DEFAULT_BALANCE = 1_000_000;
 
+// Keep cash in whole cents so it never drifts to values like 4823.7600000001
+// after hundreds of trades — exactly how a real brokerage ledger behaves.
+const round2 = (n: number) => Math.round(n * 100) / 100;
+// Tolerances that absorb floating-point noise so a legitimate "Max buy" / "Sell
+// All" is never rejected by a sub-cent / sub-satoshi rounding artifact.
+const CASH_EPS = 1e-6;   // dollars
+const SHARE_EPS = 1e-8;  // units
+// Cap stored trade history so an extremely active account can't grow the record
+// until it blows the browser's storage quota and freezes all future trades.
+const MAX_TRADES = 2000;
+
 function freshPortfolio(): PaperPortfolio {
   return { cash: DEFAULT_BALANCE, holdings: {}, trades: [], startDate: new Date().toISOString(), startingBalance: DEFAULT_BALANCE };
 }
@@ -206,9 +217,10 @@ export function paperBuy(symbol: string, name: string, shares: number, price: nu
   validOrder(shares, price);
   const p = getPaperPortfolio();
   const total = shares * price;
-  if (total > p.cash) throw new Error("Insufficient funds");
+  if (total > p.cash + CASH_EPS) throw new Error("Insufficient funds");
 
-  p.cash -= total;
+  p.cash = round2(p.cash - total);
+  if (p.cash < 0) p.cash = 0; // guard the epsilon edge — cash can never go negative
   const h = p.holdings[symbol];
   if (h) {
     const newShares = h.shares + shares;
@@ -221,9 +233,10 @@ export function paperBuy(symbol: string, name: string, shares: number, price: nu
 
   p.trades.unshift({
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    symbol, name, type: "buy", shares, price, total,
+    symbol, name, type: "buy", shares, price, total: round2(total),
     timestamp: new Date().toISOString(),
   });
+  if (p.trades.length > MAX_TRADES) p.trades.length = MAX_TRADES;
 
   savePaper(p);
   return p;
@@ -233,18 +246,22 @@ export function paperSell(symbol: string, name: string, shares: number, price: n
   validOrder(shares, price);
   const p = getPaperPortfolio();
   const h = p.holdings[symbol];
-  if (!h || h.shares < shares) throw new Error("Not enough shares");
+  if (!h || h.shares < shares - SHARE_EPS) throw new Error("Not enough shares");
 
-  const total = shares * price;
-  p.cash += total;
-  h.shares -= shares;
-  if (h.shares <= 0.0000001) delete p.holdings[symbol];
+  // Selling "All" should fully close the position even if the requested amount
+  // is a rounding hair above what's held.
+  const sellShares = Math.min(shares, h.shares);
+  const total = sellShares * price;
+  p.cash = round2(p.cash + total);
+  h.shares -= sellShares;
+  if (h.shares <= SHARE_EPS) delete p.holdings[symbol];
 
   p.trades.unshift({
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    symbol, name, type: "sell", shares, price, total,
+    symbol, name, type: "sell", shares: sellShares, price, total: round2(total),
     timestamp: new Date().toISOString(),
   });
+  if (p.trades.length > MAX_TRADES) p.trades.length = MAX_TRADES;
 
   savePaper(p);
   return p;
@@ -304,11 +321,12 @@ export function fillPendingOrders(
     }
     const total = o.shares * price;
     if (o.type === "buy") {
-      if (total > p.cash) {
+      if (total > p.cash + CASH_EPS) {
         cancelled.push(`${o.symbol}: buy cancelled — not enough cash at the open price`);
         continue;
       }
-      p.cash -= total;
+      p.cash = round2(p.cash - total);
+      if (p.cash < 0) p.cash = 0;
       const h = p.holdings[o.symbol];
       if (h) {
         const ns = h.shares + o.shares;
@@ -318,22 +336,25 @@ export function fillPendingOrders(
       } else {
         p.holdings[o.symbol] = { shares: o.shares, avgCost: price, name: o.name };
       }
-      p.trades.unshift({ id: orderId(), symbol: o.symbol, name: o.name, type: "buy", shares: o.shares, price, total, timestamp: new Date().toISOString() });
+      p.trades.unshift({ id: orderId(), symbol: o.symbol, name: o.name, type: "buy", shares: o.shares, price, total: round2(total), timestamp: new Date().toISOString() });
       filled.push(`Bought ${o.shares} ${o.symbol} at $${price.toFixed(2)}`);
     } else {
       const h = p.holdings[o.symbol];
-      if (!h || h.shares < o.shares) {
+      if (!h || h.shares < o.shares - SHARE_EPS) {
         cancelled.push(`${o.symbol}: sell cancelled — you no longer hold enough shares`);
         continue;
       }
-      p.cash += total;
-      h.shares -= o.shares;
-      if (h.shares <= 0.0000001) delete p.holdings[o.symbol];
-      p.trades.unshift({ id: orderId(), symbol: o.symbol, name: o.name, type: "sell", shares: o.shares, price, total, timestamp: new Date().toISOString() });
+      const sellShares = Math.min(o.shares, h.shares);
+      const sellTotal = sellShares * price;
+      p.cash = round2(p.cash + sellTotal);
+      h.shares -= sellShares;
+      if (h.shares <= SHARE_EPS) delete p.holdings[o.symbol];
+      p.trades.unshift({ id: orderId(), symbol: o.symbol, name: o.name, type: "sell", shares: sellShares, price, total: round2(sellTotal), timestamp: new Date().toISOString() });
       filled.push(`Sold ${o.shares} ${o.symbol} at $${price.toFixed(2)}`);
     }
   }
   p.pendingOrders = remaining;
+  if (p.trades.length > MAX_TRADES) p.trades.length = MAX_TRADES;
   savePaper(p);
   return { portfolio: p, filled, cancelled };
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchWithTimeout } from "@/lib/upstream";
 
 // Intraday chart data — what every competitor shows by default ("today's"
 // movement). Yahoo serves this via short intervals; we expose 1D (5-minute
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
   const cfg = CONFIGS[rangeKey] || CONFIGS["1d"];
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${cfg.interval}&range=${cfg.range}`,
       { headers: { "User-Agent": "Mozilla/5.0" }, next: { revalidate: 60 } }
     );

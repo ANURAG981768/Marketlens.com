@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { TrendingUp, TrendingDown, Activity, Globe } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Globe, Flag } from "lucide-react";
 import SectionBanner from "./SectionBanner";
+import CountryBadge, { flagToCode } from "./CountryBadge";
 
 interface SectorData {
   name: string;
@@ -165,7 +166,7 @@ export default function MarketOverview() {
       {/* US Major Indices */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <span className="text-sm">🇺🇸</span>
+          <Flag size={14} className="text-[var(--color-brand)]" />
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)]">US Markets</h3>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -235,7 +236,7 @@ export default function MarketOverview() {
               className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-xl p-3.5 hover:border-[var(--color-border-light)] transition-colors"
             >
               <div className="flex items-center gap-1.5 mb-1">
-                <span className="text-sm">{idx.flag}</span>
+                <CountryBadge code={flagToCode(idx.flag)} />
                 <span className="text-[10px] font-medium text-[var(--color-text-muted)] truncate">
                   {idx.name}
                 </span>

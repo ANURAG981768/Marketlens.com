@@ -65,14 +65,17 @@ export default function ProgressDashboard({ onContinue }: Props) {
   ];
 
   return (
-    <div className="premium-ink rounded-2xl overflow-hidden border-t-2 border-t-[var(--color-gold)] mb-6">
+    <div
+      className="bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-2xl overflow-hidden mb-6 shadow-sm"
+      style={{ borderTop: "2px solid var(--color-gold)" }}
+    >
       <div className="px-6 py-6 sm:px-8 sm:py-7">
         <div className="flex items-start justify-between gap-4 flex-wrap mb-5">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-gold-light)] font-semibold mb-1.5">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--color-gold-dim)] font-semibold mb-1.5">
               {streak.current > 0 ? `${streak.current}-day streak — keep it alive` : "Start your streak today"}
             </p>
-            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-white">{greeting}</h2>
+            <h2 className="font-display text-2xl sm:text-3xl font-semibold text-[var(--color-text-primary)]">{greeting}</h2>
           </div>
           {nextLesson ? (
             <button
@@ -92,31 +95,31 @@ export default function ProgressDashboard({ onContinue }: Props) {
         {/* Stat cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
           {stats.map((s) => (
-            <div key={s.label} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+            <div key={s.label} className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3">
               <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center mb-2`}>
                 <s.icon size={16} className={s.accent} />
               </div>
-              <p className="text-2xl font-bold text-white tabular-nums leading-none">{s.value}</p>
-              <p className="text-[11px] text-gray-400 mt-1">{s.label}</p>
+              <p className="text-2xl font-bold text-[var(--color-text-primary)] tabular-nums leading-none">{s.value}</p>
+              <p className="text-[11px] text-[var(--color-text-muted)] mt-1">{s.label}</p>
             </div>
           ))}
         </div>
 
         {/* Overall progress bar */}
         <div>
-          <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+          <div className="flex items-center justify-between text-xs text-[var(--color-text-muted)] mb-1.5">
             <span>Course completion</span>
-            <span className="font-semibold text-white tabular-nums">{pct}%</span>
+            <span className="font-semibold text-[var(--color-text-primary)] tabular-nums">{pct}%</span>
           </div>
-          <div className="h-2 rounded-full bg-white/10 overflow-hidden">
+          <div className="h-2 rounded-full bg-[var(--color-border)] overflow-hidden">
             <div
               className="h-full rounded-full bg-gradient-to-r from-[var(--color-brand)] to-[var(--color-brand-light)] transition-all duration-700"
               style={{ width: `${pct}%` }}
             />
           </div>
           {nextLesson && (
-            <p className="text-xs text-gray-500 mt-2.5">
-              Up next: <span className="text-gray-300">{nextLesson.title}</span>
+            <p className="text-xs text-[var(--color-text-muted)] mt-2.5">
+              Up next: <span className="text-[var(--color-text-secondary)]">{nextLesson.title}</span>
             </p>
           )}
         </div>

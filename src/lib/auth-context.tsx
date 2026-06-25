@@ -70,7 +70,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSyncing(true);
         try {
           const changed = await syncOnLogin(nextUser.id);
-          if (changed) window.location.reload();
+          // Previously this did a hard window.location.reload() to surface the
+          // freshly-merged cloud data — but on mobile that full-page reload right
+          // after sign-in looked like an error and broke the back button. Instead
+          // we fire a lightweight event the app listens for to re-read state in
+          // place (no reload, no flash).
+          if (changed && typeof window !== "undefined") {
+            window.dispatchEvent(new Event("marketlens:synced"));
+          }
         } finally {
           setSyncing(false);
         }

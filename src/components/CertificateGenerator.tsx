@@ -5,6 +5,7 @@ import { Award, Download, CheckCircle, Lock, BookOpen, Trophy, User, Sparkles, S
 import { LESSONS } from "@/lib/lessons-data";
 import { encodeCertificate } from "@/lib/certificate";
 import { supabase } from "@/lib/supabase";
+import Modal from "./Modal";
 
 const STORAGE_KEY = "marketlens_lessons_progress";
 const CERT_KEY = "marketlens_certificates";
@@ -117,23 +118,24 @@ export default function CertificateGenerator() {
   const [pendingClaimId, setPendingClaimId] = useState<string | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
 
-  function getVerifyUrl(trackId: string, trackTitle: string, lessons: number): string {
-    const cert = certificates[trackId];
-    if (!cert || typeof window === "undefined") return "";
-    const token = encodeCertificate({
-      n: cert.name,
-      t: trackTitle,
-      d: cert.date,
-      id: cert.certId,
-      s: cert.quizAvg,
-      l: lessons,
-    });
-    return `${window.location.origin}/verify/${token}`;
-  }
-
   async function copyVerifyLink(trackId: string, trackTitle: string, lessons: number) {
-    const url = getVerifyUrl(trackId, trackTitle, lessons);
-    if (!url) return;
+    const cert = certificates[trackId];
+    if (!cert || typeof window === "undefined") return;
+    const payload = { n: cert.name, t: trackTitle, d: cert.date, id: cert.certId, s: cert.quizAvg, l: lessons };
+    // Ask the server to sign the certificate (tamper-proof). If the endpoint is
+    // unreachable, fall back to the legacy self-contained token so sharing still
+    // works — the verify page accepts both.
+    let token = encodeCertificate(payload);
+    try {
+      const r = await fetch("/api/certificate/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json();
+      if (j?.token) token = j.token;
+    } catch {}
+    const url = `${window.location.origin}/verify/${token}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopiedLink(true);
@@ -572,8 +574,7 @@ export default function CertificateGenerator() {
 
       {/* Name Modal */}
       {showNamePrompt && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4" onClick={() => { setShowNamePrompt(false); setPendingClaimId(null); }}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => { setShowNamePrompt(false); setPendingClaimId(null); }} panelClassName="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up">
             <div className="p-6">
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
                 <Sparkles size={22} className="text-white" />
@@ -598,14 +599,12 @@ export default function CertificateGenerator() {
                 {pendingClaimId ? "Save & Claim" : "Save Name"}
               </button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Certificate Preview Modal */}
       {showCertificate && activeCert && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" onClick={() => setShowCertificate(false)}>
-          <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden animate-fade-in-up" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setShowCertificate(false)} backdropClassName="bg-black/70" panelClassName="bg-white rounded-2xl shadow-2xl max-w-3xl w-full overflow-hidden animate-fade-in-up">
             <div className="relative bg-white p-8 sm:p-10 border-b border-[var(--color-border)]">
               <div className="absolute inset-4 border-2 border-[#c8a84e]/40 rounded-xl pointer-events-none" />
               <div className="absolute inset-5 border border-[#c8a84e]/20 rounded-lg pointer-events-none" />
@@ -671,8 +670,7 @@ export default function CertificateGenerator() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

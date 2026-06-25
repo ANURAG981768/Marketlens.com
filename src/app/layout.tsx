@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth-context";
+import { SITE_URL } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -20,7 +21,6 @@ const fraunces = Fraunces({
   axes: ["opsz", "SOFT"],
 });
 
-const SITE_URL = "https://marketlens-com.vercel.app";
 const TITLE = "MarketLens — Learn the Markets Like a Professional";
 const DESCRIPTION =
   "Free equity research, live market data, hands-on paper trading, and a complete investing course — built for students worldwide, at zero cost.";

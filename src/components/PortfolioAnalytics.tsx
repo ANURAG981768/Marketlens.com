@@ -168,13 +168,17 @@ function loadHoldingsBase(): Holding[] {
       if (data.holdings && typeof data.holdings === "object") {
         const entries = Object.entries(data.holdings) as [string, { shares: number; avgCost: number; name: string }][];
         if (entries.length > 0) {
-          return entries.map(([symbol, h]) => ({
-            symbol,
-            name: h.name,
-            shares: h.shares,
-            avgCost: h.avgCost,
-            currentPrice: h.avgCost,
-          }));
+          return entries
+            // Drop any malformed position so one bad number can't turn every
+            // metric (Sharpe, beta, VaR…) into NaN.
+            .filter(([, h]) => h && Number.isFinite(h.shares) && h.shares > 0 && Number.isFinite(h.avgCost) && h.avgCost > 0)
+            .map(([symbol, h]) => ({
+              symbol,
+              name: h.name || symbol,
+              shares: h.shares,
+              avgCost: h.avgCost,
+              currentPrice: h.avgCost,
+            }));
         }
       }
     }

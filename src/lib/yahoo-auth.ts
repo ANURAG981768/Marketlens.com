@@ -3,6 +3,8 @@
 // "crumb" token. We fetch both once and cache them in module scope (shared
 // across all API routes that import this) with a 30-minute TTL.
 
+import { fetchWithTimeout } from "@/lib/upstream";
+
 export const YAHOO_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
@@ -16,13 +18,13 @@ export async function getYahooAuth(force = false): Promise<{ crumb: string; cook
     return { crumb: cachedCrumb, cookie: cachedCookie };
   }
   try {
-    const cookieRes = await fetch("https://fc.yahoo.com", {
+    const cookieRes = await fetchWithTimeout("https://fc.yahoo.com", {
       headers: { "User-Agent": YAHOO_UA },
       cache: "no-store",
     });
     const cookie = (cookieRes.headers.get("set-cookie") || "").split(";")[0] || "";
 
-    const crumbRes = await fetch("https://query1.finance.yahoo.com/v1/test/getcrumb", {
+    const crumbRes = await fetchWithTimeout("https://query1.finance.yahoo.com/v1/test/getcrumb", {
       headers: { "User-Agent": YAHOO_UA, Cookie: cookie },
       cache: "no-store",
     });
