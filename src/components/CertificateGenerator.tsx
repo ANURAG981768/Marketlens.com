@@ -322,15 +322,12 @@ export default function CertificateGenerator() {
     ctx.font = "italic 17px serif"; ctx.fillStyle = "#5a6677";
     ctx.fillText("“The best investment you will ever make is in your own learning.”", 700, 800);
 
-    // Signatures
-    ctx.strokeStyle = "rgba(200,168,78,0.4)"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(230, 860); ctx.lineTo(530, 860); ctx.stroke();
-    ctx.font = "italic 18px serif"; ctx.fillStyle = "#b8932f"; ctx.fillText("MarketLens", 380, 850);
-    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("PLATFORM DIRECTOR", 380, 876);
-
-    ctx.beginPath(); ctx.moveTo(870, 860); ctx.lineTo(1170, 860); ctx.stroke();
-    ctx.font = "italic 18px serif"; ctx.fillStyle = "#b8932f"; ctx.fillText("Equity Education", 1020, 850);
-    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("HEAD OF CURRICULUM", 1020, 876);
+    // Signature — a single, centered mark of authority. One real signing line
+    // reads more honest and more premium than inventing a second job title.
+    ctx.strokeStyle = "rgba(200,168,78,0.45)"; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(560, 862); ctx.lineTo(840, 862); ctx.stroke();
+    ctx.font = "italic 22px serif"; ctx.fillStyle = "#b8932f"; ctx.fillText("MarketLens", 700, 851);
+    ctx.font = "10px sans-serif"; ctx.fillStyle = "#9aa0aa"; ctx.fillText("PLATFORM DIRECTOR", 700, 878);
 
     // Verification footer
     ctx.font = "11px sans-serif"; ctx.fillStyle = "#9aa0aa";
