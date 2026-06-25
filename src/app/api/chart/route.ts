@@ -10,6 +10,26 @@ const CONFIGS: Record<string, { interval: string; range: string }> = {
   "5d": { interval: "30m", range: "5d" },
 };
 
+// Two Yahoo hosts — fail over to the second if the first blips, so a chart
+// never goes blank on a single-host hiccup.
+const HOSTS = ["query1.finance.yahoo.com", "query2.finance.yahoo.com"];
+
+interface ChartResult {
+  timestamp?: number[];
+  indicators?: { quote?: { close?: (number | null)[] }[] };
+  meta?: { chartPreviousClose?: number; previousClose?: number };
+}
+
+async function fetchChartResult(host: string, symbol: string, cfg: { interval: string; range: string }): Promise<ChartResult | null> {
+  const res = await fetchWithTimeout(
+    `https://${host}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${cfg.interval}&range=${cfg.range}`,
+    { headers: { "User-Agent": "Mozilla/5.0" }, next: { revalidate: 60 } }
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  return (data?.chart?.result?.[0] as ChartResult) ?? null;
+}
+
 export async function GET(req: NextRequest) {
   const symbol = req.nextUrl.searchParams.get("symbol")?.toUpperCase().trim();
   const rangeKey = req.nextUrl.searchParams.get("range") || "1d";
@@ -17,28 +37,27 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid symbol" }, { status: 400 });
   }
   const cfg = CONFIGS[rangeKey] || CONFIGS["1d"];
+  const cacheHeaders = { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" };
 
-  try {
-    const res = await fetchWithTimeout(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${cfg.interval}&range=${cfg.range}`,
-      { headers: { "User-Agent": "Mozilla/5.0" }, next: { revalidate: 60 } }
-    );
-    if (!res.ok) throw new Error(`Yahoo ${res.status}`);
-    const data = await res.json();
-    const r = data?.chart?.result?.[0];
-    if (!r) return NextResponse.json({ points: [], previousClose: 0 });
-
-    const ts: number[] = r.timestamp || [];
-    const closes: (number | null)[] = r.indicators?.quote?.[0]?.close || [];
-    const points: { t: number; close: number }[] = [];
-    for (let i = 0; i < ts.length; i++) {
-      const c = closes[i];
-      if (c == null) continue;
-      points.push({ t: ts[i] * 1000, close: c });
+  let r: ChartResult | null = null;
+  for (const host of HOSTS) {
+    try {
+      r = await fetchChartResult(host, symbol, cfg);
+      if (r) break;
+    } catch {
+      /* try the next host */
     }
-    const previousClose = r.meta?.chartPreviousClose || r.meta?.previousClose || 0;
-    return NextResponse.json({ points, previousClose });
-  } catch {
-    return NextResponse.json({ points: [], previousClose: 0 }, { status: 200 });
   }
+  if (!r) return NextResponse.json({ points: [], previousClose: 0 }, { status: 200, headers: cacheHeaders });
+
+  const ts: number[] = r.timestamp || [];
+  const closes: (number | null)[] = r.indicators?.quote?.[0]?.close || [];
+  const points: { t: number; close: number }[] = [];
+  for (let i = 0; i < ts.length; i++) {
+    const c = closes[i];
+    if (c == null) continue;
+    points.push({ t: ts[i] * 1000, close: c });
+  }
+  const previousClose = r.meta?.chartPreviousClose || r.meta?.previousClose || 0;
+  return NextResponse.json({ points, previousClose }, { headers: cacheHeaders });
 }
