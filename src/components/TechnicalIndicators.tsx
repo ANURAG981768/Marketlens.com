@@ -118,8 +118,13 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
       ? TrendingDown
       : Minus;
 
+  // Adaptive precision so sub-cent instruments (e.g. small crypto) don't collapse
+  // every level to "$0.00".
   function formatPrice(v: number | null) {
-    return v ? `$${v.toFixed(2)}` : "—";
+    if (v == null || !Number.isFinite(v)) return "—";
+    const abs = Math.abs(v);
+    const d = abs >= 1 ? 2 : abs >= 0.01 ? 4 : abs >= 0.0001 ? 6 : 8;
+    return `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: d })}`;
   }
 
   function signalBadge(condition: boolean | "neutral" | null) {
@@ -264,10 +269,10 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
         </div>
         <div className="flex justify-between mt-1">
           <span className="text-[10px] tabular-nums text-[var(--color-text-muted)]">
-            ${indicators.low52.toFixed(2)}
+            {formatPrice(indicators.low52)}
           </span>
           <span className="text-[10px] tabular-nums text-[var(--color-text-muted)]">
-            ${indicators.high52.toFixed(2)}
+            {formatPrice(indicators.high52)}
           </span>
         </div>
       </div>

@@ -13,6 +13,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { HistoricalPrice } from "@/lib/types";
+import { formatPrice } from "@/lib/format";
 
 interface Props {
   history: HistoricalPrice[];
@@ -199,14 +200,14 @@ export default function PriceChart({ history, symbol }: Props) {
                 tick={{ fontSize: 10, fill: "#9a9a9a" }}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v: number) => `$${v < 10 ? v.toFixed(2) : v.toFixed(0)}`}
+                tickFormatter={(v: number) => (v >= 10 ? `$${v.toFixed(0)}` : formatPrice(v))}
                 width={55}
               />
               <Tooltip
                 contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e8e8e8", borderRadius: "10px", fontSize: "12px", color: "#1a1a1a", boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}
                 formatter={(value: any, name: any) => {
                   const label = name === "sma50" ? "50-day avg" : name === "sma200" ? "200-day avg" : "Price";
-                  return [`$${Number(value).toFixed(2)}`, label];
+                  return [formatPrice(Number(value)), label];
                 }}
                 labelFormatter={(label: any) => {
                   const date = new Date(label);
@@ -239,7 +240,7 @@ export default function PriceChart({ history, symbol }: Props) {
       )}
       {isIntraday && rangeKey === "1d" && intradayPrevClose > 0 && data.length > 0 && (
         <div className="flex items-center gap-2 mt-3 text-[10px] text-[var(--color-text-muted)]">
-          <span className="w-3 border-t border-dashed border-[#9a9a9a]" /> Previous close ${intradayPrevClose.toFixed(2)}
+          <span className="w-3 border-t border-dashed border-[#9a9a9a]" /> Previous close {formatPrice(intradayPrevClose)}
         </div>
       )}
     </div>
