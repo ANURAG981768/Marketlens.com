@@ -81,6 +81,10 @@ body {
   font-optical-sizing: auto;
   font-feature-settings: "kern", "liga", "calt", "cv01", "ss01";
   letter-spacing: -0.011em;
+  /* Native form controls (checkboxes, radios, range sliders, progress) pick up
+     the brand green instead of the browser-default blue — a small, consistent
+     "designed" detail across every screen. */
+  accent-color: var(--color-brand);
 }
 
 /* Headings inherit a slightly tighter rhythm for a more deliberate, editorial
@@ -116,6 +120,22 @@ html {
 button:focus:not(:focus-visible),
 a:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Respect the OS "reduce motion" setting — entrance animations, the ticker, and
+   smooth scroll are calmed for users who prefer less motion (vestibular comfort
+   + accessibility). A hallmark of polished, world-class apps. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 ::selection {
