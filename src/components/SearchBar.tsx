@@ -3,6 +3,7 @@
 import { Search, Loader2, X } from "lucide-react";
 import { useState, useEffect, useRef, useCallback, type FormEvent } from "react";
 import { searchStocks, type SearchItem } from "@/lib/search-data";
+import { displaySymbol } from "@/lib/format";
 
 interface Props {
   onSearch: (symbol: string) => void;
@@ -192,7 +193,7 @@ export default function SearchBar({ onSearch, loading, shortcut = false }: Props
               }`}
             >
               <span className="shrink-0 w-16 text-sm font-bold text-[var(--color-brand)]">
-                {item.symbol}
+                {displaySymbol(item.symbol)}
               </span>
               <span className="flex-1 text-sm text-[var(--color-text-secondary)] truncate">
                 {item.name}
@@ -223,7 +224,7 @@ export default function SearchBar({ onSearch, loading, shortcut = false }: Props
                     }`}
                   >
                     <span className="shrink-0 w-16 text-sm font-bold text-[var(--color-brand)]">
-                      {item.symbol}
+                      {displaySymbol(item.symbol)}
                     </span>
                     <span className="flex-1 text-sm text-[var(--color-text-secondary)] truncate">
                       {item.name}

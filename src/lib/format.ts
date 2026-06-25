@@ -41,3 +41,16 @@ export function formatPrice(value: number): string {
   const decimals = abs >= 1 || abs === 0 ? 2 : abs >= 0.01 ? 4 : abs >= 0.0001 ? 6 : 8;
   return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: decimals })}`;
 }
+
+// Clean display label for a ticker. Forex pairs like "EURUSD=X" render as
+// "EUR/USD" (cleaner and more professional). Display-only — the real symbol is
+// unchanged and still used for API calls and as the storage key.
+export function displaySymbol(symbol: string): string {
+  if (!symbol) return symbol;
+  if (symbol.endsWith("=X")) {
+    const base = symbol.slice(0, -2).toUpperCase();
+    if (/^[A-Z]{6}$/.test(base)) return `${base.slice(0, 3)}/${base.slice(3)}`;
+    return base;
+  }
+  return symbol;
+}

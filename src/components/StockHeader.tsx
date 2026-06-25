@@ -1,7 +1,7 @@
 "use client";
 
 import type { StockData } from "@/lib/types";
-import { formatCurrency, formatPercentRaw, formatPrice } from "@/lib/format";
+import { formatCurrency, formatPercentRaw, formatPrice, displaySymbol } from "@/lib/format";
 import { TrendingUp, TrendingDown, Building2, Globe, Users } from "lucide-react";
 import CompanyLogo from "./CompanyLogo";
 
@@ -30,7 +30,7 @@ export default function StockHeader({ data }: Props) {
             <div className="min-w-0">
               <div className="flex items-center gap-2.5">
                 <h2 className="font-display text-3xl font-semibold tracking-tight leading-none">
-                  {profile.symbol}
+                  {displaySymbol(profile.symbol)}
                 </h2>
                 <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-md bg-[var(--color-brand)]/10 text-[var(--color-brand-dim)]">
                   {profile.exchange}

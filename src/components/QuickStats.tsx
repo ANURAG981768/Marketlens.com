@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function QuickStats({ data }: Props) {
-  const { quote } = data;
+  const { quote, profile } = data;
 
   const stats = [
     { label: "Open", value: formatPrice(quote.open) },
@@ -19,6 +19,8 @@ export default function QuickStats({ data }: Props) {
     { label: "Avg Volume", value: formatCurrency(quote.avgVolume).replace("$", "") },
     { label: "P/E", value: quote.pe?.toFixed(2) ?? "N/A" },
     { label: "EPS", value: `$${quote.eps?.toFixed(2) ?? "N/A"}` },
+    { label: "Beta", value: profile.beta ? profile.beta.toFixed(2) : "N/A" },
+    { label: "Currency", value: profile.currency || "USD" },
   ];
 
   return (
