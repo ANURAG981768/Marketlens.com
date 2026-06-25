@@ -229,11 +229,15 @@ export default function CertificateGenerator() {
     const track = CERTIFICATE_TRACKS.find((t) => t.id === selectedCert);
     if (!track) return;
     const cert = certificates[track.id];
-    const name = cert?.name || userName || "Student";
+    const name = ((cert?.name || userName || "Student").trim().slice(0, 64)) || "Student";
     const certId = cert?.certId || generateCertId(track.id);
     const quizAvg = cert?.quizAvg || getQuizAvg(track.id);
     const dateStr = cert ? new Date(cert.date).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
+    // Belt-and-suspenders: any unexpected failure while drawing or exporting is
+    // caught so it never crashes the app or hands the student a broken file —
+    // they simply get a clear "try again" message instead.
+    try {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -283,8 +287,15 @@ export default function CertificateGenerator() {
     // "This is to certify that"
     ctx.font = "15px sans-serif"; ctx.fillStyle = "#6b7280"; ctx.fillText("This is to certify that", 700, 362);
 
-    // NAME
-    ctx.font = "bold 52px serif"; ctx.fillStyle = "#b8932f"; ctx.fillText(name, 700, 428);
+    // NAME — shrink the font if a long name would spill past the gold border, so
+    // every name (short or very long) sits cleanly centered inside the frame.
+    let nameSize = 52;
+    ctx.font = `bold ${nameSize}px serif`;
+    while (ctx.measureText(name).width > 1000 && nameSize > 22) {
+      nameSize -= 2;
+      ctx.font = `bold ${nameSize}px serif`;
+    }
+    ctx.fillStyle = "#b8932f"; ctx.fillText(name, 700, 428);
     const nw = ctx.measureText(name).width;
     ctx.strokeStyle = "rgba(200,168,78,0.45)"; ctx.beginPath(); ctx.moveTo(700 - nw / 2 - 30, 446); ctx.lineTo(700 + nw / 2 + 30, 446); ctx.stroke();
 
@@ -339,9 +350,14 @@ export default function CertificateGenerator() {
     ctx.fillText(`Verify authenticity at ${typeof window !== "undefined" ? window.location.host : "marketlens-com.vercel.app"}/verify • Certificate ID: ${certId}`, 700, 945);
 
     const link = document.createElement("a");
-    link.download = `MarketLens_${track.title.replace(/\s+/g, "_")}_${name.replace(/\s+/g, "_")}.png`;
+    const safe = (s: string) => s.replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "certificate";
+    link.download = `MarketLens_${safe(track.title)}_${safe(name)}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
+    } catch (err) {
+      console.error("Certificate generation failed:", err);
+      alert("Sorry — the certificate couldn't be generated. Please refresh and try again.");
+    }
   }
 
   const activeCert = CERTIFICATE_TRACKS.find((t) => t.id === selectedCert);
