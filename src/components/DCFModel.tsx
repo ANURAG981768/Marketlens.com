@@ -74,9 +74,16 @@ export default function DCFModel({ data }: Props) {
 
   const latestRevenue = income[0]?.revenue ?? 0;
   const latestMargin = income[0]?.operatingIncomeRatio ?? 0.25;
-  const sharesOutstanding = latestRevenue > 0 && metrics.revenuePerShareTTM > 0
-    ? latestRevenue / metrics.revenuePerShareTTM
-    : 15000000000;
+  // Derive shares from revenue ÷ revenue-per-share; if that's unavailable, fall
+  // back to the far more reliable market cap ÷ price rather than an arbitrary
+  // constant. The old flat 15B fallback could make the fair value off by orders
+  // of magnitude for any company missing per-share revenue data.
+  const sharesOutstanding =
+    latestRevenue > 0 && metrics.revenuePerShareTTM > 0
+      ? latestRevenue / metrics.revenuePerShareTTM
+      : quote.marketCap > 0 && quote.price > 0
+      ? quote.marketCap / quote.price
+      : 15000000000;
 
   // Seed the default growth from the company's REAL historical revenue CAGR
   // (income is newest-first) rather than a flat 8% for every company — that
