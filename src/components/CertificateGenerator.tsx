@@ -237,8 +237,12 @@ export default function CertificateGenerator() {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    canvas.width = 1400;
-    canvas.height = 1000;
+    // Render at 2× (output 2800×2000) for a crisp, print-quality download while
+    // keeping every drawing coordinate below in the original 1400×1000 space.
+    const SCALE = 2;
+    canvas.width = 1400 * SCALE;
+    canvas.height = 1000 * SCALE;
+    ctx.scale(SCALE, SCALE);
 
     // White background with a subtle inner panel
     ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, 1400, 1000);
