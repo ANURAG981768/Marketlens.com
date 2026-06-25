@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchWithTimeout } from "@/lib/upstream";
+import { remember, recall } from "@/lib/last-good";
 
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
 
@@ -105,6 +106,16 @@ export async function GET(req: NextRequest) {
     `${query} when:7d`
   )}&hl=en-US&gl=US&ceid=US:en`;
 
+  const cacheKey = `news:${symbol || "market"}`;
+  const newsHeaders = { "Cache-Control": "public, s-maxage=180, stale-while-revalidate=600" };
+  // If Google News blips, fall back to the last good headlines for this symbol
+  // rather than an empty feed.
+  const stale = () => {
+    const hit = recall<Article[]>(cacheKey);
+    if (hit) return NextResponse.json({ articles: hit.data, stale: true }, { headers: newsHeaders });
+    return NextResponse.json({ error: "demo" }, { status: 200 });
+  };
+
   try {
     const res = await fetchWithTimeout(url, {
       headers: { "User-Agent": UA },
@@ -113,11 +124,10 @@ export async function GET(req: NextRequest) {
     if (!res.ok) throw new Error(`Google News ${res.status}`);
     const xml = await res.text();
     const articles = parseGoogleNews(xml, symbol || "").slice(0, 20);
-    if (articles.length === 0) {
-      return NextResponse.json({ error: "demo" }, { status: 200 });
-    }
-    return NextResponse.json({ articles });
+    if (articles.length === 0) return stale();
+    remember(cacheKey, articles);
+    return NextResponse.json({ articles }, { headers: newsHeaders });
   } catch {
-    return NextResponse.json({ error: "demo" }, { status: 200 });
+    return stale();
   }
 }

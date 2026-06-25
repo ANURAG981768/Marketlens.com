@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getYahooAuth, invalidateYahooAuth, YAHOO_UA } from "@/lib/yahoo-auth";
 import { fetchWithTimeout } from "@/lib/upstream";
+import { remember, recall } from "@/lib/last-good";
 
 // Real per-symbol company data assembled from free Yahoo Finance endpoints.
 // No paid key required — searching any ticker returns THAT company's data
@@ -171,23 +172,36 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Invalid ticker symbol" }, { status: 400 });
   }
 
+  const cacheKey = `stock:${symbol}`;
+  // When the live fetch can't complete, serve the last good payload we have for
+  // this symbol (if any, within its freshness window) rather than a demo/error
+  // screen. Falls back to the original error only when we've never had data.
+  const stale = (fallback: NextResponse) => {
+    const hit = recall<Record<string, unknown>>(cacheKey);
+    if (!hit) return fallback;
+    return NextResponse.json(
+      { ...hit.data, stale: true, ageMs: hit.ageMs },
+      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+    );
+  };
+
   let auth = await getYahooAuth();
-  if (!auth) return NextResponse.json({ error: "demo" }, { status: 200 });
+  if (!auth) return stale(NextResponse.json({ error: "demo" }, { status: 200 }));
 
   try {
     let res = await quoteSummary(symbol, auth.crumb, auth.cookie);
     if (res.status === 401) {
       invalidateYahooAuth();
       const fresh = await getYahooAuth(true);
-      if (!fresh) return NextResponse.json({ error: "demo" }, { status: 200 });
+      if (!fresh) return stale(NextResponse.json({ error: "demo" }, { status: 200 }));
       auth = fresh;
       res = await quoteSummary(symbol, fresh.crumb, fresh.cookie);
     }
-    if (!res.ok) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    if (!res.ok) return stale(NextResponse.json({ error: "not_found" }, { status: 404 }));
 
     const json = await res.json();
     const r = json?.quoteSummary?.result?.[0];
-    if (!r?.price?.regularMarketPrice) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    if (!r?.price?.regularMarketPrice) return stale(NextResponse.json({ error: "not_found" }, { status: 404 }));
 
     const price = r.price || {};
     const sd = r.summaryDetail || {};
@@ -316,8 +330,11 @@ export async function GET(req: NextRequest) {
       profile.lastDiv = dividends.trailingAnnual;
     }
 
-    return NextResponse.json({ profile, quote, metrics, income, history, dividends: dividends.history, analyst, balance });
+    const payload = { profile, quote, metrics, income, history, dividends: dividends.history, analyst, balance };
+    // Stash this good result so a future upstream blip can be ridden out.
+    remember(cacheKey, payload);
+    return NextResponse.json(payload);
   } catch {
-    return NextResponse.json({ error: "demo" }, { status: 200 });
+    return stale(NextResponse.json({ error: "demo" }, { status: 200 }));
   }
 }

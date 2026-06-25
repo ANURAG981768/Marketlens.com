@@ -42,13 +42,60 @@ export function formatPrice(value: number): string {
   return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: decimals })}`;
 }
 
+// Human-readable names for the cryptic futures (=F) and index (^) tickers
+// Yahoo uses. A student shouldn't have to know that "CL=F" means crude oil or
+// "^GSPC" is the S&P 500 — display-only, the raw symbol still drives every API
+// call and storage key.
+const COMMODITY_NAMES: Record<string, string> = {
+  "CL=F": "Crude Oil",
+  "BZ=F": "Brent Crude",
+  "NG=F": "Natural Gas",
+  "GC=F": "Gold",
+  "SI=F": "Silver",
+  "PL=F": "Platinum",
+  "PA=F": "Palladium",
+  "HG=F": "Copper",
+  "ZC=F": "Corn",
+  "ZW=F": "Wheat",
+  "ZS=F": "Soybeans",
+  "KC=F": "Coffee",
+  "SB=F": "Sugar",
+  "CT=F": "Cotton",
+  "CC=F": "Cocoa",
+  "LE=F": "Live Cattle",
+  "ES=F": "S&P 500 Futures",
+  "NQ=F": "Nasdaq Futures",
+  "YM=F": "Dow Futures",
+};
+const INDEX_NAMES: Record<string, string> = {
+  "^GSPC": "S&P 500",
+  "^DJI": "Dow Jones",
+  "^IXIC": "Nasdaq",
+  "^NDX": "Nasdaq 100",
+  "^RUT": "Russell 2000",
+  "^VIX": "VIX",
+  "^TNX": "10Y Treasury",
+  "^FTSE": "FTSE 100",
+  "^GDAXI": "DAX",
+  "^FCHI": "CAC 40",
+  "^N225": "Nikkei 225",
+  "^HSI": "Hang Seng",
+  "^STOXX50E": "Euro Stoxx 50",
+  "^BSESN": "Sensex",
+  "^NSEI": "Nifty 50",
+};
+
 // Clean display label for a ticker. Forex pairs like "EURUSD=X" render as
-// "EUR/USD" (cleaner and more professional). Display-only — the real symbol is
-// unchanged and still used for API calls and as the storage key.
+// "EUR/USD"; commodities ("CL=F") and indices ("^GSPC") render with their
+// friendly names. Display-only — the real symbol is unchanged and still used
+// for API calls and as the storage key.
 export function displaySymbol(symbol: string): string {
   if (!symbol) return symbol;
-  if (symbol.endsWith("=X")) {
-    const base = symbol.slice(0, -2).toUpperCase();
+  const upper = symbol.toUpperCase();
+  if (COMMODITY_NAMES[upper]) return COMMODITY_NAMES[upper];
+  if (INDEX_NAMES[upper]) return INDEX_NAMES[upper];
+  if (upper.endsWith("=X")) {
+    const base = upper.slice(0, -2);
     if (/^[A-Z]{6}$/.test(base)) return `${base.slice(0, 3)}/${base.slice(3)}`;
     return base;
   }
