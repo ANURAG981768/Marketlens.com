@@ -25,6 +25,37 @@ function ema(prices: number[], period: number): number | null {
   return e;
 }
 
+// Full EMA series over a chronological (oldest-first) array — one value per
+// point from the seed onward (length = prices.length − period + 1).
+function emaSeries(chrono: number[], period: number): number[] {
+  if (chrono.length < period) return [];
+  const k = 2 / (period + 1);
+  let e = chrono.slice(0, period).reduce((s, v) => s + v, 0) / period;
+  const out = [e];
+  for (let i = period; i < chrono.length; i++) {
+    e = chrono[i] * k + e * (1 - k);
+    out.push(e);
+  }
+  return out;
+}
+
+// MACD (12, 26, 9): the MACD line (EMA12 − EMA26), its 9-period signal line, and
+// the histogram. `closes` is newest-first; computed on the chronological series.
+function macdCalc(closesNewestFirst: number[]): { macd: number | null; signal: number | null; histogram: number | null } {
+  const chrono = [...closesNewestFirst].reverse();
+  const e12 = emaSeries(chrono, 12);
+  const e26 = emaSeries(chrono, 26);
+  if (e12.length === 0 || e26.length === 0) return { macd: null, signal: null, histogram: null };
+  const offset = e12.length - e26.length; // e26 starts later; align the tails
+  const macdLine: number[] = [];
+  for (let i = 0; i < e26.length; i++) macdLine.push(e12[i + offset] - e26[i]);
+  const signalLine = emaSeries(macdLine, 9);
+  const macd = macdLine.length ? macdLine[macdLine.length - 1] : null;
+  const signal = signalLine.length ? signalLine[signalLine.length - 1] : null;
+  const histogram = macd !== null && signal !== null ? macd - signal : null;
+  return { macd, signal, histogram };
+}
+
 // Wilder's RSI — the professional standard used by TradingView, Yahoo Finance,
 // etc. It smooths the average gain/loss across the whole series rather than a
 // plain average of just the last `period` changes, so our number matches what
@@ -68,7 +99,7 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
     const sma200 = sma(closes, 200);
     const ema12 = ema(closes, 12);
     const ema26 = ema(closes, 26);
-    const macd = ema12 && ema26 ? ema12 - ema26 : null;
+    const { macd, signal: macdSignal, histogram: macdHist } = macdCalc(closes);
     const rsiVal = rsi(closes);
 
     const high52 = Math.max(...closes.slice(0, 252));
@@ -88,8 +119,11 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
     else if (sma50) signals--;
     if (sma200 && currentPrice > sma200) signals++;
     else if (sma200) signals--;
-    if (macd && macd > 0) signals++;
-    else if (macd) signals--;
+    // Proper MACD signal: bullish when the MACD line is above its signal line.
+    if (macd !== null && macdSignal !== null) {
+      if (macd > macdSignal) signals++;
+      else signals--;
+    }
     // RSI convention: oversold (<30) leans bullish (mean-reversion bounce),
     // overbought (>70) leans bearish; the neutral band is a non-signal.
     if (rsiVal && rsiVal < 30) signals++;
@@ -106,6 +140,8 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
       ema12,
       ema26,
       macd,
+      macdSignal,
+      macdHist,
       rsiVal,
       high52,
       low52,
@@ -179,8 +215,16 @@ export default function TechnicalIndicators({ history, currentPrice }: Props) {
     },
     {
       label: "MACD",
-      value: indicators.macd ? indicators.macd.toFixed(4) : "—",
-      signal: indicators.macd ? indicators.macd > 0 : null,
+      value:
+        indicators.macd !== null && indicators.macdSignal !== null
+          ? indicators.macd > indicators.macdSignal
+            ? "Above signal"
+            : "Below signal"
+          : "—",
+      signal:
+        indicators.macd !== null && indicators.macdSignal !== null
+          ? indicators.macd > indicators.macdSignal
+          : null,
     },
     {
       label: "RSI (14)",
