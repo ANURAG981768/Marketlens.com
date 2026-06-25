@@ -58,7 +58,10 @@ export async function GET(req: NextRequest) {
         pe: typeof q.trailingPE === "number" ? q.trailingPE : null,
       };
     }
-    return NextResponse.json({ quotes });
+    return NextResponse.json(
+      { quotes },
+      { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" } }
+    );
   } catch {
     return NextResponse.json({ error: "unavailable" }, { status: 200 });
   }

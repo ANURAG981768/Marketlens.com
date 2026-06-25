@@ -63,5 +63,8 @@ export async function GET() {
   if (indices.length === 0) {
     return NextResponse.json({ error: "unavailable" }, { status: 200 });
   }
-  return NextResponse.json({ indices });
+  return NextResponse.json(
+    { indices },
+    { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300" } }
+  );
 }
