@@ -99,16 +99,24 @@ export default function InvestmentCalculator() {
     const months = (parseInt(goalYears) || 0) * 12;
     const init = parseFloat(goalInitial) || 0;
 
-    if (months <= 0 || r <= 0) return { monthlyNeeded: 0, totalInvested: 0, totalGains: 0 };
+    if (months <= 0) return { monthlyNeeded: 0, totalInvested: 0, totalGains: 0 };
 
     const futureInit = init * Math.pow(1 + r, months);
     const remaining = target - futureInit;
 
     // Future-value annuity-DUE factor (contributions at start of month), to
-    // match the DCA calculator's convention.
-    const annuityDueFactor = ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
-    const monthlyNeeded =
-      remaining > 0 ? remaining / annuityDueFactor : 0;
+    // match the DCA calculator's convention. With a 0% return there's no
+    // compounding, so the monthly need is just the shortfall spread evenly —
+    // otherwise the calculator would wrongly say "$0/month reaches your goal".
+    let monthlyNeeded: number;
+    if (remaining <= 0) {
+      monthlyNeeded = 0;
+    } else if (r <= 0) {
+      monthlyNeeded = remaining / months;
+    } else {
+      const annuityDueFactor = ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
+      monthlyNeeded = remaining / annuityDueFactor;
+    }
 
     const totalInvested = init + monthlyNeeded * months;
 
