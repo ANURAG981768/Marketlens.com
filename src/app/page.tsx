@@ -19,7 +19,6 @@ import ScoreCard from "@/components/ScoreCard";
 import DCFModel from "@/components/DCFModel";
 import NewsFeed from "@/components/NewsFeed";
 import WatchlistButton from "@/components/WatchlistButton";
-import AddToPortfolio from "@/components/AddToPortfolio";
 import WatchlistPanel from "@/components/WatchlistPanel";
 import SectionBanner from "@/components/SectionBanner";
 import SafeSection from "@/components/SafeSection";
@@ -863,7 +862,7 @@ export default function Home() {
               accent="azure"
               icon={Briefcase}
             />
-            <SafeSection label="your portfolio"><PortfolioPanel onSelect={fetchStock} refreshKey={refreshKey} /></SafeSection>
+            <SafeSection label="your portfolio"><PortfolioPanel onSelect={fetchStock} refreshKey={refreshKey} onStartTrading={() => setActiveTab("paper")} /></SafeSection>
             <NewsFeed isDemo />
           </div>
         )}
@@ -1240,12 +1239,6 @@ export default function Home() {
                       price={data.quote.price}
                       change={data.quote.change}
                       onUpdate={refresh}
-                    />
-                    <AddToPortfolio
-                      symbol={data.profile.symbol}
-                      name={data.profile.companyName}
-                      currentPrice={data.quote.price}
-                      onAdd={refresh}
                     />
                     <QuickTrade
                       symbol={data.profile.symbol}
