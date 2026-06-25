@@ -17,6 +17,7 @@ import {
   Crown,
 } from "lucide-react";
 import { searchStocks, type SearchItem } from "@/lib/search-data";
+import { formatPrice } from "@/lib/format";
 import CompanyLogo from "./CompanyLogo";
 
 const MAX_STOCKS = 4;
@@ -89,11 +90,11 @@ interface MetricRow {
 }
 
 const METRICS: MetricRow[] = [
-  { label: "Price", key: "price", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: false, category: "Price", icon: DollarSign, comparable: false },
+  { label: "Price", key: "price", format: (v) => formatPrice(v), higherIsBetter: false, category: "Price", icon: DollarSign, comparable: false },
   { label: "Market Cap", key: "marketCap", format: (v) => (v >= 1e12 ? `$${(v / 1e12).toFixed(2)}T` : v >= 1e9 ? `$${(v / 1e9).toFixed(1)}B` : `$${(v / 1e6).toFixed(0)}M`), higherIsBetter: true, category: "Price", icon: BarChart3, hint: "Total company value", comparable: false },
   { label: "Day Change", key: "changePercent", format: (v) => `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`, higherIsBetter: true, category: "Price", icon: TrendingUp, comparable: false },
-  { label: "52W High", key: "fiftyTwoWeekHigh", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: true, category: "Price", icon: TrendingUp, comparable: false },
-  { label: "Analyst Target", key: "targetPrice", format: (v) => `$${v.toFixed(2)}`, higherIsBetter: true, category: "Price", icon: TrendingUp, hint: "Mean analyst price target", comparable: false },
+  { label: "52W High", key: "fiftyTwoWeekHigh", format: (v) => formatPrice(v), higherIsBetter: true, category: "Price", icon: TrendingUp, comparable: false },
+  { label: "Analyst Target", key: "targetPrice", format: (v) => formatPrice(v), higherIsBetter: true, category: "Price", icon: TrendingUp, hint: "Mean analyst price target", comparable: false },
 
   { label: "P/E Ratio", key: "pe", format: (v) => `${v.toFixed(1)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Price / Earnings — lower is cheaper", positiveOnly: true },
   { label: "Forward P/E", key: "forwardPe", format: (v) => `${v.toFixed(1)}x`, higherIsBetter: false, category: "Valuation", icon: BarChart3, hint: "Based on next-year earnings", positiveOnly: true },
@@ -360,7 +361,7 @@ export default function StockCompare() {
                 <div className="animate-pulse h-7 bg-gray-100 rounded w-24" />
               ) : s.data ? (
                 <>
-                  <div className="text-xl font-bold tabular-nums">${s.data.price?.toFixed(2)}</div>
+                  <div className="text-xl font-bold tabular-nums">{s.data.price != null ? formatPrice(s.data.price) : "—"}</div>
                   <div className={`text-xs font-semibold flex items-center gap-0.5 ${up ? "text-green-600" : "text-red-600"}`}>
                     {up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                     {up ? "+" : ""}{s.data.changePercent?.toFixed(2)}%

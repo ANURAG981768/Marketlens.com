@@ -1,6 +1,6 @@
 "use client";
 
-import { formatRatio, formatPercent, formatCurrency } from "@/lib/format";
+import { formatRatio, formatPercent, formatCurrency, formatPrice } from "@/lib/format";
 import { Crown } from "lucide-react";
 
 interface PeerData {
@@ -127,7 +127,7 @@ export default function PeerComparison({ peers }: Props) {
                       : "text-[var(--color-text-secondary)]"
                   }`}
                 >
-                  ${peer.profile.price.toFixed(2)}
+                  {formatPrice(peer.profile.price)}
                 </td>
               ))}
             </tr>

@@ -2,7 +2,7 @@
 
 import { DollarSign, TrendingUp, Calendar } from "lucide-react";
 import type { StockData } from "@/lib/types";
-import { formatPercent, formatCurrency } from "@/lib/format";
+import { formatPercent, formatCurrency, formatPrice } from "@/lib/format";
 
 interface Props {
   data: StockData;
@@ -93,7 +93,7 @@ export default function DividendHistory({ data }: Props) {
           {
             label: "Dividend Yield",
             value: `${(displayYield * 100).toFixed(2)}%`,
-            sub: `Price: $${quote.price.toFixed(2)}`,
+            sub: `Price: ${formatPrice(quote.price)}`,
           },
           {
             label: "Payout Ratio",

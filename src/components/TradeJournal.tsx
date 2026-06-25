@@ -16,6 +16,7 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
+import { formatPrice } from "@/lib/format";
 
 interface JournalEntry {
   id: string;
@@ -539,7 +540,7 @@ export default function TradeJournal() {
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="text-right">
-                      <p className="text-sm font-bold tabular-nums">${entry.price.toFixed(2)}</p>
+                      <p className="text-sm font-bold tabular-nums">{formatPrice(entry.price)}</p>
                       {pnl !== null && (
                         <p
                           className={`text-[11px] font-semibold tabular-nums ${
@@ -594,7 +595,7 @@ export default function TradeJournal() {
                       <div className="flex items-center gap-4">
                         <div>
                           <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider mb-0.5">Exit Price</p>
-                          <p className="text-xs font-bold">${entry.exitPrice.toFixed(2)}</p>
+                          <p className="text-xs font-bold">{formatPrice(entry.exitPrice)}</p>
                         </div>
                         {pnl !== null && (
                           <div>

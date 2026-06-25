@@ -6,6 +6,7 @@ import { searchStocks, type SearchItem } from "@/lib/search-data";
 import CompanyLogo from "./CompanyLogo";
 import type { Fundamentals } from "./StockCompare";
 import { sectorPeNorm } from "@/lib/sector-norms";
+import { formatPrice } from "@/lib/format";
 
 interface Factor {
   key: string;
@@ -127,7 +128,7 @@ function narrative(f: Fundamentals, a: ReturnType<typeof analyze>): string {
   const px = n(f.price);
   if (tp !== null && px !== null && px > 0) {
     const up = ((tp - px) / px) * 100;
-    target = ` Wall Street's mean price target of $${tp.toFixed(2)} implies ${up >= 0 ? "+" : ""}${up.toFixed(0)}% versus the current price.`;
+    target = ` Wall Street's mean price target of ${formatPrice(tp)} implies ${up >= 0 ? "+" : ""}${up.toFixed(0)}% versus the current price.`;
   }
 
   const closer =
@@ -270,7 +271,7 @@ export default function CompanyOutlook() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-display text-2xl font-semibold tabular-nums">${n(data.price)?.toFixed(2) ?? "—"}</p>
+                <p className="font-display text-2xl font-semibold tabular-nums">{formatPrice(n(data.price) ?? NaN)}</p>
                 {n(data.changePercent) !== null && (
                   <p className={`text-xs font-semibold ${(data.changePercent ?? 0) >= 0 ? "text-[var(--color-positive)]" : "text-[var(--color-negative)]"}`}>
                     {(data.changePercent ?? 0) >= 0 ? "+" : ""}{(data.changePercent ?? 0).toFixed(2)}%

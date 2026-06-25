@@ -999,7 +999,7 @@ export default function PaperTrading({ onSelect }: Props) {
                           <p className="text-xs text-[var(--color-text-muted)] truncate max-w-[180px]">{stock.companyName}</p>
                         </div>
                       </div>
-                      <p className="text-sm font-semibold tabular-nums">${stock.price?.toFixed(2) || "—"}</p>
+                      <p className="text-sm font-semibold tabular-nums">{stock.price ? `$${priceStr(stock.price)}` : "—"}</p>
                     </button>
                   ))}
                   {filteredSectorStocks.length === 0 && (
@@ -1259,7 +1259,7 @@ export default function PaperTrading({ onSelect }: Props) {
                       </div>
                       {tradePrice && trailingPercent && (
                         <p className="text-[10px] text-[var(--color-text-muted)] mt-1.5">
-                          Trigger: ${(parseFloat(tradePrice) * (1 - parseFloat(trailingPercent) / 100)).toFixed(2)} ({tradeType === "sell" ? "below" : "above"} market)
+                          Trigger: ${priceStr(parseFloat(tradePrice) * (1 - parseFloat(trailingPercent) / 100))} ({tradeType === "sell" ? "below" : "above"} market)
                         </p>
                       )}
                     </>
