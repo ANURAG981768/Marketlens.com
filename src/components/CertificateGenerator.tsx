@@ -301,7 +301,7 @@ export default function CertificateGenerator() {
 
     // Completion statement
     ctx.font = "15px sans-serif"; ctx.fillStyle = "#6b7280"; ctx.fillText("has successfully completed the", 700, 496);
-    ctx.font = "bold 23px sans-serif"; ctx.fillStyle = "#0a7c3f"; ctx.fillText(`${track.title} course`, 700, 530);
+    ctx.font = "bold 23px sans-serif"; ctx.fillStyle = "#0a7c3f"; ctx.fillText(track.title, 700, 530);
     ctx.font = "14px sans-serif"; ctx.fillStyle = "#6b7280";
     ctx.fillText(`${track.lessonsRequired.length} lessons completed • ${(QUIZ_MAP[track.id] || []).length} quizzes passed • ${quizAvg}% average score`, 700, 564);
     ctx.fillText("on the MarketLens Research & Education Platform", 700, 589);
@@ -646,7 +646,7 @@ export default function CertificateGenerator() {
 
                 <p className="text-[11px] text-[var(--color-text-secondary)] mb-1">
                   has successfully completed the{" "}
-                  <span className="font-semibold text-[#0a7c3f]">{activeCert.title}</span> course
+                  <span className="font-semibold text-[#0a7c3f]">{activeCert.title}</span>
                 </p>
                 <p className="text-[10px] text-[var(--color-text-muted)] mb-5">
                   {activeCert.lessonsRequired.length} lessons • {(QUIZ_MAP[activeCert.id] || []).length} quizzes passed • {certificates[activeCert.id]?.quizAvg || getQuizAvg(activeCert.id)}% avg score
