@@ -49,6 +49,12 @@ export function middleware(req: NextRequest) {
     "Permissions-Policy",
     "camera=(), microphone=(), geolocation=(), payment=()"
   );
+  // Isolate our browsing context from cross-origin windows (mitigates tabnabbing
+  // / cross-origin leaks) while still permitting popups for any future OAuth.
+  // Deliberately NOT using COEP/CORP — those would block external logos and
+  // LinkedIn's preview scraper. Plus opportunistic DNS prefetch for speed.
+  res.headers.set("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  res.headers.set("X-DNS-Prefetch-Control", "on");
   const isDev = process.env.NODE_ENV === "development";
   if (!isDev) {
     res.headers.set(
